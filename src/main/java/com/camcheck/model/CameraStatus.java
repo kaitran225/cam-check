@@ -22,4 +22,7 @@ public class CameraStatus {
     
     @Schema(description = "Whether recording is in progress", example = "false")
     private boolean recording;
+    
+    @Schema(description = "Whether the system is using fallback mode (no real camera available)", example = "false")
+    private boolean fallbackMode;
 } 

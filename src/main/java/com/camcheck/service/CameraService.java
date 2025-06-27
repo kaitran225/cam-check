@@ -7,16 +7,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 /**
  * Service for camera operations
@@ -44,6 +46,9 @@ public class CameraService {
     private Webcam webcam;
     private ScheduledExecutorService executor;
     private boolean isStreaming = false;
+    private boolean useFallbackMode = false;
+    private BufferedImage fallbackImage;
+    private long frameCount = 0;
     
     public CameraService(SimpMessagingTemplate messagingTemplate, 
                         MotionDetectionService motionDetectionService,
@@ -58,26 +63,74 @@ public class CameraService {
         try {
             log.info("Initializing camera service");
             
+            // Try to get available webcams
+            List<Webcam> webcams = Webcam.getWebcams();
+            
+            if (webcams.isEmpty()) {
+                log.warn("No webcams detected. Using fallback mode.");
+                initFallbackMode();
+                return;
+            }
+            
+            // Check if requested device index is valid
+            if (deviceIndex >= webcams.size()) {
+                log.warn("Device index {} is out of range (max: {}). Using first available camera.", 
+                         deviceIndex, webcams.size() - 1);
+                deviceIndex = 0;
+            }
+            
             // Get the webcam
-            webcam = Webcam.getWebcams().get(deviceIndex);
+            webcam = webcams.get(deviceIndex);
             
             // Set resolution
             Dimension resolution = new Dimension(width, height);
             webcam.setViewSize(resolution);
             
-            // Open the webcam
-            webcam.open();
-            
-            log.info("Camera initialized successfully");
+            try {
+                // Try to open the webcam
+                webcam.open();
+                log.info("Camera initialized successfully: {}", webcam.getName());
+            } catch (Exception e) {
+                log.error("Failed to open camera: {}. Using fallback mode.", e.getMessage());
+                initFallbackMode();
+            }
         } catch (Exception e) {
-            log.error("Failed to initialize camera: {}", e.getMessage(), e);
+            log.error("Failed to initialize camera: {}. Using fallback mode.", e.getMessage(), e);
+            initFallbackMode();
         }
+    }
+    
+    /**
+     * Initialize fallback mode with a test pattern image
+     */
+    private void initFallbackMode() {
+        useFallbackMode = true;
+        fallbackImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = fallbackImage.createGraphics();
+        
+        // Fill background
+        g.setColor(Color.DARK_GRAY);
+        g.fillRect(0, 0, width, height);
+        
+        // Draw test pattern
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 24));
+        g.drawString("CamCheck - No Camera", width/2 - 120, height/2);
+        g.drawString("Fallback Mode", width/2 - 80, height/2 + 40);
+        
+        // Draw border
+        g.setColor(Color.RED);
+        g.drawRect(5, 5, width - 10, height - 10);
+        
+        g.dispose();
+        
+        log.info("Fallback mode initialized");
     }
     
     @PreDestroy
     public void shutdown() {
         stopStreaming();
-        if (webcam != null && webcam.isOpen()) {
+        if (!useFallbackMode && webcam != null && webcam.isOpen()) {
             webcam.close();
             log.info("Camera closed");
         }
@@ -97,35 +150,76 @@ public class CameraService {
         executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(() -> {
             try {
-                if (webcam != null && webcam.isOpen()) {
-                    // Capture frame
-                    var image = webcam.getImage();
-                    
-                    // Check for motion
-                    if (motionDetectionService.isEnabled()) {
-                        motionDetectionService.detectMotion(image);
+                BufferedImage image;
+                
+                if (useFallbackMode) {
+                    // Use fallback image and modify it slightly to simulate movement
+                    image = getModifiedFallbackImage();
+                } else if (webcam != null && webcam.isOpen()) {
+                    // Capture frame from real camera
+                    image = webcam.getImage();
+                    if (image == null) {
+                        // If camera fails during streaming, switch to fallback
+                        log.warn("Camera returned null image. Switching to fallback mode.");
+                        initFallbackMode();
+                        image = fallbackImage;
                     }
-                    
-                    // Record if needed
-                    if (recordingService.isRecording()) {
-                        recordingService.addFrame(image);
-                    }
-                    
-                    // Convert to base64 for streaming
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    ImageIO.write(image, "jpg", baos);
-                    byte[] imageBytes = baos.toByteArray();
-                    
-                    // Send to all connected clients
-                    String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-                    messagingTemplate.convertAndSend("/topic/camera", base64Image);
+                } else {
+                    // Should not happen, but just in case
+                    initFallbackMode();
+                    image = fallbackImage;
                 }
+                
+                // Check for motion
+                if (motionDetectionService.isEnabled()) {
+                    motionDetectionService.detectMotion(image);
+                }
+                
+                // Record if needed
+                if (recordingService.isRecording()) {
+                    recordingService.addFrame(image);
+                }
+                
+                // Convert to base64 for streaming
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(image, "jpg", baos);
+                byte[] imageBytes = baos.toByteArray();
+                
+                // Send to all connected clients
+                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+                messagingTemplate.convertAndSend("/topic/camera", base64Image);
+                
             } catch (IOException e) {
                 log.error("Error streaming camera frame: {}", e.getMessage(), e);
             }
         }, 0, 1000 / frameRate, TimeUnit.MILLISECONDS);
         
         log.info("Camera streaming started at {} fps", frameRate);
+    }
+    
+    /**
+     * Get a modified version of the fallback image to simulate movement
+     */
+    private BufferedImage getModifiedFallbackImage() {
+        // Create a copy of the fallback image
+        BufferedImage modifiedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = modifiedImage.createGraphics();
+        g.drawImage(fallbackImage, 0, 0, null);
+        
+        // Add a timestamp and frame counter to simulate changing content
+        frameCount++;
+        g.setColor(Color.GREEN);
+        g.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        g.drawString("Frame: " + frameCount, 20, height - 50);
+        g.drawString("Time: " + System.currentTimeMillis(), 20, height - 30);
+        
+        // Add a moving element
+        int position = (int)(frameCount % width);
+        g.setColor(Color.YELLOW);
+        g.fillOval(position, 50, 20, 20);
+        
+        g.dispose();
+        return modifiedImage;
     }
     
     /**
@@ -160,12 +254,24 @@ public class CameraService {
      */
     public String takeSnapshot() {
         try {
-            if (webcam != null && webcam.isOpen()) {
-                var image = webcam.getImage();
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(image, "jpg", baos);
-                return Base64.getEncoder().encodeToString(baos.toByteArray());
+            BufferedImage image;
+            
+            if (useFallbackMode) {
+                image = getModifiedFallbackImage();
+            } else if (webcam != null && webcam.isOpen()) {
+                image = webcam.getImage();
+                if (image == null) {
+                    initFallbackMode();
+                    image = fallbackImage;
+                }
+            } else {
+                initFallbackMode();
+                image = fallbackImage;
             }
+            
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", baos);
+            return Base64.getEncoder().encodeToString(baos.toByteArray());
         } catch (IOException e) {
             log.error("Error taking snapshot: {}", e.getMessage(), e);
         }
@@ -177,5 +283,12 @@ public class CameraService {
      */
     public boolean isStreaming() {
         return isStreaming;
+    }
+    
+    /**
+     * Check if using fallback mode
+     */
+    public boolean isUsingFallback() {
+        return useFallbackMode;
     }
 } 

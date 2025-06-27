@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +45,7 @@ public class ApiController {
     @GetMapping("/status")
     @Operation(summary = "Get camera status", description = "Returns the current status of the camera system")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Status retrieved successfully",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Status retrieved successfully",
                 content = @Content(mediaType = "application/json", 
                 schema = @Schema(implementation = ApiResponse.class)))
     })
@@ -56,7 +55,8 @@ public class ApiController {
         CameraStatus status = new CameraStatus(
             cameraService.isStreaming(),
             motionDetectionService.isEnabled(),
-            recordingService.isRecording()
+            recordingService.isRecording(),
+            cameraService.isUsingFallback()
         );
         
         return ResponseEntity.ok(ApiResponse.success(status));
@@ -68,9 +68,9 @@ public class ApiController {
     @PostMapping("/camera/stream/start")
     @Operation(summary = "Start camera streaming", description = "Starts the camera stream for viewing")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Stream started successfully",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Stream started successfully",
                 content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
                 content = @Content)
     })
     public ResponseEntity<Map<String, Object>> startStreaming() {
@@ -90,9 +90,9 @@ public class ApiController {
     @PostMapping("/camera/stream/stop")
     @Operation(summary = "Stop camera streaming", description = "Stops the camera stream")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Stream stopped successfully",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Stream stopped successfully",
                 content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
                 content = @Content)
     })
     public ResponseEntity<Map<String, Object>> stopStreaming() {
@@ -112,9 +112,9 @@ public class ApiController {
     @GetMapping("/camera/snapshot")
     @Operation(summary = "Take camera snapshot", description = "Captures a single image from the camera")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Snapshot taken successfully",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Snapshot taken successfully",
                 content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error or failed to take snapshot",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error or failed to take snapshot",
                 content = @Content)
     })
     public ResponseEntity<Map<String, Object>> takeSnapshot() {
@@ -139,9 +139,9 @@ public class ApiController {
     @PutMapping("/motion-detection/{enabled}")
     @Operation(summary = "Set motion detection status", description = "Enable or disable motion detection")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Motion detection setting updated",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Motion detection setting updated",
                 content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
                 content = @Content)
     })
     public ResponseEntity<Map<String, Object>> setMotionDetection(
@@ -163,9 +163,9 @@ public class ApiController {
     @PostMapping("/recording/start")
     @Operation(summary = "Start recording", description = "Start recording video from the camera")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Recording started successfully",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Recording started successfully",
                 content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
                 content = @Content)
     })
     public ResponseEntity<Map<String, Object>> startRecording() {
@@ -185,9 +185,9 @@ public class ApiController {
     @PostMapping("/recording/stop")
     @Operation(summary = "Stop recording", description = "Stop recording video and save the recording")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Recording stopped successfully",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Recording stopped successfully",
                 content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
                 content = @Content)
     })
     public ResponseEntity<Map<String, Object>> stopRecording() {
