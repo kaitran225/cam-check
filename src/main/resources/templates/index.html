@@ -48,6 +48,7 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
         }
         .video-feed {
             width: 100%;
@@ -57,10 +58,22 @@
             align-items: center;
             justify-content: center;
             color: #666;
+            position: relative;
         }
         .video-feed img {
             max-width: 100%;
             max-height: 100%;
+        }
+        .fallback-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(234, 67, 53, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 10;
         }
         .controls {
             flex: 1;
@@ -78,6 +91,19 @@
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-badge {
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background-color: #ccc;
+            color: white;
+        }
+        .status-active {
+            background-color: #34a853;
         }
         button {
             padding: 10px 15px;
@@ -88,6 +114,7 @@
             cursor: pointer;
             margin-right: 10px;
             margin-bottom: 10px;
+            transition: background-color 0.2s;
         }
         button:hover {
             background-color: #3367d6;
@@ -167,6 +194,16 @@
             background-color: #f8f9fa;
             border-left: 4px solid #4285f4;
         }
+        .camera-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .camera-info p {
+            margin: 5px 0;
+        }
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -195,6 +232,9 @@
                 <div class="video-feed" id="videoFeed">
                     <span>Camera feed loading...</span>
                 </div>
+                <div class="fallback-indicator" id="fallbackIndicator" style="display: none;">
+                    Fallback Mode Active
+                </div>
                 <div class="notification-area" id="notifications" style="display: none;">
                     <strong>Notification:</strong> <span id="notificationText"></span>
                 </div>
@@ -202,14 +242,29 @@
             
             <div class="controls">
                 <div class="control-group">
-                    <h3>Camera Controls</h3>
+                    <h3>
+                        Camera Controls
+                        <span id="streamingStatus" class="status-badge" th:classappend="${isStreaming ? 'status-active' : ''}">
+                            <span th:text="${isStreaming ? 'Active' : 'Inactive'}">Status</span>
+                        </span>
+                    </h3>
                     <button id="startStreamBtn" th:style="${isStreaming ? 'display: none' : ''}">Start Stream</button>
                     <button id="stopStreamBtn" class="danger" th:style="${!isStreaming ? 'display: none' : ''}">Stop Stream</button>
                     <button id="takeSnapshotBtn">Take Snapshot</button>
+                    
+                    <div class="camera-info">
+                        <p><strong>Status:</strong> <span id="cameraStatus" th:text="${isStreaming ? 'Streaming' : 'Idle'}">Idle</span></p>
+                        <p><strong>Fallback Mode:</strong> <span id="fallbackStatus" th:text="${isFallbackMode ? 'Active' : 'Inactive'}">Unknown</span></p>
+                    </div>
                 </div>
                 
                 <div class="control-group">
-                    <h3>Motion Detection</h3>
+                    <h3>
+                        Motion Detection
+                        <span id="motionStatus" class="status-badge" th:classappend="${isMotionDetectionEnabled ? 'status-active' : ''}">
+                            <span th:text="${isMotionDetectionEnabled ? 'Enabled' : 'Disabled'}">Status</span>
+                        </span>
+                    </h3>
                     <label class="switch">
                         <input type="checkbox" id="motionDetectionToggle" th:checked="${isMotionDetectionEnabled}">
                         <span class="slider"></span>
@@ -221,7 +276,12 @@
                 </div>
                 
                 <div class="control-group">
-                    <h3>Recording</h3>
+                    <h3>
+                        Recording
+                        <span id="recordingStatus" class="status-badge" th:classappend="${isRecording ? 'status-active' : ''}">
+                            <span th:text="${isRecording ? 'Active' : 'Inactive'}">Status</span>
+                        </span>
+                    </h3>
                     <button id="startRecordingBtn" th:style="${isRecording ? 'display: none' : ''}" class="success">Start Recording</button>
                     <button id="stopRecordingBtn" th:style="${!isRecording ? 'display: none' : ''}" class="danger">Stop Recording</button>
                 </div>
@@ -239,6 +299,7 @@
         const isStreaming = [[${isStreaming}]];
         const isMotionDetectionEnabled = [[${isMotionDetectionEnabled}]];
         const isRecording = [[${isRecording}]];
+        const isFallbackMode = [[${isFallbackMode != null ? isFallbackMode : false}]];
         
         // DOM elements
         const videoFeed = document.getElementById('videoFeed');
@@ -250,6 +311,17 @@
         const stopRecordingBtn = document.getElementById('stopRecordingBtn');
         const notifications = document.getElementById('notifications');
         const notificationText = document.getElementById('notificationText');
+        const fallbackIndicator = document.getElementById('fallbackIndicator');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const fallbackStatus = document.getElementById('fallbackStatus');
+        const streamingStatus = document.getElementById('streamingStatus');
+        const motionStatus = document.getElementById('motionStatus');
+        const recordingStatus = document.getElementById('recordingStatus');
+        
+        // Show fallback indicator if in fallback mode
+        if (isFallbackMode) {
+            fallbackIndicator.style.display = 'block';
+        }
         
         // Connect to WebSocket
         function connect() {
@@ -276,12 +348,20 @@
                     if (data.status === 'started') {
                         showNotification(`Recording started at ${data.time}`);
                         toggleRecordingButtons(true);
+                        updateStatusBadge(recordingStatus, true);
                     } else if (data.status === 'stopped') {
                         showNotification(`Recording stopped at ${data.time}`);
                         toggleRecordingButtons(false);
+                        updateStatusBadge(recordingStatus, false);
                     } else if (data.status === 'saved') {
                         showNotification(`Recording saved with ${data.frames} frames`);
                     }
+                });
+                
+                // Subscribe to status updates
+                stompClient.subscribe('/topic/status', function(message) {
+                    const data = JSON.parse(message.body);
+                    updateStatus(data);
                 });
                 
                 // If streaming is enabled, start it
@@ -303,9 +383,49 @@
             }
         }
         
+        // Update status badges
+        function updateStatusBadge(element, isActive) {
+            if (isActive) {
+                element.classList.add('status-active');
+                element.querySelector('span').textContent = element.id === 'motionStatus' ? 'Enabled' : 'Active';
+            } else {
+                element.classList.remove('status-active');
+                element.querySelector('span').textContent = element.id === 'motionStatus' ? 'Disabled' : 'Inactive';
+            }
+        }
+        
+        // Update status based on server response
+        function updateStatus(data) {
+            if (data.streaming !== undefined) {
+                updateStatusBadge(streamingStatus, data.streaming);
+                cameraStatus.textContent = data.streaming ? 'Streaming' : 'Idle';
+            }
+            
+            if (data.fallbackMode !== undefined) {
+                fallbackStatus.textContent = data.fallbackMode ? 'Active' : 'Inactive';
+                fallbackIndicator.style.display = data.fallbackMode ? 'block' : 'none';
+            }
+            
+            if (data.motionDetection !== undefined) {
+                updateStatusBadge(motionStatus, data.motionDetection);
+                const statusIndicator = document.querySelector('.status-indicator');
+                const statusText = statusIndicator.nextElementSibling;
+                
+                if (data.motionDetection) {
+                    statusIndicator.classList.remove('status-off');
+                    statusIndicator.classList.add('status-on');
+                    statusText.textContent = 'Enabled';
+                } else {
+                    statusIndicator.classList.remove('status-on');
+                    statusIndicator.classList.add('status-off');
+                    statusText.textContent = 'Disabled';
+                }
+            }
+        }
+        
         // Start streaming
         function startStreaming() {
-            fetch('/api/camera/start', {
+            fetch('/api/v1/camera/stream/start', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -316,15 +436,20 @@
                 if (data.status === 'success') {
                     startStreamBtn.style.display = 'none';
                     stopStreamBtn.style.display = 'inline-block';
+                    updateStatusBadge(streamingStatus, true);
+                    cameraStatus.textContent = 'Streaming';
                     showNotification('Camera streaming started');
                 }
             })
-            .catch(error => console.error('Error starting stream:', error));
+            .catch(error => {
+                console.error('Error starting stream:', error);
+                showNotification('Failed to start streaming', true);
+            });
         }
         
         // Stop streaming
         function stopStreaming() {
-            fetch('/api/camera/stop', {
+            fetch('/api/v1/camera/stream/stop', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -335,16 +460,21 @@
                 if (data.status === 'success') {
                     stopStreamBtn.style.display = 'none';
                     startStreamBtn.style.display = 'inline-block';
+                    updateStatusBadge(streamingStatus, false);
+                    cameraStatus.textContent = 'Idle';
                     showNotification('Camera streaming stopped');
                     videoFeed.innerHTML = '<span>Camera feed stopped</span>';
                 }
             })
-            .catch(error => console.error('Error stopping stream:', error));
+            .catch(error => {
+                console.error('Error stopping stream:', error);
+                showNotification('Failed to stop streaming', true);
+            });
         }
         
         // Take snapshot
         function takeSnapshot() {
-            fetch('/api/camera/snapshot')
+            fetch('/api/v1/camera/snapshot')
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
@@ -361,13 +491,16 @@
                     showNotification('Failed to take snapshot', true);
                 }
             })
-            .catch(error => console.error('Error taking snapshot:', error));
+            .catch(error => {
+                console.error('Error taking snapshot:', error);
+                showNotification('Failed to take snapshot', true);
+            });
         }
         
         // Toggle motion detection
         function toggleMotionDetection(enabled) {
-            fetch(`/api/motion/${enabled}`, {
-                method: 'POST',
+            fetch(`/api/v1/motion-detection/${enabled}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -375,6 +508,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
+                    updateStatusBadge(motionStatus, data.motionDetection);
                     const statusIndicator = document.querySelector('.status-indicator');
                     const statusText = statusIndicator.nextElementSibling;
                     
@@ -391,12 +525,15 @@
                     }
                 }
             })
-            .catch(error => console.error('Error toggling motion detection:', error));
+            .catch(error => {
+                console.error('Error toggling motion detection:', error);
+                showNotification('Failed to toggle motion detection', true);
+            });
         }
         
         // Start recording
         function startRecording() {
-            fetch('/api/recording/start', {
+            fetch('/api/v1/recording/start', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -406,14 +543,19 @@
             .then(data => {
                 if (data.status === 'success') {
                     toggleRecordingButtons(true);
+                    updateStatusBadge(recordingStatus, true);
+                    showNotification('Recording started');
                 }
             })
-            .catch(error => console.error('Error starting recording:', error));
+            .catch(error => {
+                console.error('Error starting recording:', error);
+                showNotification('Failed to start recording', true);
+            });
         }
         
         // Stop recording
         function stopRecording() {
-            fetch('/api/recording/stop', {
+            fetch('/api/v1/recording/stop', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -423,9 +565,14 @@
             .then(data => {
                 if (data.status === 'success') {
                     toggleRecordingButtons(false);
+                    updateStatusBadge(recordingStatus, false);
+                    showNotification('Recording stopped');
                 }
             })
-            .catch(error => console.error('Error stopping recording:', error));
+            .catch(error => {
+                console.error('Error stopping recording:', error);
+                showNotification('Failed to stop recording', true);
+            });
         }
         
         // Toggle recording buttons
@@ -456,10 +603,29 @@
             }, 5000);
         }
         
+        // Fetch current status
+        function fetchStatus() {
+            fetch('/api/v1/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.data) {
+                    updateStatus({
+                        streaming: data.data.streaming,
+                        fallbackMode: data.data.fallbackMode,
+                        motionDetection: data.data.motionDetection
+                    });
+                }
+            })
+            .catch(error => console.error('Error fetching status:', error));
+        }
+        
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
             // Connect to WebSocket
             connect();
+            
+            // Fetch initial status
+            fetchStatus();
             
             // Button event listeners
             startStreamBtn.addEventListener('click', startStreaming);
@@ -470,6 +636,9 @@
             });
             startRecordingBtn.addEventListener('click', startRecording);
             stopRecordingBtn.addEventListener('click', stopRecording);
+            
+            // Refresh status every 30 seconds
+            setInterval(fetchStatus, 30000);
         });
     </script>
 </body>

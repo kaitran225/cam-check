@@ -19,13 +19,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Service for camera operations
  */
 @Service
 @Slf4j
-public class    CameraService {
+public class CameraService {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final MotionDetectionService motionDetectionService;
@@ -42,6 +44,9 @@ public class    CameraService {
     
     @Value("${camcheck.camera.frame-rate}")
     private int frameRate;
+    
+    @Value("${camcheck.camera.force-fallback:false}")
+    private boolean forceFallback;
     
     private Webcam webcam;
     private ScheduledExecutorService executor;
@@ -62,6 +67,13 @@ public class    CameraService {
     public void init() {
         try {
             log.info("Initializing camera service");
+            
+            // Check if fallback mode is forced
+            if (forceFallback) {
+                log.info("Fallback mode is forced by configuration");
+                initFallbackMode();
+                return;
+            }
             
             // Try to get available webcams
             List<Webcam> webcams = Webcam.getWebcams();
@@ -98,6 +110,9 @@ public class    CameraService {
             log.error("Failed to initialize camera: {}. Using fallback mode.", e.getMessage(), e);
             initFallbackMode();
         }
+        
+        // Broadcast initial status
+        broadcastStatus();
     }
     
     /**
@@ -195,6 +210,9 @@ public class    CameraService {
         }, 0, 1000 / frameRate, TimeUnit.MILLISECONDS);
         
         log.info("Camera streaming started at {} fps", frameRate);
+        
+        // Broadcast updated status
+        broadcastStatus();
     }
     
     /**
@@ -246,6 +264,9 @@ public class    CameraService {
         }
         
         log.info("Camera streaming stopped");
+        
+        // Broadcast updated status
+        broadcastStatus();
     }
     
     /**
@@ -290,5 +311,23 @@ public class    CameraService {
      */
     public boolean isUsingFallback() {
         return useFallbackMode;
+    }
+    
+    /**
+     * Broadcast camera status to all connected clients
+     */
+    public void broadcastStatus() {
+        try {
+            Map<String, Object> status = new HashMap<>();
+            status.put("streaming", isStreaming);
+            status.put("fallbackMode", useFallbackMode);
+            status.put("motionDetection", motionDetectionService.isEnabled());
+            status.put("recording", recordingService.isRecording());
+            
+            messagingTemplate.convertAndSend("/topic/status", status);
+            log.debug("Camera status broadcast: {}", status);
+        } catch (Exception e) {
+            log.error("Error broadcasting camera status: {}", e.getMessage(), e);
+        }
     }
 } 

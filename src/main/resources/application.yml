@@ -24,7 +24,7 @@ camcheck:
   # Security settings
   security:
     username: admin
-    password: changeThisPassword
+    password: 123
     
   # Camera settings
   camera:

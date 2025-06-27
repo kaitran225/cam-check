@@ -47,6 +47,7 @@ public class CameraController {
         model.addAttribute("isStreaming", cameraService.isStreaming());
         model.addAttribute("isMotionDetectionEnabled", motionDetectionService.isEnabled());
         model.addAttribute("isRecording", recordingService.isRecording());
+        model.addAttribute("isFallbackMode", cameraService.isUsingFallback());
         return "index";
     }
     
