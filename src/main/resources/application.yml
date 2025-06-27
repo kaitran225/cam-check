@@ -41,6 +41,9 @@ camcheck:
     # Camera device index (usually 0 for the first camera)
     device-index: 0
     
+    # Force fallback mode (use this if you don't have a camera or want to test without one)
+    force-fallback: true
+    
     # IP camera settings (if type is set to 'ip')
     ip-url: http://192.168.1.100:8080/video
     

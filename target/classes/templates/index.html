@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CamCheck - Security Camera</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        h1 {
+            margin: 0;
+            color: #333;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .user-info span {
+            margin-right: 15px;
+        }
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .video-container {
+            flex: 1;
+            min-width: 640px;
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .video-feed {
+            width: 100%;
+            height: 480px;
+            background-color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+        .video-feed img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .controls {
+            flex: 1;
+            min-width: 300px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        button.danger {
+            background-color: #ea4335;
+        }
+        button.danger:hover {
+            background-color: #d33426;
+        }
+        button.success {
+            background-color: #34a853;
+        }
+        button.success:hover {
+            background-color: #2d9246;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #34a853;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .status {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-on {
+            background-color: #34a853;
+        }
+        .status-off {
+            background-color: #ea4335;
+        }
+        .notification-area {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #4285f4;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .video-container, .controls {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CamCheck</h1>
+            <div class="user-info">
+                <span sec:authentication="name">Username</span>
+                <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: #4285f4;">API Docs</a>
+                <form th:action="@{/logout}" method="post">
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="video-container">
+                <div class="video-feed" id="videoFeed">
+                    <span>Camera feed loading...</span>
+                </div>
+                <div class="notification-area" id="notifications" style="display: none;">
+                    <strong>Notification:</strong> <span id="notificationText"></span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h3>Camera Controls</h3>
+                    <button id="startStreamBtn" th:style="${isStreaming ? 'display: none' : ''}">Start Stream</button>
+                    <button id="stopStreamBtn" class="danger" th:style="${!isStreaming ? 'display: none' : ''}">Stop Stream</button>
+                    <button id="takeSnapshotBtn">Take Snapshot</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Motion Detection</h3>
+                    <label class="switch">
+                        <input type="checkbox" id="motionDetectionToggle" th:checked="${isMotionDetectionEnabled}">
+                        <span class="slider"></span>
+                    </label>
+                    <div class="status">
+                        <span class="status-indicator" th:classappend="${isMotionDetectionEnabled ? 'status-on' : 'status-off'}"></span>
+                        <span th:text="${isMotionDetectionEnabled ? 'Enabled' : 'Disabled'}">Status</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Recording</h3>
+                    <button id="startRecordingBtn" th:style="${isRecording ? 'display: none' : ''}" class="success">Start Recording</button>
+                    <button id="stopRecordingBtn" th:style="${!isRecording ? 'display: none' : ''}" class="danger">Stop Recording</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SockJS and STOMP for WebSocket -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stomp-websocket@2.3.4-next/lib/stomp.min.js"></script>
+    
+    <script th:inline="javascript">
+        // Global variables
+        let stompClient = null;
+        const isStreaming = [[${isStreaming}]];
+        const isMotionDetectionEnabled = [[${isMotionDetectionEnabled}]];
+        const isRecording = [[${isRecording}]];
+        
+        // DOM elements
+        const videoFeed = document.getElementById('videoFeed');
+        const startStreamBtn = document.getElementById('startStreamBtn');
+        const stopStreamBtn = document.getElementById('stopStreamBtn');
+        const takeSnapshotBtn = document.getElementById('takeSnapshotBtn');
+        const motionDetectionToggle = document.getElementById('motionDetectionToggle');
+        const startRecordingBtn = document.getElementById('startRecordingBtn');
+        const stopRecordingBtn = document.getElementById('stopRecordingBtn');
+        const notifications = document.getElementById('notifications');
+        const notificationText = document.getElementById('notificationText');
+        
+        // Connect to WebSocket
+        function connect() {
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function(frame) {
+                console.log('Connected to WebSocket: ' + frame);
+                
+                // Subscribe to camera feed
+                stompClient.subscribe('/topic/camera', function(message) {
+                    updateCameraFeed(message.body);
+                });
+                
+                // Subscribe to motion detection events
+                stompClient.subscribe('/topic/motion', function(message) {
+                    const data = JSON.parse(message.body);
+                    showNotification(`Motion detected at ${data.time}`);
+                });
+                
+                // Subscribe to recording events
+                stompClient.subscribe('/topic/recording', function(message) {
+                    const data = JSON.parse(message.body);
+                    
+                    if (data.status === 'started') {
+                        showNotification(`Recording started at ${data.time}`);
+                        toggleRecordingButtons(true);
+                    } else if (data.status === 'stopped') {
+                        showNotification(`Recording stopped at ${data.time}`);
+                        toggleRecordingButtons(false);
+                    } else if (data.status === 'saved') {
+                        showNotification(`Recording saved with ${data.frames} frames`);
+                    }
+                });
+                
+                // If streaming is enabled, start it
+                if (isStreaming) {
+                    startStreaming();
+                }
+            });
+        }
+        
+        // Update camera feed with new image
+        function updateCameraFeed(imageData) {
+            if (videoFeed.querySelector('img')) {
+                videoFeed.querySelector('img').src = `data:image/jpeg;base64,${imageData}`;
+            } else {
+                const img = document.createElement('img');
+                img.src = `data:image/jpeg;base64,${imageData}`;
+                videoFeed.innerHTML = '';
+                videoFeed.appendChild(img);
+            }
+        }
+        
+        // Start streaming
+        function startStreaming() {
+            fetch('/api/camera/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    startStreamBtn.style.display = 'none';
+                    stopStreamBtn.style.display = 'inline-block';
+                    showNotification('Camera streaming started');
+                }
+            })
+            .catch(error => console.error('Error starting stream:', error));
+        }
+        
+        // Stop streaming
+        function stopStreaming() {
+            fetch('/api/camera/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    stopStreamBtn.style.display = 'none';
+                    startStreamBtn.style.display = 'inline-block';
+                    showNotification('Camera streaming stopped');
+                    videoFeed.innerHTML = '<span>Camera feed stopped</span>';
+                }
+            })
+            .catch(error => console.error('Error stopping stream:', error));
+        }
+        
+        // Take snapshot
+        function takeSnapshot() {
+            fetch('/api/camera/snapshot')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Create a link to download the image
+                    const link = document.createElement('a');
+                    link.href = `data:image/jpeg;base64,${data.image}`;
+                    link.download = `snapshot_${new Date().toISOString().replace(/:/g, '-')}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    showNotification('Snapshot taken and downloaded');
+                } else {
+                    showNotification('Failed to take snapshot', true);
+                }
+            })
+            .catch(error => console.error('Error taking snapshot:', error));
+        }
+        
+        // Toggle motion detection
+        function toggleMotionDetection(enabled) {
+            fetch(`/api/motion/${enabled}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const statusIndicator = document.querySelector('.status-indicator');
+                    const statusText = statusIndicator.nextElementSibling;
+                    
+                    if (data.motionDetection) {
+                        statusIndicator.classList.remove('status-off');
+                        statusIndicator.classList.add('status-on');
+                        statusText.textContent = 'Enabled';
+                        showNotification('Motion detection enabled');
+                    } else {
+                        statusIndicator.classList.remove('status-on');
+                        statusIndicator.classList.add('status-off');
+                        statusText.textContent = 'Disabled';
+                        showNotification('Motion detection disabled');
+                    }
+                }
+            })
+            .catch(error => console.error('Error toggling motion detection:', error));
+        }
+        
+        // Start recording
+        function startRecording() {
+            fetch('/api/recording/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    toggleRecordingButtons(true);
+                }
+            })
+            .catch(error => console.error('Error starting recording:', error));
+        }
+        
+        // Stop recording
+        function stopRecording() {
+            fetch('/api/recording/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    toggleRecordingButtons(false);
+                }
+            })
+            .catch(error => console.error('Error stopping recording:', error));
+        }
+        
+        // Toggle recording buttons
+        function toggleRecordingButtons(isRecording) {
+            if (isRecording) {
+                startRecordingBtn.style.display = 'none';
+                stopRecordingBtn.style.display = 'inline-block';
+            } else {
+                stopRecordingBtn.style.display = 'none';
+                startRecordingBtn.style.display = 'inline-block';
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, isError = false) {
+            notificationText.textContent = message;
+            notifications.style.display = 'block';
+            
+            if (isError) {
+                notifications.style.borderLeftColor = '#ea4335';
+            } else {
+                notifications.style.borderLeftColor = '#4285f4';
+            }
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                notifications.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Connect to WebSocket
+            connect();
+            
+            // Button event listeners
+            startStreamBtn.addEventListener('click', startStreaming);
+            stopStreamBtn.addEventListener('click', stopStreaming);
+            takeSnapshotBtn.addEventListener('click', takeSnapshot);
+            motionDetectionToggle.addEventListener('change', function() {
+                toggleMotionDetection(this.checked);
+            });
+            startRecordingBtn.addEventListener('click', startRecording);
+            stopRecordingBtn.addEventListener('click', stopRecording);
+        });
+    </script>
+</body>
+</html> 

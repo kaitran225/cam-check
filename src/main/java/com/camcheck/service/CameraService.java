@@ -25,7 +25,7 @@ import java.util.List;
  */
 @Service
 @Slf4j
-public class CameraService {
+public class    CameraService {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final MotionDetectionService motionDetectionService;
