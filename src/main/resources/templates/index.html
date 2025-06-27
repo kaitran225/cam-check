@@ -5,12 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CamCheck - Security Camera</title>
     <style>
+        :root {
+            --matcha-green: #86b17f;
+            --matcha-green-light: #a7cba0;
+            --dark-oak: #3c2f2f;
+            --dark-bg: #1a1a1a;
+            --dark-surface: #252525;
+            --text-light: #f0f0f0;
+            --text-secondary: #b0b0b0;
+            --accent-red: #c75f5f;
+            --accent-yellow: #d6ad60;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f5f5f5;
-            color: #333;
+            background-color: var(--dark-bg);
+            color: var(--text-light);
         }
         .container {
             max-width: 1200px;
@@ -23,11 +34,12 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--dark-oak);
         }
         h1 {
             margin: 0;
-            color: #333;
+            color: var(--matcha-green);
+            letter-spacing: 1px;
         }
         .user-info {
             display: flex;
@@ -35,6 +47,7 @@
         }
         .user-info span {
             margin-right: 15px;
+            color: var(--text-secondary);
         }
         .main-content {
             display: flex;
@@ -47,17 +60,18 @@
             background-color: #000;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             position: relative;
+            border: 1px solid var(--dark-oak);
         }
         .video-feed {
             width: 100%;
             height: 480px;
-            background-color: #333;
+            background-color: #111;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #666;
+            color: var(--text-secondary);
             position: relative;
         }
         .video-feed img {
@@ -68,20 +82,40 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            background-color: rgba(234, 67, 53, 0.8);
+            background-color: rgba(199, 95, 95, 0.8);
             color: white;
             padding: 5px 10px;
             border-radius: 4px;
             font-size: 12px;
             z-index: 10;
         }
+        .camera-not-ready {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+        .camera-not-ready i {
+            font-size: 64px;
+            color: var(--accent-yellow);
+            margin-bottom: 20px;
+        }
         .controls {
             flex: 1;
             min-width: 300px;
-            background-color: white;
+            background-color: var(--dark-surface);
             border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--dark-oak);
         }
         .control-group {
             margin-bottom: 20px;
@@ -90,46 +124,64 @@
             margin-top: 0;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--dark-oak);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: var(--matcha-green);
         }
         .status-badge {
             font-size: 12px;
             padding: 3px 8px;
             border-radius: 12px;
-            background-color: #ccc;
-            color: white;
+            background-color: #444;
+            color: var(--text-light);
         }
         .status-active {
-            background-color: #34a853;
+            background-color: var(--matcha-green);
         }
         button {
             padding: 10px 15px;
-            background-color: #4285f4;
-            color: white;
+            background-color: var(--matcha-green);
+            color: var(--dark-bg);
             border: none;
             border-radius: 4px;
             cursor: pointer;
             margin-right: 10px;
             margin-bottom: 10px;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         button:hover {
-            background-color: #3367d6;
+            background-color: var(--matcha-green-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
         button.danger {
-            background-color: #ea4335;
+            background-color: var(--accent-red);
+            color: var(--text-light);
         }
         button.danger:hover {
-            background-color: #d33426;
+            background-color: #d87777;
         }
         button.success {
-            background-color: #34a853;
+            background-color: var(--matcha-green);
         }
         button.success:hover {
-            background-color: #2d9246;
+            background-color: var(--matcha-green-light);
+        }
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            color: #777;
+        }
+        button:disabled:hover {
+            background-color: #444;
+            transform: none;
+            box-shadow: none;
         }
         .switch {
             position: relative;
@@ -149,7 +201,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #ccc;
+            background-color: #444;
             transition: .4s;
             border-radius: 34px;
         }
@@ -160,12 +212,12 @@
             width: 26px;
             left: 4px;
             bottom: 4px;
-            background-color: white;
+            background-color: var(--text-light);
             transition: .4s;
             border-radius: 50%;
         }
         input:checked + .slider {
-            background-color: #34a853;
+            background-color: var(--matcha-green);
         }
         input:checked + .slider:before {
             transform: translateX(26px);
@@ -182,27 +234,94 @@
             margin-right: 5px;
         }
         .status-on {
-            background-color: #34a853;
+            background-color: var(--matcha-green);
         }
         .status-off {
-            background-color: #ea4335;
+            background-color: var(--accent-red);
         }
         .notification-area {
             margin-top: 20px;
             padding: 15px;
             border-radius: 8px;
-            background-color: #f8f9fa;
-            border-left: 4px solid #4285f4;
+            background-color: rgba(37, 37, 37, 0.8);
+            border-left: 4px solid var(--matcha-green);
+            backdrop-filter: blur(5px);
         }
         .camera-info {
             margin-top: 10px;
             padding: 10px;
-            background-color: #f8f9fa;
+            background-color: rgba(60, 47, 47, 0.3);
             border-radius: 4px;
             font-size: 14px;
         }
         .camera-info p {
             margin: 5px 0;
+        }
+        .admin-panel {
+            margin-top: 20px;
+            border-top: 1px solid var(--dark-oak);
+            padding-top: 20px;
+        }
+        .admin-panel h3 {
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: var(--text-secondary);
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--dark-oak);
+            border-radius: 4px;
+            background-color: #333;
+            color: var(--text-light);
+        }
+        .settings-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .settings-item {
+            flex: 1;
+            min-width: 120px;
+        }
+        .stats-panel {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: rgba(60, 47, 47, 0.3);
+            border-radius: 4px;
+        }
+        .stats-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .stat-item {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px;
+            background-color: var(--dark-surface);
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            border: 1px solid var(--dark-oak);
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--matcha-green);
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
         }
         @media (max-width: 768px) {
             .main-content {
@@ -213,6 +332,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
 </head>
 <body>
     <div class="container">
@@ -220,7 +340,7 @@
             <h1>CamCheck</h1>
             <div class="user-info">
                 <span sec:authentication="name">Username</span>
-                <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: #4285f4;">API Docs</a>
+                <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--matcha-green);">API Docs</a>
                 <form th:action="@{/logout}" method="post">
                     <button type="submit">Logout</button>
                 </form>
@@ -231,6 +351,26 @@
             <div class="video-container">
                 <div class="video-feed" id="videoFeed">
                     <span>Camera feed loading...</span>
+                </div>
+                <div class="camera-not-ready" id="cameraNotReady">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h2>Camera Not Started</h2>
+                    <p>Start the camera stream to begin monitoring.</p>
+                    <button id="startCameraBtn" class="success">Start Camera</button>
+                </div>
+                <div class="camera-not-ready" id="noCameraDetected" style="display: none;">
+                    <i class="fas fa-video-slash"></i>
+                    <h2>No Camera Detected</h2>
+                    <p>No camera was found on your system.</p>
+                    <button id="detectCamerasBtn" class="success">Detect Cameras</button>
+                    <div id="detectedCameras" style="margin-top: 20px; display: none;">
+                        <h3>Detected Cameras:</h3>
+                        <select id="detectedCameraSelect" style="width: 100%; padding: 8px; margin: 10px 0; background-color: var(--dark-surface); color: var(--text-light); border: 1px solid var(--dark-oak);">
+                            <option value="-1">Select a camera...</option>
+                        </select>
+                        <button id="useCameraBtn" class="success">Use Selected Camera</button>
+                        <button id="disableFallbackBtn" class="success" style="margin-top: 10px;">Exit Fallback Mode</button>
+                    </div>
                 </div>
                 <div class="fallback-indicator" id="fallbackIndicator" style="display: none;">
                     Fallback Mode Active
@@ -275,15 +415,60 @@
                     </div>
                 </div>
                 
-                <div class="control-group">
-                    <h3>
-                        Recording
-                        <span id="recordingStatus" class="status-badge" th:classappend="${isRecording ? 'status-active' : ''}">
-                            <span th:text="${isRecording ? 'Active' : 'Inactive'}">Status</span>
-                        </span>
-                    </h3>
-                    <button id="startRecordingBtn" th:style="${isRecording ? 'display: none' : ''}" class="success">Start Recording</button>
-                    <button id="stopRecordingBtn" th:style="${!isRecording ? 'display: none' : ''}" class="danger">Stop Recording</button>
+                <!-- Admin Panel -->
+                <div class="admin-panel">
+                    <h3>Admin Controls</h3>
+                    
+                    <div class="stats-panel">
+                        <h4>System Statistics</h4>
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <div class="stat-value" id="uptime">00:00:00</div>
+                                <div class="stat-label">Uptime</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="frameRate">0</div>
+                                <div class="stat-label">FPS</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="motionEvents">0</div>
+                                <div class="stat-label">Motion Events</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cameraSelect">Camera Source</label>
+                        <select id="cameraSelect">
+                            <option value="fallback">Fallback Mode (No Camera)</option>
+                            <option value="webcam-0">Webcam 0</option>
+                            <option value="webcam-1">Webcam 1</option>
+                            <option value="ip">IP Camera</option>
+                        </select>
+                    </div>
+                    
+                    <div class="settings-row">
+                        <div class="settings-item">
+                            <div class="form-group">
+                                <label for="frameRateInput">Frame Rate</label>
+                                <input type="number" id="frameRateInput" min="1" max="60" value="30">
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="form-group">
+                                <label for="sensitivityInput">Motion Sensitivity</label>
+                                <input type="number" id="sensitivityInput" min="1" max="100" value="30">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ipCameraUrl">IP Camera URL</label>
+                        <input type="text" id="ipCameraUrl" placeholder="http://192.168.1.100:8080/video">
+                    </div>
+                    
+                    <button id="applySettingsBtn" class="success">Apply Settings</button>
+                    <button id="restartSystemBtn" class="danger">Restart System</button>
                 </div>
             </div>
         </div>
@@ -298,8 +483,13 @@
         let stompClient = null;
         const isStreaming = [[${isStreaming}]];
         const isMotionDetectionEnabled = [[${isMotionDetectionEnabled}]];
-        const isRecording = [[${isRecording}]];
         const isFallbackMode = [[${isFallbackMode != null ? isFallbackMode : false}]];
+        let startTime = new Date();
+        let motionEventsCount = 0;
+        let currentFps = 0;
+        let frameCount = 0;
+        let lastFrameTime = Date.now();
+        let cameraStarted = false;
         
         // DOM elements
         const videoFeed = document.getElementById('videoFeed');
@@ -307,8 +497,6 @@
         const stopStreamBtn = document.getElementById('stopStreamBtn');
         const takeSnapshotBtn = document.getElementById('takeSnapshotBtn');
         const motionDetectionToggle = document.getElementById('motionDetectionToggle');
-        const startRecordingBtn = document.getElementById('startRecordingBtn');
-        const stopRecordingBtn = document.getElementById('stopRecordingBtn');
         const notifications = document.getElementById('notifications');
         const notificationText = document.getElementById('notificationText');
         const fallbackIndicator = document.getElementById('fallbackIndicator');
@@ -316,11 +504,51 @@
         const fallbackStatus = document.getElementById('fallbackStatus');
         const streamingStatus = document.getElementById('streamingStatus');
         const motionStatus = document.getElementById('motionStatus');
-        const recordingStatus = document.getElementById('recordingStatus');
+        const uptimeElement = document.getElementById('uptime');
+        const frameRateElement = document.getElementById('frameRate');
+        const motionEventsElement = document.getElementById('motionEvents');
+        const cameraSelect = document.getElementById('cameraSelect');
+        const frameRateInput = document.getElementById('frameRateInput');
+        const sensitivityInput = document.getElementById('sensitivityInput');
+        const ipCameraUrl = document.getElementById('ipCameraUrl');
+        const applySettingsBtn = document.getElementById('applySettingsBtn');
+        const restartSystemBtn = document.getElementById('restartSystemBtn');
+        const cameraNotReady = document.getElementById('cameraNotReady');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const noCameraDetected = document.getElementById('noCameraDetected');
+        const detectCamerasBtn = document.getElementById('detectCamerasBtn');
+        const detectedCameras = document.getElementById('detectedCameras');
+        const detectedCameraSelect = document.getElementById('detectedCameraSelect');
+        const useCameraBtn = document.getElementById('useCameraBtn');
+        const disableFallbackBtn = document.getElementById('disableFallbackBtn');
         
         // Show fallback indicator if in fallback mode
         if (isFallbackMode) {
             fallbackIndicator.style.display = 'block';
+            cameraSelect.value = 'fallback';
+        } else {
+            cameraSelect.value = 'webcam-0';
+        }
+        
+        // Check camera status and show/hide overlay
+        function checkCameraStatus() {
+            if (isStreaming) {
+                cameraStarted = true;
+                cameraNotReady.style.display = 'none';
+                noCameraDetected.style.display = 'none';
+            } else {
+                // If in fallback mode, show no camera detected message
+                if (isFallbackMode) {
+                    cameraNotReady.style.display = 'none';
+                    noCameraDetected.style.display = 'flex';
+                } else {
+                    cameraNotReady.style.display = 'flex';
+                    noCameraDetected.style.display = 'none';
+                }
+            }
+            
+            // Disable snapshot button if camera is not started
+            takeSnapshotBtn.disabled = !cameraStarted;
         }
         
         // Connect to WebSocket
@@ -333,29 +561,21 @@
                 // Subscribe to camera feed
                 stompClient.subscribe('/topic/camera', function(message) {
                     updateCameraFeed(message.body);
+                    updateFrameRate();
+                    
+                    // If this is the first frame, hide the overlay
+                    if (!cameraStarted) {
+                        cameraStarted = true;
+                        cameraNotReady.style.display = 'none';
+                    }
                 });
                 
                 // Subscribe to motion detection events
                 stompClient.subscribe('/topic/motion', function(message) {
                     const data = JSON.parse(message.body);
                     showNotification(`Motion detected at ${data.time}`);
-                });
-                
-                // Subscribe to recording events
-                stompClient.subscribe('/topic/recording', function(message) {
-                    const data = JSON.parse(message.body);
-                    
-                    if (data.status === 'started') {
-                        showNotification(`Recording started at ${data.time}`);
-                        toggleRecordingButtons(true);
-                        updateStatusBadge(recordingStatus, true);
-                    } else if (data.status === 'stopped') {
-                        showNotification(`Recording stopped at ${data.time}`);
-                        toggleRecordingButtons(false);
-                        updateStatusBadge(recordingStatus, false);
-                    } else if (data.status === 'saved') {
-                        showNotification(`Recording saved with ${data.frames} frames`);
-                    }
+                    motionEventsCount++;
+                    motionEventsElement.textContent = motionEventsCount;
                 });
                 
                 // Subscribe to status updates
@@ -383,6 +603,32 @@
             }
         }
         
+        // Update frame rate calculation
+        function updateFrameRate() {
+            frameCount++;
+            const now = Date.now();
+            const elapsed = now - lastFrameTime;
+            
+            if (elapsed >= 1000) { // Update every second
+                currentFps = Math.round((frameCount * 1000) / elapsed);
+                frameRateElement.textContent = currentFps;
+                frameCount = 0;
+                lastFrameTime = now;
+            }
+        }
+        
+        // Update uptime display
+        function updateUptime() {
+            const now = new Date();
+            const diff = Math.floor((now - startTime) / 1000);
+            
+            const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+            const seconds = Math.floor(diff % 60).toString().padStart(2, '0');
+            
+            uptimeElement.textContent = `${hours}:${minutes}:${seconds}`;
+        }
+        
         // Update status badges
         function updateStatusBadge(element, isActive) {
             if (isActive) {
@@ -399,11 +645,46 @@
             if (data.streaming !== undefined) {
                 updateStatusBadge(streamingStatus, data.streaming);
                 cameraStatus.textContent = data.streaming ? 'Streaming' : 'Idle';
+                
+                // Update camera ready state
+                if (data.streaming) {
+                    cameraStarted = true;
+                    cameraNotReady.style.display = 'none';
+                    noCameraDetected.style.display = 'none';
+                } else {
+                    cameraStarted = false;
+                    
+                    // If in fallback mode, show no camera detected message
+                    if (data.fallbackMode) {
+                        cameraNotReady.style.display = 'none';
+                        noCameraDetected.style.display = 'flex';
+                    } else {
+                        cameraNotReady.style.display = 'flex';
+                        noCameraDetected.style.display = 'none';
+                    }
+                }
+                
+                // Update button states
+                startStreamBtn.style.display = data.streaming ? 'none' : 'inline-block';
+                stopStreamBtn.style.display = data.streaming ? 'inline-block' : 'none';
+                takeSnapshotBtn.disabled = !data.streaming;
             }
             
             if (data.fallbackMode !== undefined) {
                 fallbackStatus.textContent = data.fallbackMode ? 'Active' : 'Inactive';
                 fallbackIndicator.style.display = data.fallbackMode ? 'block' : 'none';
+                cameraSelect.value = data.fallbackMode ? 'fallback' : 'webcam-0';
+                
+                // Show appropriate overlay based on fallback mode
+                if (!isStreaming) {
+                    if (data.fallbackMode) {
+                        cameraNotReady.style.display = 'none';
+                        noCameraDetected.style.display = 'flex';
+                    } else {
+                        cameraNotReady.style.display = 'flex';
+                        noCameraDetected.style.display = 'none';
+                    }
+                }
             }
             
             if (data.motionDetection !== undefined) {
@@ -420,6 +701,8 @@
                     statusIndicator.classList.add('status-off');
                     statusText.textContent = 'Disabled';
                 }
+                
+                motionDetectionToggle.checked = data.motionDetection;
             }
         }
         
@@ -439,6 +722,11 @@
                     updateStatusBadge(streamingStatus, true);
                     cameraStatus.textContent = 'Streaming';
                     showNotification('Camera streaming started');
+                    
+                    // Hide the camera not ready overlay
+                    cameraStarted = true;
+                    cameraNotReady.style.display = 'none';
+                    takeSnapshotBtn.disabled = false;
                 }
             })
             .catch(error => {
@@ -464,6 +752,11 @@
                     cameraStatus.textContent = 'Idle';
                     showNotification('Camera streaming stopped');
                     videoFeed.innerHTML = '<span>Camera feed stopped</span>';
+                    
+                    // Show the camera not ready overlay
+                    cameraStarted = false;
+                    cameraNotReady.style.display = 'flex';
+                    takeSnapshotBtn.disabled = true;
                 }
             })
             .catch(error => {
@@ -531,59 +824,73 @@
             });
         }
         
-        // Start recording
-        function startRecording() {
-            fetch('/api/v1/recording/start', {
+        // Apply camera settings
+        function applySettings() {
+            const settings = {
+                cameraSource: cameraSelect.value,
+                frameRate: parseInt(frameRateInput.value),
+                sensitivity: parseInt(sensitivityInput.value),
+                ipCameraUrl: ipCameraUrl.value
+            };
+            
+            // Disable button during request
+            applySettingsBtn.disabled = true;
+            
+            fetch('/api/v1/settings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify(settings)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    toggleRecordingButtons(true);
-                    updateStatusBadge(recordingStatus, true);
-                    showNotification('Recording started');
+                    showNotification('Settings applied successfully');
+                } else {
+                    showNotification('Failed to apply settings: ' + data.message, true);
                 }
+                applySettingsBtn.disabled = false;
             })
             .catch(error => {
-                console.error('Error starting recording:', error);
-                showNotification('Failed to start recording', true);
+                console.error('Error applying settings:', error);
+                showNotification('Failed to apply settings', true);
+                applySettingsBtn.disabled = false;
             });
         }
         
-        // Stop recording
-        function stopRecording() {
-            fetch('/api/v1/recording/stop', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    toggleRecordingButtons(false);
-                    updateStatusBadge(recordingStatus, false);
-                    showNotification('Recording stopped');
-                }
-            })
-            .catch(error => {
-                console.error('Error stopping recording:', error);
-                showNotification('Failed to stop recording', true);
-            });
-        }
-        
-        // Toggle recording buttons
-        function toggleRecordingButtons(isRecording) {
-            if (isRecording) {
-                startRecordingBtn.style.display = 'none';
-                stopRecordingBtn.style.display = 'inline-block';
-            } else {
-                stopRecordingBtn.style.display = 'none';
-                startRecordingBtn.style.display = 'inline-block';
+        // Restart system
+        function restartSystem() {
+            if (!confirm('Are you sure you want to restart the system?')) {
+                return;
             }
+            
+            // Disable button during request
+            restartSystemBtn.disabled = true;
+            
+            fetch('/api/v1/system/restart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showNotification('System restart initiated');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 5000);
+                } else {
+                    showNotification('Failed to restart system: ' + data.message, true);
+                    restartSystemBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error restarting system:', error);
+                showNotification('Failed to restart system', true);
+                restartSystemBtn.disabled = false;
+            });
         }
         
         // Show notification
@@ -619,6 +926,73 @@
             .catch(error => console.error('Error fetching status:', error));
         }
         
+        // Detect available cameras
+        function detectAvailableCameras() {
+            showNotification('Detecting cameras...');
+            detectedCameraSelect.innerHTML = '<option value="-1">Select a camera...</option>';
+            
+            fetch('/api/v1/cameras/detect')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const cameras = data.cameras;
+                        if (cameras.length > 0) {
+                            showNotification(`Detected ${cameras.length} camera(s)`);
+                            
+                            // Add cameras to select dropdown
+                            cameras.forEach(camera => {
+                                const option = document.createElement('option');
+                                option.value = camera.index;
+                                option.textContent = `${camera.name} (${camera.index})`;
+                                detectedCameraSelect.appendChild(option);
+                            });
+                            
+                            detectedCameras.style.display = 'block';
+                        } else {
+                            showNotification('No cameras detected', true);
+                        }
+                    } else {
+                        showNotification('Failed to detect cameras', true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error detecting cameras:', error);
+                    showNotification('Error detecting cameras', true);
+                });
+        }
+        
+        // Switch to selected camera
+        function switchToCamera(cameraIndex) {
+            showNotification(`Switching to camera ${cameraIndex}...`);
+            
+            fetch(`/api/v1/cameras/switch/${cameraIndex}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showNotification('Camera switched successfully');
+                    noCameraDetected.style.display = 'none';
+                    cameraNotReady.style.display = 'flex';
+                    
+                    // Update camera source dropdown
+                    cameraSelect.value = `webcam-${cameraIndex}`;
+                    
+                    // Refresh status
+                    fetchStatus();
+                } else {
+                    showNotification(`Failed to switch camera: ${data.message}`, true);
+                }
+            })
+            .catch(error => {
+                console.error('Error switching camera:', error);
+                showNotification('Error switching camera', true);
+            });
+        }
+        
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
             // Connect to WebSocket
@@ -627,18 +1001,67 @@
             // Fetch initial status
             fetchStatus();
             
+            // Check initial camera status
+            checkCameraStatus();
+            
             // Button event listeners
             startStreamBtn.addEventListener('click', startStreaming);
             stopStreamBtn.addEventListener('click', stopStreaming);
+            startCameraBtn.addEventListener('click', startStreaming);
             takeSnapshotBtn.addEventListener('click', takeSnapshot);
             motionDetectionToggle.addEventListener('change', function() {
                 toggleMotionDetection(this.checked);
             });
-            startRecordingBtn.addEventListener('click', startRecording);
-            stopRecordingBtn.addEventListener('click', stopRecording);
+            applySettingsBtn.addEventListener('click', applySettings);
+            restartSystemBtn.addEventListener('click', restartSystem);
+            detectCamerasBtn.addEventListener('click', detectAvailableCameras);
+            useCameraBtn.addEventListener('click', function() {
+                const selectedCamera = detectedCameraSelect.value;
+                if (selectedCamera !== "-1") {
+                    switchToCamera(selectedCamera);
+                }
+            });
+            disableFallbackBtn.addEventListener('click', function() {
+                showNotification('Exiting fallback mode...');
+                fetch('/api/v1/fallback/false', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showNotification('Fallback mode disabled');
+                        noCameraDetected.style.display = 'none';
+                        cameraNotReady.style.display = 'flex';
+                        cameraSelect.value = 'webcam-0';
+                        fetchStatus();
+                    } else {
+                        showNotification(`Failed to disable fallback: ${data.message}`, true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error disabling fallback:', error);
+                    showNotification('Failed to disable fallback', true);
+                });
+            });
+            
+            // Update uptime every second
+            setInterval(updateUptime, 1000);
             
             // Refresh status every 30 seconds
             setInterval(fetchStatus, 30000);
+            
+            // Show camera source based on fallback mode
+            if (isFallbackMode) {
+                cameraSelect.value = 'fallback';
+            }
+            
+            // Initialize settings values
+            frameRateInput.value = 30;
+            sensitivityInput.value = 30;
+            ipCameraUrl.value = 'http://192.168.1.100:8080/video';
         });
     </script>
 </body>

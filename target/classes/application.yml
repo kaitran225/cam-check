@@ -42,17 +42,17 @@ camcheck:
     device-index: 0
     
     # Force fallback mode (use this if you don't have a camera or want to test without one)
-    force-fallback: true
+    force-fallback: false
     
     # IP camera settings (if type is set to 'ip')
     ip-url: http://192.168.1.100:8080/video
     
-    # Motion detection
-    motion-detection:
-      enabled: true
-      sensitivity: 30 # 1-100, higher is more sensitive
-      cooldown-period: 10 # Minimum time between detections (seconds)
-      
+  # Motion detection settings
+  motion-detection:
+    enabled: true
+    sensitivity: 30 # 1-100, higher is more sensitive
+    cooldown-period: 10 # Minimum time between detections (seconds)
+    
   # Storage settings
   storage:
     # Save recordings when motion is detected

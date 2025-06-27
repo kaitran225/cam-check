@@ -19,26 +19,21 @@ import java.util.Map;
 public class MotionDetectionService {
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final RecordingService recordingService;
     
-    @Value("${camcheck.camera.motion-detection.enabled}")
+    @Value("${camcheck.motion-detection.enabled}")
     private boolean enabled;
     
-    @Value("${camcheck.camera.motion-detection.sensitivity}")
+    @Value("${camcheck.motion-detection.sensitivity}")
     private int sensitivity;
     
-    @Value("${camcheck.camera.motion-detection.cooldown-period}")
+    @Value("${camcheck.motion-detection.cooldown-period}")
     private int cooldownPeriod;
-    
-    @Value("${camcheck.storage.record-on-motion}")
-    private boolean recordOnMotion;
     
     private BufferedImage previousFrame;
     private LocalDateTime lastMotionDetected;
     
-    public MotionDetectionService(SimpMessagingTemplate messagingTemplate, RecordingService recordingService) {
+    public MotionDetectionService(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
-        this.recordingService = recordingService;
     }
     
     /**
@@ -113,11 +108,6 @@ public class MotionDetectionService {
         // Notify clients
         messagingTemplate.convertAndSend("/topic/motion", 
                                          Map.of("time", lastMotionDetected.toString()));
-        
-        // Start recording if enabled
-        if (recordOnMotion && !recordingService.isRecording()) {
-            recordingService.startRecording();
-        }
     }
     
     /**

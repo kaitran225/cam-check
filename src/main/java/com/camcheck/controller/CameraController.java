@@ -2,11 +2,9 @@ package com.camcheck.controller;
 
 import com.camcheck.service.CameraService;
 import com.camcheck.service.MotionDetectionService;
-import com.camcheck.service.RecordingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,14 +27,11 @@ public class CameraController {
 
     private final CameraService cameraService;
     private final MotionDetectionService motionDetectionService;
-    private final RecordingService recordingService;
     
     public CameraController(CameraService cameraService, 
-                          MotionDetectionService motionDetectionService,
-                          RecordingService recordingService) {
+                          MotionDetectionService motionDetectionService) {
         this.cameraService = cameraService;
         this.motionDetectionService = motionDetectionService;
-        this.recordingService = recordingService;
     }
     
     /**
@@ -46,7 +41,6 @@ public class CameraController {
     public String index(Model model) {
         model.addAttribute("isStreaming", cameraService.isStreaming());
         model.addAttribute("isMotionDetectionEnabled", motionDetectionService.isEnabled());
-        model.addAttribute("isRecording", recordingService.isRecording());
         model.addAttribute("isFallbackMode", cameraService.isUsingFallback());
         return "index";
     }
@@ -154,52 +148,6 @@ public class CameraController {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
         response.put("motionDetection", enabled);
-        
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Start recording
-     */
-    @PostMapping("/api/recording/start")
-    @ResponseBody
-    @Operation(summary = "Start recording", description = "Start recording video from the camera")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Recording started successfully",
-                content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
-    })
-    public ResponseEntity<Map<String, Object>> startRecording() {
-        log.info("Request to start recording");
-        recordingService.startRecording();
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("recording", true);
-        
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Stop recording
-     */
-    @PostMapping("/api/recording/stop")
-    @ResponseBody
-    @Operation(summary = "Stop recording", description = "Stop recording video and save the recording")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Recording stopped successfully",
-                content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
-    })
-    public ResponseEntity<Map<String, Object>> stopRecording() {
-        log.info("Request to stop recording");
-        recordingService.stopRecording();
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("recording", false);
         
         return ResponseEntity.ok(response);
     }
