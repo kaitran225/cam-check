@@ -6,20 +6,65 @@
     <meta name="_csrf" th:content="${_csrf.token}"/>
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <title>CamCheck - Security Camera</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --black: #000000;
-            --white: #ffffff;
-            --gray: #333333;
-            --light-gray: #999999;
+            /* Dark theme (default) */
+            --background: #000000;
+            --foreground: #ffffff;
+            --surface: #121212;
+            --border: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
             --accent: #ffffff;
+            --error: #cf6679;
+            --success: #03dac6;
+            --button-bg: #1a1a1a;
+            --button-hover: #333333;
+            --button-text: #ffffff;
+            --button-danger-bg: #1a1a1a;
+            --button-danger-hover: #333333;
+            --button-disabled-bg: #121212;
+            --button-disabled-text: #666666;
+            --input-bg: #1a1a1a;
+            --input-border: #333333;
+            --input-text: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.3);
         }
+        
+        body.light-theme {
+            /* Light theme */
+            --background: #f5f5f5;
+            --foreground: #000000;
+            --surface: #ffffff;
+            --border: #dddddd;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --accent: #1a73e8;
+            --error: #b00020;
+            --success: #00796b;
+            --button-bg: #e0e0e0;
+            --button-hover: #cccccc;
+            --button-text: #000000;
+            --button-danger-bg: #f5f5f5;
+            --button-danger-hover: #ffcdd2;
+            --button-disabled-bg: #f5f5f5;
+            --button-disabled-text: #9e9e9e;
+            --input-bg: #ffffff;
+            --input-border: #dddddd;
+            --input-text: #000000;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+        
         body {
-            font-family: monospace;
+            font-family: 'Roboto Mono', monospace;
             margin: 0;
             padding: 0;
-            background-color: var(--black);
-            color: var(--white);
+            background-color: var(--background);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
         }
         .container {
             max-width: 1200px;
@@ -32,11 +77,11 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 1px solid var(--white);
+            border-bottom: 1px solid var(--border);
         }
         h1 {
             margin: 0;
-            color: var(--white);
+            color: var(--text-primary);
             letter-spacing: 1px;
             text-transform: uppercase;
             font-size: 24px;
@@ -47,7 +92,7 @@
         }
         .user-info span {
             margin-right: 15px;
-            color: var(--white);
+            color: var(--text-primary);
         }
         .main-content {
             display: flex;
@@ -57,19 +102,21 @@
         .video-container {
             flex: 1;
             min-width: 640px;
-            background-color: var(--black);
-            border: 1px solid var(--white);
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
             overflow: hidden;
             position: relative;
+            box-shadow: 0 2px 8px var(--shadow);
         }
         .video-feed {
             width: 100%;
             height: 480px;
-            background-color: var(--black);
+            background-color: var(--surface);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--white);
+            color: var(--text-primary);
             position: relative;
         }
         .video-feed video {
@@ -85,8 +132,9 @@
         }
         .video-cell {
             position: relative;
-            background-color: var(--black);
-            border: 1px solid var(--gray);
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -96,24 +144,58 @@
             max-width: 100%;
             max-height: 100%;
         }
+        
+        /* Dashboard grid view for superusers */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            width: 100%;
+        }
+        
+        .dashboard-cell {
+            position: relative;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .dashboard-cell:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        
+        .dashboard-cell img {
+            max-width: 100%;
+            max-height: 100%;
+        }
         .video-label {
             position: absolute;
             bottom: 5px;
             left: 5px;
             background-color: rgba(0, 0, 0, 0.7);
-            color: var(--white);
-            padding: 2px 5px;
+            color: var(--text-primary);
+            padding: 4px 8px;
             font-size: 12px;
+            border-radius: 2px;
         }
         .fallback-indicator {
             position: absolute;
             top: 10px;
             right: 10px;
-            background-color: var(--white);
-            color: var(--black);
+            background-color: var(--accent);
+            color: var(--background);
             padding: 5px 10px;
             font-size: 12px;
             z-index: 10;
+            border-radius: 2px;
         }
         .camera-not-ready {
             position: absolute;
@@ -122,7 +204,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.9);
-            color: var(--white);
+            color: var(--text-primary);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -131,15 +213,17 @@
         }
         .camera-not-ready i {
             font-size: 64px;
-            color: var(--white);
+            color: var(--text-primary);
             margin-bottom: 20px;
         }
         .controls {
             flex: 1;
             min-width: 300px;
-            background-color: var(--black);
-            border: 1px solid var(--white);
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
             padding: 20px;
+            box-shadow: 0 2px 8px var(--shadow);
         }
         .control-group {
             margin-bottom: 20px;
@@ -148,59 +232,61 @@
             margin-top: 0;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 1px solid var(--white);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: var(--white);
+            color: var(--text-primary);
             text-transform: uppercase;
             font-size: 16px;
         }
         .status-badge {
             font-size: 12px;
             padding: 3px 8px;
-            border: 1px solid var(--white);
-            color: var(--white);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 12px;
         }
         .status-active {
-            background-color: var(--white);
-            color: var(--black);
+            background-color: var(--success);
+            color: var(--background);
+            border-color: var(--success);
         }
         button {
             padding: 10px 15px;
-            background-color: var(--black);
-            color: var(--white);
-            border: 1px solid var(--white);
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
             cursor: pointer;
             margin-right: 10px;
             margin-bottom: 10px;
             transition: all 0.2s;
             font-weight: bold;
-            font-family: monospace;
+            font-family: 'Roboto Mono', monospace;
             text-transform: uppercase;
         }
         button:hover {
-            background-color: var(--white);
-            color: var(--black);
+            background-color: var(--button-hover);
         }
         button.danger {
-            background-color: var(--black);
-            color: var(--white);
-            border: 1px solid var(--white);
+            background-color: var(--button-danger-bg);
+            color: var(--button-text);
+            border: 1px solid var(--error);
         }
         button.danger:hover {
-            background-color: var(--white);
-            color: var(--black);
+            background-color: var(--button-danger-hover);
+            border-color: var(--error);
         }
         button:disabled {
-            background-color: var(--black);
+            background-color: var(--button-disabled-bg);
             cursor: not-allowed;
-            color: var(--light-gray);
-            border: 1px solid var(--light-gray);
+            color: var(--button-disabled-text);
+            border: 1px solid var(--border);
         }
         button:disabled:hover {
-            background-color: var(--black);
-            color: var(--light-gray);
+            background-color: var(--button-disabled-bg);
+            color: var(--button-disabled-text);
         }
         .switch {
             position: relative;
@@ -220,9 +306,10 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: var(--black);
-            border: 1px solid var(--white);
+            background-color: var(--button-bg);
+            border: 1px solid var(--border);
             transition: .4s;
+            border-radius: 34px;
         }
         .slider:before {
             position: absolute;
@@ -231,73 +318,75 @@
             width: 26px;
             left: 4px;
             bottom: 3px;
-            background-color: var(--white);
+            background-color: var(--text-primary);
             transition: .4s;
+            border-radius: 50%;
         }
         input:checked + .slider {
-            background-color: var(--black);
+            background-color: var(--accent);
         }
         input:checked + .slider:before {
             transform: translateX(26px);
-        }
-        .slider.round {
-            border-radius: 0;
-        }
-        .slider.round:before {
-            border-radius: 0;
         }
         .status-indicator {
             display: inline-block;
             width: 12px;
             height: 12px;
-            border: 1px solid var(--white);
+            border: 1px solid var(--border);
+            border-radius: 50%;
             margin-right: 5px;
         }
         .status-on {
-            background-color: var(--white);
+            background-color: var(--success);
+            border-color: var(--success);
         }
         .status-off {
-            background-color: var(--black);
+            background-color: var(--surface);
         }
         .stats-container {
             margin-top: 20px;
-            border: 1px solid var(--white);
+            border: 1px solid var(--border);
+            border-radius: 4px;
             padding: 10px;
         }
         .stats-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 5px;
-            font-family: monospace;
+            font-family: 'Roboto Mono', monospace;
         }
         .notification {
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 10px 15px;
-            background-color: var(--white);
-            color: var(--black);
+            padding: 12px 20px;
+            background-color: var(--accent);
+            color: var(--background);
             border: none;
+            border-radius: 4px;
             z-index: 1000;
             display: none;
-            font-family: monospace;
+            font-family: 'Roboto Mono', monospace;
+            box-shadow: 0 4px 12px var(--shadow);
         }
         .notification.error {
-            background-color: var(--white);
-            color: var(--black);
+            background-color: var(--error);
+            color: var(--text-primary);
         }
         select, input[type="text"], input[type="number"] {
-            background-color: var(--black);
-            color: var(--white);
-            border: 1px solid var(--white);
-            padding: 8px;
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            padding: 10px;
             width: 100%;
             margin-bottom: 10px;
-            font-family: monospace;
+            font-family: 'Roboto Mono', monospace;
         }
         select:focus, input:focus {
             outline: none;
-            border-color: var(--white);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
         }
         .settings-row {
             margin-bottom: 15px;
@@ -305,36 +394,40 @@
         .settings-row label {
             display: block;
             margin-bottom: 5px;
-            font-family: monospace;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-secondary);
         }
         a {
-            color: var(--white);
+            color: var(--text-primary);
             text-decoration: none;
-            border-bottom: 1px solid var(--white);
+            border-bottom: 1px solid var(--text-secondary);
+            transition: all 0.2s;
         }
         a:hover {
             border-bottom: none;
+            color: var(--accent);
         }
         .logout-btn {
             background: none;
             border: none;
-            color: var(--white);
+            color: var(--text-primary);
             cursor: pointer;
             text-decoration: underline;
             padding: 0;
-            font-family: monospace;
+            font-family: 'Roboto Mono', monospace;
         }
         .logout-btn:hover {
             text-decoration: none;
+            color: var(--accent);
         }
         footer {
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid var(--white);
+            border-top: 1px solid var(--border);
             text-align: center;
             font-size: 12px;
-            color: var(--white);
-            font-family: monospace;
+            color: var(--text-secondary);
+            font-family: 'Roboto Mono', monospace;
         }
         .session-code {
             font-size: 24px;
@@ -342,11 +435,63 @@
             letter-spacing: 5px;
             text-align: center;
             margin: 20px 0;
-            color: var(--white);
-            background-color: var(--black);
-            padding: 10px;
-            border: 1px solid var(--white);
+            color: var(--text-primary);
+            background-color: var(--surface);
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
         }
+        
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--button-bg);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 10px var(--shadow);
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Dashboard view toggle */
+        .view-toggle {
+            margin-bottom: 20px;
+        }
+        
+        .view-toggle button {
+            margin-right: 10px;
+        }
+        
+        .view-toggle button.active {
+            background-color: var(--accent);
+            color: var(--background);
+            border-color: var(--accent);
+        }
+        
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+        
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -354,12 +499,47 @@
             .video-container, .controls {
                 min-width: 100%;
             }
+            .video-feed {
+                height: 360px;
+            }
             .video-grid {
                 grid-template-columns: 1fr;
             }
+            h1 {
+                font-size: 20px;
+            }
+            .user-info {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+            .user-info span {
+                margin-bottom: 5px;
+            }
+            button {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .video-feed {
+                height: 240px;
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .controls {
+                padding: 10px;
+            }
+            .theme-toggle {
+                bottom: 10px;
+                right: 10px;
+                width: 40px;
+                height: 40px;
+            }
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 </head>
 <body>
     <div class="container">
@@ -369,14 +549,21 @@
                 <span sec:authentication="name">Username</span>
                 <span sec:authorize="hasRole('ADMIN')">(Admin)</span>
                 <span sec:authorize="hasRole('SUPERUSER')">(Superuser)</span>
-                <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--white);">API Docs</a>
-                <form th:action="@{/logout}" method="post">
+                <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--text-primary);">API Docs</a>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
                     <button type="submit" class="logout-btn">Logout</button>
                 </form>
             </div>
         </header>
         
-        <div class="main-content">
+        <!-- View toggle for superusers -->
+        <div sec:authorize="hasRole('SUPERUSER')" class="view-toggle">
+            <button id="standardViewBtn" class="active">Standard View</button>
+            <button id="dashboardViewBtn">Dashboard View</button>
+        </div>
+        
+        <!-- Standard view (default) -->
+        <div id="standardView" class="main-content">
             <div class="video-container">
                 <div class="video-feed" id="videoFeed">
                     <div class="video-grid">
@@ -400,6 +587,23 @@
                     <strong>Notification:</strong> <span id="notificationText"></span>
                 </div>
             </div>
+        
+        </div>
+        
+        <!-- Dashboard view (superuser only) -->
+        <div id="dashboardView" class="main-content" style="display: none;">
+            <div class="dashboard-grid" id="cameraDashboard">
+                <!-- Camera cells will be added dynamically -->
+                <div class="dashboard-cell empty-cell">
+                    <span>No active cameras found</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Theme toggle button -->
+        <div class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </div>
             
             <div class="controls">
                 <div class="control-group">
@@ -487,6 +691,11 @@
         let currentUsername = /*[[${#authentication.name}]]*/ 'user';
         let connectedPeer = null;
         let activeUsers = [];
+        let dashboardFeeds = {};
+        let currentView = 'standard';
+        let isDarkTheme = true; // Default to dark theme
+        let lastFrameTime = 0;
+        let frameInterval = 200; // Default frame interval (milliseconds)
         
         // DOM elements
         const videoFeed = document.getElementById('videoFeed');
@@ -520,6 +729,16 @@
         const refreshActiveUsersBtn = isSuperuser ? document.getElementById('refreshActiveUsersBtn') : null;
         const activeUsersList = isSuperuser ? document.getElementById('activeUsersList') : null;
         const superuserConnectBtn = isSuperuser ? document.getElementById('superuserConnectBtn') : null;
+        
+        // View toggle elements
+        const standardViewBtn = isSuperuser ? document.getElementById('standardViewBtn') : null;
+        const dashboardViewBtn = isSuperuser ? document.getElementById('dashboardViewBtn') : null;
+        const standardView = document.getElementById('standardView');
+        const dashboardView = document.getElementById('dashboardView');
+        const cameraDashboard = document.getElementById('cameraDashboard');
+        
+        // Theme toggle
+        const themeToggle = document.getElementById('themeToggle');
         
         // Connect to WebSocket
         function connect() {
@@ -562,6 +781,7 @@
         
         // Update remote video feed
         function updateRemoteVideoFeed(imageData) {
+            // Update main remote video cell
             if (remoteVideoCell.querySelector('img')) {
                 remoteVideoCell.querySelector('img').src = `data:image/jpeg;base64,${imageData}`;
             } else {
@@ -570,6 +790,29 @@
                 remoteVideoCell.innerHTML = '';
                 remoteVideoCell.appendChild(img);
                 remoteVideoCell.appendChild(createVideoLabel('Remote Camera'));
+            }
+            
+            // Update dashboard feed if this is the connected peer
+            if (isSuperuser && connectedPeer && dashboardFeeds[connectedPeer]) {
+                // Find the cell for this user
+                const dashboardCell = document.querySelector(`.dashboard-cell[data-username="${connectedPeer}"]`);
+                if (dashboardCell) {
+                    // Update the image
+                    if (dashboardCell.querySelector('img')) {
+                        dashboardCell.querySelector('img').src = `data:image/jpeg;base64,${imageData}`;
+                    } else {
+                        // Replace "Connecting..." text with the image
+                        dashboardCell.innerHTML = '';
+                        dashboardCell.appendChild(dashboardFeeds[connectedPeer]);
+                        dashboardFeeds[connectedPeer].src = `data:image/jpeg;base64,${imageData}`;
+                        
+                        // Add the label back
+                        const label = document.createElement('div');
+                        label.className = 'video-label';
+                        label.textContent = connectedPeer;
+                        dashboardCell.appendChild(label);
+                    }
+                }
             }
         }
         
@@ -763,28 +1006,106 @@
             
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = localVideo.videoWidth || 640;
-            canvas.height = localVideo.videoHeight || 480;
             
-            // Send frames at regular intervals
-            const frameInterval = setInterval(() => {
+            // Set canvas size based on video dimensions, but limit max size
+            const maxWidth = 640;
+            const maxHeight = 480;
+            let width = localVideo.videoWidth || maxWidth;
+            let height = localVideo.videoHeight || maxHeight;
+            
+            // Calculate aspect ratio
+            const aspectRatio = width / height;
+            
+            // Resize if too large
+            if (width > maxWidth) {
+                width = maxWidth;
+                height = Math.floor(width / aspectRatio);
+            }
+            
+            if (height > maxHeight) {
+                height = maxHeight;
+                width = Math.floor(height * aspectRatio);
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Adaptive frame rate based on network conditions
+            let frameQuality = 0.7; // Default quality (0-1)
+            let consecutiveSlowFrames = 0;
+            let consecutiveFastFrames = 0;
+            
+            // Send frames using requestAnimationFrame for better performance
+            function sendFrame() {
                 if (!isStreaming || !stream || !connectedPeer) {
                     console.log("Stopping frame sending - conditions no longer met");
-                    clearInterval(frameInterval);
                     return;
                 }
                 
-                try {
-                    ctx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
-                    const imageData = canvas.toDataURL('image/jpeg', 0.7);
+                const now = performance.now();
+                const elapsed = now - lastFrameTime;
+                
+                // Only send frame if enough time has passed
+                if (elapsed >= frameInterval) {
+                    lastFrameTime = now;
                     
-                    // Send to connected peer via WebSocket
-                    console.log("Sending frame to peer:", connectedPeer);
-                    stompClient.send("/app/camera/" + connectedPeer, {}, imageData.split(',')[1]);
-                } catch (error) {
-                    console.error('Error sending frame:', error);
+                    try {
+                        // Draw video frame to canvas with smoothing
+                        ctx.drawImage(localVideo, 0, 0, width, height);
+                        
+                        // Start timing frame processing
+                        const frameStartTime = performance.now();
+                        
+                        // Convert to JPEG with adaptive quality
+                        const imageData = canvas.toDataURL('image/jpeg', frameQuality);
+                        
+                        // Send to connected peer via WebSocket
+                        stompClient.send("/app/camera/" + connectedPeer, {}, imageData.split(',')[1]);
+                        
+                        // Measure frame processing time
+                        const frameProcessTime = performance.now() - frameStartTime;
+                        
+                        // Adaptive quality and frame rate based on processing time
+                        if (frameProcessTime > 100) { // Frame took too long
+                            consecutiveSlowFrames++;
+                            consecutiveFastFrames = 0;
+                            
+                            if (consecutiveSlowFrames >= 3) {
+                                // Reduce quality or increase interval
+                                if (frameQuality > 0.3) {
+                                    frameQuality -= 0.1;
+                                } else if (frameInterval < 500) {
+                                    frameInterval += 50;
+                                }
+                                consecutiveSlowFrames = 0;
+                                console.log(`Reducing quality to ${frameQuality.toFixed(1)} or increasing interval to ${frameInterval}ms`);
+                            }
+                        } else if (frameProcessTime < 50) { // Frame was fast
+                            consecutiveFastFrames++;
+                            consecutiveSlowFrames = 0;
+                            
+                            if (consecutiveFastFrames >= 10) {
+                                // Increase quality or decrease interval
+                                if (frameQuality < 0.9) {
+                                    frameQuality += 0.1;
+                                } else if (frameInterval > 100) {
+                                    frameInterval -= 20;
+                                }
+                                consecutiveFastFrames = 0;
+                                console.log(`Increasing quality to ${frameQuality.toFixed(1)} or decreasing interval to ${frameInterval}ms`);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error sending frame:', error);
+                    }
                 }
-            }, 200); // 5 frames per second to reduce bandwidth
+                
+                // Schedule next frame
+                requestAnimationFrame(sendFrame);
+            }
+            
+            // Start the frame sending loop
+            sendFrame();
         }
         
         // Send camera heartbeat to keep active status
@@ -960,6 +1281,12 @@
                 option.value = '';
                 option.text = 'No active users found';
                 activeUsersList.appendChild(option);
+                
+                // Also update dashboard if in dashboard view
+                if (currentView === 'dashboard') {
+                    updateDashboardGrid();
+                }
+                
                 return;
             }
             
@@ -971,7 +1298,124 @@
                 activeUsersList.appendChild(option);
             });
             
+            // Update dashboard if in dashboard view
+            if (currentView === 'dashboard') {
+                updateDashboardGrid();
+            }
+            
             showNotification(`Found ${activeUsers.length} active users`);
+        }
+        
+        // Update dashboard grid with active cameras
+        function updateDashboardGrid() {
+            if (!isSuperuser || !cameraDashboard) return;
+            
+            // Clear current grid
+            cameraDashboard.innerHTML = '';
+            
+            if (activeUsers.length === 0) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'dashboard-cell empty-cell';
+                emptyCell.innerHTML = '<span>No active cameras found</span>';
+                cameraDashboard.appendChild(emptyCell);
+                return;
+            }
+            
+            // Add a cell for each active user
+            activeUsers.forEach(username => {
+                const cell = document.createElement('div');
+                cell.className = 'dashboard-cell';
+                cell.dataset.username = username;
+                
+                // Add username label
+                const label = document.createElement('div');
+                label.className = 'video-label';
+                label.textContent = username;
+                
+                // Check if we already have a feed for this user
+                if (dashboardFeeds[username]) {
+                    cell.appendChild(dashboardFeeds[username]);
+                } else {
+                    // Create placeholder
+                    cell.innerHTML = '<span>Connecting...</span>';
+                    
+                    // Create image element for this feed
+                    const img = document.createElement('img');
+                    img.alt = username;
+                    dashboardFeeds[username] = img;
+                    
+                    // Request connection to this user
+                    requestDashboardFeed(username);
+                }
+                
+                cell.appendChild(label);
+                
+                // Add click handler to connect to this user
+                cell.addEventListener('click', () => {
+                    if (isSuperuser) {
+                        // Connect to this user
+                        superuserConnectToUser(username);
+                        
+                        // Switch to standard view
+                        switchView('standard');
+                    }
+                });
+                
+                cameraDashboard.appendChild(cell);
+            });
+        }
+        
+        // Request dashboard feed from a specific user
+        function requestDashboardFeed(username) {
+            if (!isSuperuser || !stompClient) return;
+            
+            console.log(`Requesting dashboard feed from ${username}`);
+            
+            // For now, we'll use the same superuser connect mechanism
+            // In a production app, you might want a separate "peek" function
+            // that doesn't disconnect existing sessions
+            stompClient.send("/app/session/superuser/connect", {}, JSON.stringify({
+                username: currentUsername,
+                peer: username
+            }));
+        }
+        
+        // Switch between standard and dashboard views
+        function switchView(view) {
+            if (!isSuperuser) return;
+            
+            currentView = view;
+            
+            if (view === 'standard') {
+                standardView.style.display = 'flex';
+                dashboardView.style.display = 'none';
+                standardViewBtn.classList.add('active');
+                dashboardViewBtn.classList.remove('active');
+            } else {
+                standardView.style.display = 'none';
+                dashboardView.style.display = 'block';
+                standardViewBtn.classList.remove('active');
+                dashboardViewBtn.classList.add('active');
+                
+                // Update dashboard grid
+                updateDashboardGrid();
+            }
+        }
+        
+        // Toggle theme between light and dark
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+            
+            if (isDarkTheme) {
+                document.body.classList.remove('light-theme');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                document.body.classList.add('light-theme');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            
+            // Store preference in localStorage
+            localStorage.setItem('darkTheme', isDarkTheme.toString());
         }
         
         // Refresh active users list (superuser only)
@@ -995,6 +1439,13 @@
                 showNotification('Please select a user to connect to', true);
                 return;
             }
+            
+            superuserConnectToUser(targetUser);
+        }
+        
+        // Helper function to connect to a specific user
+        function superuserConnectToUser(targetUser) {
+            if (!isSuperuser || !stompClient) return;
             
             console.log('Superuser attempting to connect to:', targetUser);
             
@@ -1053,11 +1504,35 @@
                     superuserConnectBtn.addEventListener('click', superuserConnect);
                 }
                 
+                // View toggle buttons
+                if (standardViewBtn) {
+                    standardViewBtn.addEventListener('click', () => switchView('standard'));
+                }
+                
+                if (dashboardViewBtn) {
+                    dashboardViewBtn.addEventListener('click', () => switchView('dashboard'));
+                }
+                
                 // Initial load of active users
                 setTimeout(refreshActiveUsers, 2000);
                 
                 // Set up interval to refresh active users list every 5 seconds
                 window.activeUsersInterval = setInterval(refreshActiveUsers, 5000);
+            }
+            
+            // Theme toggle
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+                
+                // Load theme preference from localStorage
+                const savedTheme = localStorage.getItem('darkTheme');
+                if (savedTheme !== null) {
+                    isDarkTheme = savedTheme === 'true';
+                    if (!isDarkTheme) {
+                        document.body.classList.add('light-theme');
+                        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                    }
+                }
             }
             
             endSessionBtn.addEventListener('click', endSession);
