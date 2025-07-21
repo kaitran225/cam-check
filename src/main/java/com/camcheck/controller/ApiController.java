@@ -331,6 +331,7 @@ public class ApiController {
         boolean success = cameraService.setFallbackMode(enabled);
         
         Map<String, Object> response = new HashMap<>();
+        response.put("isEnable", success ? "success" : "failed");
         response.put("status", "success");
         response.put("fallbackMode", cameraService.isUsingFallback());
         response.put("message", enabled ? "Fallback mode enabled" : "Fallback mode disabled");

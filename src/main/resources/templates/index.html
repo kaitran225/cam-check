@@ -458,9 +458,10 @@
     <script th:inline="javascript">
         // Global variables
         let stompClient = null;
-        const isStreaming = [[${isStreaming}]];
-        const isMotionDetectionEnabled = [[${isMotionDetectionEnabled}]];
-        const isFallbackMode = [[${isFallbackMode != null ? isFallbackMode : false}]];
+        const isStreaming = /*[[${isStreaming}]]*/ false;
+        const isMotionDetectionEnabled = /*[[${isMotionDetectionEnabled}]]*/ false;
+        const isFallbackMode = /*[[${isFallbackMode != null ? isFallbackMode : false}]]*/ false;
+    
         let startTime = new Date();
         // Motion events counter removed per user request
         let currentFps = 0;

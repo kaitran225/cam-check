@@ -14,6 +14,7 @@ import java.awt.image.BufferedImage;
 @Slf4j
 public class MotionDetectionService {
 
+    @SuppressWarnings("unused")
     private final SimpMessagingTemplate messagingTemplate;
     
     @Value("${camcheck.motion-detection.enabled}")
