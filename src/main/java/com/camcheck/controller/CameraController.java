@@ -25,7 +25,9 @@ import java.util.Map;
 @Tag(name = "Camera Controller", description = "API endpoints for camera operations")
 public class CameraController {
 
+    @SuppressWarnings("unused")
     private final CameraService cameraService;
+    @SuppressWarnings("unused")
     private final MotionDetectionService motionDetectionService;
     
     public CameraController(CameraService cameraService, 

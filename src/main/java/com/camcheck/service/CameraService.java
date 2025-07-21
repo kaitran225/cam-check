@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class CameraService {
 
+    @SuppressWarnings("unused")
     private final SimpMessagingTemplate messagingTemplate;
     
     public CameraService(SimpMessagingTemplate messagingTemplate) {
