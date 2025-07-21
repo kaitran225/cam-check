@@ -686,6 +686,11 @@
                     }, 1000); // Small delay to ensure video is initialized
                 }
                 
+                // Start sending heartbeats
+                sendCameraHeartbeat();
+                // Set up heartbeat interval (every 3 seconds)
+                window.heartbeatInterval = setInterval(sendCameraHeartbeat, 3000);
+                
                 showNotification('Camera started successfully');
             } catch (error) {
                 console.error('Error starting camera:', error);
@@ -709,6 +714,12 @@
             cameraStatus.textContent = 'Idle';
             cameraNotReady.style.display = 'flex';
             isStreaming = false;
+            
+            // Clear heartbeat interval
+            if (window.heartbeatInterval) {
+                clearInterval(window.heartbeatInterval);
+                window.heartbeatInterval = null;
+            }
             
             showNotification('Camera stopped');
         }
@@ -774,6 +785,17 @@
                     console.error('Error sending frame:', error);
                 }
             }, 200); // 5 frames per second to reduce bandwidth
+        }
+        
+        // Send camera heartbeat to keep active status
+        function sendCameraHeartbeat() {
+            if (!stompClient || !isStreaming) return;
+            
+            stompClient.send("/app/camera/heartbeat", {}, JSON.stringify({
+                username: currentUsername
+            }));
+            
+            console.log("Sent camera heartbeat");
         }
         
         // Create a new session (admin only)
@@ -1033,6 +1055,9 @@
                 
                 // Initial load of active users
                 setTimeout(refreshActiveUsers, 2000);
+                
+                // Set up interval to refresh active users list every 5 seconds
+                window.activeUsersInterval = setInterval(refreshActiveUsers, 5000);
             }
             
             endSessionBtn.addEventListener('click', endSession);
