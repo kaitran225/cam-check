@@ -3,6 +3,7 @@ E:\cam-check-1\src\main\java\com\camcheck\config\SecurityConfig.java
 E:\cam-check-1\src\main\java\com\camcheck\config\WebSocketConfig.java
 E:\cam-check-1\src\main\java\com\camcheck\model\ApiResponse.java
 E:\cam-check-1\src\main\java\com\camcheck\service\CameraService.java
+E:\cam-check-1\src\main\java\com\camcheck\controller\ClientCameraController.java
 E:\cam-check-1\src\main\java\com\camcheck\model\CameraStatus.java
 E:\cam-check-1\src\main\java\com\camcheck\controller\CameraController.java
 E:\cam-check-1\src\main\java\com\camcheck\service\RecordingService.java

@@ -49,6 +49,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**").permitAll()
                 // Allow receiver endpoint without authentication
                 .requestMatchers("/receiver", "/receiver/**").permitAll()
+                // Allow client-camera endpoint without authentication
+                .requestMatchers("/client-camera", "/client-camera/**").permitAll()
                 // WebSocket endpoints
                 .requestMatchers("/ws/**").permitAll()
                 // Allow access from trusted IPs without authentication
@@ -65,7 +67,7 @@ public class SecurityConfig {
                 .permitAll()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**", "/api/v1/**", "/ws/**", "/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/receiver/**")
+                .ignoringRequestMatchers("/api/**", "/api/v1/**", "/ws/**", "/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/receiver/**", "/client-camera/**")
             );
         
         return http.build();

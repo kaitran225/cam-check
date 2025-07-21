@@ -25,7 +25,7 @@ RUN groupadd -r camcheck && useradd -r -g camcheck camcheck
 WORKDIR /app
 
 # Create recordings directory and set permissions
-RUN mkdir -p /app/recordings && chown -R camcheck:camcheck /app
+RUN mkdir -p /app/recordings/snapshots && chown -R camcheck:camcheck /app
 
 # Copy the built artifact from the build stage
 COPY --from=build /app/target/*.jar app.jar

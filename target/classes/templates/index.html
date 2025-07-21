@@ -322,6 +322,7 @@
             <h1>CamCheck</h1>
             <div class="user-info">
                 <span sec:authentication="name">Username</span>
+                <a href="/client-camera" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--white);">Client Camera</a>
                 <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--white);">API Docs</a>
                 <form th:action="@{/logout}" method="post">
                     <button type="submit" class="logout-btn">Logout</button>

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -68,6 +69,31 @@ public class RecordingService {
         } catch (IOException e) {
             log.error("Failed to create recordings directory: {}", e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Save a snapshot from client camera
+     * @param imageData Raw image data bytes
+     * @return Filename of the saved snapshot
+     * @throws IOException If there's an error saving the file
+     */
+    public String saveSnapshot(byte[] imageData) throws IOException {
+        // Create snapshots directory if it doesn't exist
+        Path snapshotsDir = Paths.get(recordingsPath, "snapshots");
+        if (!Files.exists(snapshotsDir)) {
+            Files.createDirectories(snapshotsDir);
+        }
+        
+        // Generate filename with timestamp
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+        String filename = "snapshot_" + timestamp + ".jpg";
+        Path filePath = snapshotsDir.resolve(filename);
+        
+        // Save the image file
+        Files.write(filePath, imageData);
+        log.info("Saved snapshot: {}", filePath);
+        
+        return filename;
     }
     
     /**
