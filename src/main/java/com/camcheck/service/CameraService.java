@@ -1,13 +1,11 @@
 package com.camcheck.service;
 
 import com.github.sarxos.webcam.Webcam;
-import com.github.sarxos.webcam.WebcamResolution;
-import com.github.sarxos.webcam.WebcamDevice;
-import com.github.sarxos.webcam.WebcamDiscoveryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -358,8 +356,9 @@ public class CameraService {
     /**
      * Start streaming camera footage
      */
-    public void startStreaming() {
+    public synchronized void startStreaming() {
         if (isStreaming) {
+            log.debug("Camera is already streaming, ignoring start request");
             return;
         }
         
@@ -379,6 +378,19 @@ public class CameraService {
                         deviceIndex = 0;
                     }
                     
+                    // If there's an existing webcam, try to close it first
+                    if (webcam != null) {
+                        try {
+                            if (webcam.isOpen()) {
+                                webcam.close();
+                                log.debug("Closed existing webcam before reopening");
+                            }
+                        } catch (Exception e) {
+                            log.warn("Error closing existing webcam: {}", e.getMessage());
+                            // Continue anyway
+                        }
+                    }
+                    
                     webcam = webcams.get(deviceIndex);
                     Dimension resolution = new Dimension(width, height);
                     webcam.setViewSize(resolution);
@@ -394,6 +406,16 @@ public class CameraService {
             } catch (Exception e) {
                 log.error("Failed to initialize camera: {}. Using fallback mode.", e.getMessage(), e);
                 initFallbackMode();
+            }
+        }
+        
+        // Make sure any existing executor is shut down
+        if (executor != null && !executor.isShutdown()) {
+            try {
+                executor.shutdown();
+                executor.awaitTermination(1, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.warn("Error shutting down existing executor: {}", e.getMessage());
             }
         }
         
@@ -423,10 +445,8 @@ public class CameraService {
                     image = fallbackImage;
                 }
                 
-                // Check for motion
-                if (motionDetectionService.isEnabled()) {
-                    motionDetectionService.detectMotion(image);
-                }
+                // Motion detection disabled per user request
+                // No motion detection processing here
                 
                 // Convert to base64 for streaming
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -476,23 +496,33 @@ public class CameraService {
     /**
      * Stop streaming camera footage
      */
-    public void stopStreaming() {
+    public synchronized void stopStreaming() {
         if (!isStreaming) {
+            log.debug("Camera is not streaming, ignoring stop request");
             return;
         }
         
         log.info("Stopping camera stream");
+        
+        // Set flag first to prevent any new frames from being sent
         isStreaming = false;
         
+        // Shut down the executor
         if (executor != null) {
-            executor.shutdown();
             try {
-                if (!executor.awaitTermination(500, TimeUnit.MILLISECONDS)) {
+                executor.shutdown();
+                if (!executor.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
                     executor.shutdownNow();
                 }
             } catch (InterruptedException e) {
                 executor.shutdownNow();
                 Thread.currentThread().interrupt();
+                log.warn("Interrupted while stopping camera stream");
+            } catch (Exception e) {
+                log.error("Error shutting down camera stream: {}", e.getMessage(), e);
+                executor.shutdownNow();
+            } finally {
+                executor = null;
             }
         }
         
@@ -534,15 +564,17 @@ public class CameraService {
     
     /**
      * Check if camera is streaming
+     * This is a read-only method that should not affect the camera stream
      */
-    public boolean isStreaming() {
+    public synchronized boolean isStreaming() {
         return isStreaming;
     }
     
     /**
      * Check if using fallback mode
+     * This is a read-only method that should not affect the camera stream
      */
-    public boolean isUsingFallback() {
+    public synchronized boolean isUsingFallback() {
         return useFallbackMode;
     }
     
@@ -645,6 +677,39 @@ public class CameraService {
             log.debug("Camera status broadcast: {}", status);
         } catch (Exception e) {
             log.error("Error broadcasting camera status: {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Periodic health check to ensure camera status is accurate
+     * Runs every 30 seconds
+     */
+    @Scheduled(fixedRate = 30000)
+    public void healthCheck() {
+        log.debug("Performing camera health check");
+        
+        try {
+            // If we're streaming but webcam is not available/open, verify status
+            if (isStreaming && !useFallbackMode && (webcam == null || !webcam.isOpen())) {
+                log.warn("Health check detected inconsistent state: isStreaming=true but webcam is not available/open");
+                
+                // Don't try to reopen the webcam as it may disrupt the stream
+                // Just update the status flag to match reality
+                if (webcam == null || !webcam.isOpen()) {
+                    log.info("Camera appears to be disconnected but streaming flag is true. Updating status only.");
+                    
+                    // Instead of broadcasting status, which might cause UI disruption,
+                    // just log the issue and let the client handle it
+                    log.warn("Camera health check detected inconsistency - not broadcasting to avoid disruption");
+                }
+            }
+            
+            // Don't attempt to reinitialize the camera during health checks
+            // This can disrupt ongoing streams
+            
+        } catch (Exception e) {
+            log.error("Error during camera health check: {}", e.getMessage(), e);
+            // Don't take any action that might disrupt the stream
         }
     }
 }

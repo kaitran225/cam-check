@@ -25,6 +25,9 @@ camcheck:
   security:
     username: admin
     password: 123
+    # List of trusted IPs that can access the system without authentication
+    # Default is localhost (IPv4 and IPv6)
+    trusted-ips: 127.0.0.1,::1,192.168.1.0/24,10.0.0.0/8
     
   # Camera settings
   camera:
@@ -49,14 +52,14 @@ camcheck:
     
   # Motion detection settings
   motion-detection:
-    enabled: true
+    enabled: false # Disabled per user request
     sensitivity: 30 # 1-100, higher is more sensitive
     cooldown-period: 10 # Minimum time between detections (seconds)
     
   # Storage settings
   storage:
     # Save recordings when motion is detected
-    record-on-motion: true
+    record-on-motion: false # Disabled since motion detection is disabled
     
     # Recording length in seconds
     recording-length: 30

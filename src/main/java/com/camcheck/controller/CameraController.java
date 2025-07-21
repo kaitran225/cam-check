@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Controller for camera operations
@@ -43,6 +44,44 @@ public class CameraController {
         model.addAttribute("isMotionDetectionEnabled", motionDetectionService.isEnabled());
         model.addAttribute("isFallbackMode", cameraService.isUsingFallback());
         return "index";
+    }
+    
+    /**
+     * Receiver view - minimal UI for viewing the camera feed
+     */
+    @GetMapping("/receiver")
+    public String receiver(Model model) {
+        model.addAttribute("isStreaming", cameraService.isStreaming());
+        model.addAttribute("isFallbackMode", cameraService.isUsingFallback());
+        return "receiver";
+    }
+    
+    /**
+     * Receiver view with session ID for one-to-one sessions
+     */
+    @GetMapping("/receiver/{sessionId}")
+    public String receiverWithSession(@PathVariable String sessionId, Model model) {
+        model.addAttribute("isStreaming", cameraService.isStreaming());
+        model.addAttribute("isFallbackMode", cameraService.isUsingFallback());
+        model.addAttribute("sessionId", sessionId);
+        return "receiver";
+    }
+    
+    /**
+     * Generate a new one-to-one session
+     */
+    @GetMapping("/session/new")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> createSession() {
+        String sessionId = UUID.randomUUID().toString();
+        String receiverUrl = "/receiver/" + sessionId;
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("sessionId", sessionId);
+        response.put("receiverUrl", receiverUrl);
+        
+        return ResponseEntity.ok(response);
     }
     
     /**

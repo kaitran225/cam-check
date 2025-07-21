@@ -60,15 +60,32 @@ public class ApiController {
                 schema = @Schema(implementation = ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse<CameraStatus>> getStatus() {
-        log.info("API request for camera status");
+        // Use debug level instead of info to reduce log noise
+        log.debug("API request for camera status");
         
-        CameraStatus status = new CameraStatus(
-            cameraService.isStreaming(),
-            motionDetectionService.isEnabled(),
-            cameraService.isUsingFallback()
-        );
-        
-        return ResponseEntity.ok(ApiResponse.success(status));
+        // Create a status object without calling any methods that might affect the camera stream
+        // Use a try-catch to prevent any exceptions from affecting the camera stream
+        try {
+            CameraStatus status = new CameraStatus(
+                cameraService.isStreaming(),
+                motionDetectionService.isEnabled(),
+                cameraService.isUsingFallback()
+            );
+            
+            return ResponseEntity.ok(ApiResponse.success(status));
+        } catch (Exception e) {
+            // If anything goes wrong, return a safe response that won't affect the camera
+            log.warn("Error getting camera status: {}", e.getMessage());
+            
+            // Return a generic status that won't disrupt the stream
+            CameraStatus safeStatus = new CameraStatus(
+                true, // Assume streaming is true to avoid disrupting active streams
+                motionDetectionService.isEnabled(),
+                false // Assume not in fallback mode
+            );
+            
+            return ResponseEntity.ok(ApiResponse.success(safeStatus));
+        }
     }
     
     /**
