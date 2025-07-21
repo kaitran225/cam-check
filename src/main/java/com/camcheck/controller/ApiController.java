@@ -15,12 +15,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * REST API Controller for camera operations
+ * Simplified version with no server-side camera functionality
  */
 @RestController
 @RequestMapping("/api/v1")
@@ -34,7 +36,7 @@ public class ApiController {
     @Value("${camcheck.camera.frame-rate}")
     private int frameRate;
     
-    @Value("${camcheck.camera.force-fallback}")
+    @Value("${camcheck.camera.force-fallback:false}")
     private boolean forceFallback;
     
     @Value("${camcheck.motion-detection.sensitivity}")
@@ -56,129 +58,97 @@ public class ApiController {
     @Operation(summary = "Get camera status", description = "Returns the current status of the camera system")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Status retrieved successfully",
-                content = @Content(mediaType = "application/json", 
-                schema = @Schema(implementation = ApiResponse.class)))
+                content = @Content(mediaType = "application/json"))
     })
-    public ResponseEntity<ApiResponse<CameraStatus>> getStatus() {
-        // Use debug level instead of info to reduce log noise
+    public ResponseEntity<Map<String, Object>> getStatus() {
         log.debug("API request for camera status");
         
-        // Create a status object without calling any methods that might affect the camera stream
-        // Use a try-catch to prevent any exceptions from affecting the camera stream
-        try {
-            CameraStatus status = new CameraStatus(
-                cameraService.isStreaming(),
-                motionDetectionService.isEnabled(),
-                cameraService.isUsingFallback()
-            );
-            
-            return ResponseEntity.ok(ApiResponse.success(status));
-        } catch (Exception e) {
-            // If anything goes wrong, return a safe response that won't affect the camera
-            log.warn("Error getting camera status: {}", e.getMessage());
-            
-            // Return a generic status that won't disrupt the stream
-            CameraStatus safeStatus = new CameraStatus(
-                true, // Assume streaming is true to avoid disrupting active streams
-                motionDetectionService.isEnabled(),
-                false // Assume not in fallback mode
-            );
-            
-            return ResponseEntity.ok(ApiResponse.success(safeStatus));
-        }
+        Map<String, Object> statusData = new HashMap<>();
+        statusData.put("streaming", false); // Always false as we don't use server cameras
+        statusData.put("motionDetection", false); // Always false as motion detection is disabled
+        statusData.put("fallbackMode", false); // Always false as we don't use server cameras
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("data", statusData);
+        
+        return ResponseEntity.ok(response);
     }
     
     /**
-     * Start streaming
+     * Start streaming - disabled, using client cameras only
      */
     @PostMapping("/camera/stream/start")
-    @Operation(summary = "Start camera streaming", description = "Starts the camera stream for viewing")
+    @Operation(summary = "Start camera streaming", description = "No longer functional - using client cameras only")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Stream started successfully",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request acknowledged",
+                content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> startStreaming() {
-        log.info("API request to start streaming");
-        cameraService.startStreaming();
+        log.info("API request to start streaming - ignored, using client cameras only");
         
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
-        response.put("streaming", true);
+        response.put("message", "Server-side camera streaming is disabled, using client cameras only");
         
         return ResponseEntity.ok(response);
     }
     
     /**
-     * Stop streaming
+     * Stop streaming - disabled, using client cameras only
      */
     @PostMapping("/camera/stream/stop")
-    @Operation(summary = "Stop camera streaming", description = "Stops the camera stream")
+    @Operation(summary = "Stop camera streaming", description = "No longer functional - using client cameras only")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Stream stopped successfully",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request acknowledged",
+                content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> stopStreaming() {
-        log.info("API request to stop streaming");
-        cameraService.stopStreaming();
+        log.info("API request to stop streaming - ignored, using client cameras only");
         
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
-        response.put("streaming", false);
+        response.put("message", "Server-side camera streaming is disabled, using client cameras only");
         
         return ResponseEntity.ok(response);
     }
     
     /**
-     * Take a snapshot
+     * Take a snapshot - disabled, using client cameras only
      */
     @GetMapping("/camera/snapshot")
-    @Operation(summary = "Take camera snapshot", description = "Captures a single image from the camera")
+    @Operation(summary = "Take camera snapshot", description = "No longer functional - using client cameras only")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Snapshot taken successfully",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error or failed to take snapshot",
-                content = @Content)
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request acknowledged",
+                content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> takeSnapshot() {
-        log.info("API request to take snapshot");
-        String imageData = cameraService.takeSnapshot();
+        log.info("API request to take snapshot - ignored, using client cameras only");
         
         Map<String, Object> response = new HashMap<>();
-        if (imageData != null) {
-            response.put("status", "success");
-            response.put("image", imageData);
-        } else {
-            response.put("status", "error");
-            response.put("message", "Failed to take snapshot");
-        }
+        response.put("status", "success");
+        response.put("message", "Server-side camera snapshots are disabled, use client cameras only");
         
         return ResponseEntity.ok(response);
     }
     
     /**
-     * Set motion detection status
+     * Set motion detection status - disabled
      */
     @PutMapping("/motion-detection/{enabled}")
-    @Operation(summary = "Set motion detection status", description = "Enable or disable motion detection")
+    @Operation(summary = "Set motion detection status", description = "No longer functional - motion detection is disabled")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Motion detection setting updated",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request acknowledged",
+                content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> setMotionDetection(
             @Parameter(description = "Enable (true) or disable (false) motion detection") 
             @PathVariable boolean enabled) {
-        log.info("API request to set motion detection: {}", enabled);
-        motionDetectionService.setEnabled(enabled);
+        log.info("API request to set motion detection: {} - ignored, motion detection is disabled", enabled);
         
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
-        response.put("motionDetection", enabled);
+        response.put("message", "Motion detection is permanently disabled");
         
         return ResponseEntity.ok(response);
     }
@@ -200,6 +170,7 @@ public class ApiController {
         settings.put("forceFallback", forceFallback);
         settings.put("sensitivity", sensitivity);
         settings.put("ipCameraUrl", ipCameraUrl);
+        settings.put("clientCameraOnly", true);
         
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
@@ -215,126 +186,104 @@ public class ApiController {
     @Operation(summary = "Apply system settings", description = "Applies new system settings")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Settings applied successfully",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid settings",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
+                content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> applySettings(@RequestBody Map<String, Object> settings) {
         log.info("API request to apply settings: {}", settings);
         
-        // For now, just log the settings and return success
-        // In a real implementation, you would apply these settings to the system
-        
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
-        response.put("message", "Settings received but not applied (feature not fully implemented)");
+        response.put("message", "Settings received but server-side camera functionality is disabled");
         
         return ResponseEntity.ok(response);
     }
     
     /**
-     * Detect available cameras
+     * Detect available cameras - disabled, using client cameras only
      */
     @GetMapping("/cameras/detect")
-    @Operation(summary = "Detect cameras", description = "Detects available cameras on the system")
+    @Operation(summary = "Detect cameras", description = "No longer functional - using client cameras only")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Camera detection completed",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request acknowledged",
                 content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> detectCameras() {
-        log.info("API request to detect cameras");
+        log.info("API request to detect cameras - ignored, using client cameras only");
         
-        List<Map<String, Object>> cameras = cameraService.detectCameras();
+        // Return empty list since we're not using server cameras
+        List<Map<String, Object>> cameras = new ArrayList<>();
         
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
+        response.put("message", "Server-side camera detection is disabled, use client cameras only");
         response.put("cameras", cameras);
-        response.put("count", cameras.size());
-        response.put("fallbackMode", cameraService.isUsingFallback());
+        response.put("count", 0);
         
         return ResponseEntity.ok(response);
     }
     
     /**
-     * Get available cameras
+     * Get available cameras - disabled, using client cameras only
      */
     @GetMapping("/cameras")
-    @Operation(summary = "Get available cameras", description = "Returns list of available cameras")
+    @Operation(summary = "Get available cameras", description = "No longer functional - using client cameras only")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Camera list retrieved successfully",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request acknowledged",
                 content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> getAvailableCameras() {
-        log.info("API request for available cameras");
+        log.info("API request for available cameras - ignored, using client cameras only");
         
-        List<Map<String, Object>> cameras = cameraService.getAvailableCameras();
+        // Return empty list since we're not using server cameras
+        List<Map<String, Object>> cameras = new ArrayList<>();
         
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
+        response.put("message", "Server-side camera listing is disabled, use client cameras only");
         response.put("cameras", cameras);
-        response.put("count", cameras.size());
-        response.put("fallbackMode", cameraService.isUsingFallback());
+        response.put("count", 0);
         
         return ResponseEntity.ok(response);
     }
     
     /**
-     * Switch to a different camera
+     * Switch to a different camera - disabled, using client cameras only
      */
     @PostMapping("/cameras/switch/{cameraIndex}")
-    @Operation(summary = "Switch camera", description = "Switches to a different camera")
+    @Operation(summary = "Switch camera", description = "No longer functional - using client cameras only")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Camera switched successfully",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid camera index",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request acknowledged",
+                content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> switchCamera(
             @Parameter(description = "Index of the camera to switch to") 
             @PathVariable int cameraIndex) {
-        log.info("API request to switch to camera: {}", cameraIndex);
-        
-        boolean success = cameraService.switchCamera(cameraIndex);
+        log.info("API request to switch to camera: {} - ignored, using client cameras only", cameraIndex);
         
         Map<String, Object> response = new HashMap<>();
-        if (success) {
-            response.put("status", "success");
-            response.put("message", "Camera switched successfully");
-        } else {
-            response.put("status", "error");
-            response.put("message", "Failed to switch camera");
-        }
+        response.put("status", "success");
+        response.put("message", "Server-side camera switching is disabled, use client cameras only");
         
         return ResponseEntity.ok(response);
     }
     
     /**
-     * Toggle fallback mode
+     * Toggle fallback mode - disabled, using client cameras only
      */
     @PostMapping("/fallback/{enabled}")
-    @Operation(summary = "Toggle fallback mode", description = "Enable or disable fallback mode")
+    @Operation(summary = "Toggle fallback mode", description = "No longer functional - using client cameras only")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Fallback mode setting updated",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request acknowledged",
+                content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> setFallbackMode(
             @Parameter(description = "Enable (true) or disable (false) fallback mode") 
             @PathVariable boolean enabled) {
-        log.info("API request to set fallback mode: {}", enabled);
-        
-        boolean success = cameraService.setFallbackMode(enabled);
+        log.info("API request to set fallback mode: {} - ignored, using client cameras only", enabled);
         
         Map<String, Object> response = new HashMap<>();
-        response.put("isEnable", success ? "success" : "failed");
         response.put("status", "success");
-        response.put("fallbackMode", cameraService.isUsingFallback());
-        response.put("message", enabled ? "Fallback mode enabled" : "Fallback mode disabled");
+        response.put("message", "Server-side fallback mode is disabled, use client cameras only");
         
         return ResponseEntity.ok(response);
     }
@@ -346,15 +295,10 @@ public class ApiController {
     @Operation(summary = "Restart system", description = "Initiates a system restart")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Restart initiated successfully",
-                content = @Content(mediaType = "application/json")),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
+                content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<Map<String, Object>> restartSystem() {
         log.info("API request to restart system");
-        
-        // For now, just log the request and return success
-        // In a real implementation, you would initiate a system restart
         
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");

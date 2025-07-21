@@ -3,23 +3,22 @@ package com.camcheck.controller;
 import com.camcheck.service.CameraService;
 import com.camcheck.service.MotionDetectionService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Controller for camera operations
+ * Simplified version with no server-side camera functionality
  */
 @Controller
 @Slf4j
@@ -40,48 +39,10 @@ public class CameraController {
      */
     @GetMapping("/")
     public String index(Model model) {
-        model.addAttribute("isStreaming", cameraService.isStreaming());
-        model.addAttribute("isMotionDetectionEnabled", motionDetectionService.isEnabled());
-        model.addAttribute("isFallbackMode", cameraService.isUsingFallback());
+        model.addAttribute("isStreaming", false); // Always false as we don't use server cameras
+        model.addAttribute("isMotionDetectionEnabled", false); // Always false as motion detection is disabled
+        model.addAttribute("isFallbackMode", false); // Always false as we don't use server cameras
         return "index";
-    }
-    
-    /**
-     * Receiver view - minimal UI for viewing the camera feed
-     */
-    @GetMapping("/receiver")
-    public String receiver(Model model) {
-        model.addAttribute("isStreaming", cameraService.isStreaming());
-        model.addAttribute("isFallbackMode", cameraService.isUsingFallback());
-        return "receiver";
-    }
-    
-    /**
-     * Receiver view with session ID for one-to-one sessions
-     */
-    @GetMapping("/receiver/{sessionId}")
-    public String receiverWithSession(@PathVariable String sessionId, Model model) {
-        model.addAttribute("isStreaming", cameraService.isStreaming());
-        model.addAttribute("isFallbackMode", cameraService.isUsingFallback());
-        model.addAttribute("sessionId", sessionId);
-        return "receiver";
-    }
-    
-    /**
-     * Generate a new one-to-one session
-     */
-    @GetMapping("/session/new")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> createSession() {
-        String sessionId = UUID.randomUUID().toString();
-        String receiverUrl = "/receiver/" + sessionId;
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("sessionId", sessionId);
-        response.put("receiverUrl", receiverUrl);
-        
-        return ResponseEntity.ok(response);
     }
     
     /**
@@ -93,100 +54,23 @@ public class CameraController {
     }
     
     /**
-     * Start streaming
+     * Get system status
      */
-    @PostMapping("/api/camera/start")
+    @GetMapping("/api/status")
     @ResponseBody
-    @Operation(summary = "Start camera streaming", description = "Starts the camera stream for viewing")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Stream started successfully",
-                content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
-    })
-    public ResponseEntity<Map<String, Object>> startStreaming() {
-        log.info("Request to start streaming");
-        cameraService.startStreaming();
-        
+    @Operation(summary = "Get system status", description = "Returns the current system status")
+    @ApiResponse(responseCode = "200", description = "Status retrieved successfully",
+            content = @Content(mediaType = "application/json"))
+    public ResponseEntity<Map<String, Object>> getStatus() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
-        response.put("streaming", true);
         
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Stop streaming
-     */
-    @PostMapping("/api/camera/stop")
-    @ResponseBody
-    @Operation(summary = "Stop camera streaming", description = "Stops the camera stream")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Stream stopped successfully",
-                content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
-    })
-    public ResponseEntity<Map<String, Object>> stopStreaming() {
-        log.info("Request to stop streaming");
-        cameraService.stopStreaming();
+        Map<String, Object> data = new HashMap<>();
+        data.put("streaming", false); // Always false as we don't use server cameras
+        data.put("motionDetection", false); // Always false as motion detection is disabled
+        data.put("fallbackMode", false); // Always false as we don't use server cameras
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("streaming", false);
-        
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Take a snapshot
-     */
-    @GetMapping("/api/camera/snapshot")
-    @ResponseBody
-    @Operation(summary = "Take camera snapshot", description = "Captures a single image from the camera")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Snapshot taken successfully",
-                content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error or failed to take snapshot",
-                content = @Content)
-    })
-    public ResponseEntity<Map<String, Object>> takeSnapshot() {
-        log.info("Request to take snapshot");
-        String imageData = cameraService.takeSnapshot();
-        
-        Map<String, Object> response = new HashMap<>();
-        if (imageData != null) {
-            response.put("status", "success");
-            response.put("image", imageData);
-        } else {
-            response.put("status", "error");
-            response.put("message", "Failed to take snapshot");
-        }
-        
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Toggle motion detection
-     */
-    @PostMapping("/api/motion/{enabled}")
-    @ResponseBody
-    @Operation(summary = "Toggle motion detection", description = "Enable or disable motion detection")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Motion detection setting updated",
-                content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "500", description = "Server error",
-                content = @Content)
-    })
-    public ResponseEntity<Map<String, Object>> toggleMotionDetection(
-            @Parameter(description = "Enable (true) or disable (false) motion detection") 
-            @PathVariable boolean enabled) {
-        log.info("Request to set motion detection: {}", enabled);
-        motionDetectionService.setEnabled(enabled);
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("motionDetection", enabled);
+        response.put("data", data);
         
         return ResponseEntity.ok(response);
     }

@@ -16,11 +16,14 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * WebSocket configuration for streaming camera footage
  */
 @Configuration
 @EnableWebSocketMessageBroker
+@Slf4j
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
@@ -47,6 +50,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
                     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                     accessor.setUser(auth);
+                    log.debug("WebSocket connection established for user: {}", 
+                            auth != null ? auth.getName() : "anonymous");
                 }
                 
                 return message;

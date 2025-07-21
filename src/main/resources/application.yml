@@ -2,23 +2,39 @@
 
 # Server settings
 server:
-  port: 80
-  address: 0.0.0.0
+  port: ${SERVER_PORT}
+  address: ${SERVER_ADDRESS}
   servlet:
     context-path: /
   ssl:
-    enabled: false # Set to true for production with proper certificates
+    enabled: false
+  undertow:
+    worker-threads: ${UNDERTOW_WORKER_THREADS}
+    buffer-size: ${UNDERTOW_BUFFER_SIZE}
+    direct-buffers: ${UNDERTOW_DIRECT_BUFFERS}
+    max-http-post-size: ${UNDERTOW_MAX_HTTP_POST_SIZE}
+    io-threads: ${UNDERTOW_IO_THREADS}
+    accesslog:
+      enabled: ${UNDERTOW_ACCESSLOG_ENABLED}
+      pattern: ${UNDERTOW_ACCESSLOG_PATTERN}
+    options:
+      server:
+        ALWAYS_SET_DATE: ${UNDERTOW_ALWAYS_SET_DATE}
+        MAX_ENTITY_SIZE: ${UNDERTOW_MAX_ENTITY_SIZE}
+      socket:
+        TCP_NODELAY: ${UNDERTOW_TCP_NODELAY}
+        REUSE_ADDRESSES: ${UNDERTOW_REUSE_ADDRESSES}
 
 # Spring settings
 spring:
   application:
     name: cam-check
   thymeleaf:
-    cache: false
+    cache: ${THYMELEAF_CACHE}
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: ${MAX_FILE_SIZE}
+      max-request-size: ${MAX_REQUEST_SIZE}
 
 # Custom CamCheck settings
 camcheck:
@@ -26,78 +42,83 @@ camcheck:
   security:
     # User accounts
     users:
-      - username: LuxuBoo
-        password: "@Anh2411"
+      - username: ${SECURITY_USERNAME_LUXUBOO}
+        password: ${SECURITY_PASSWORD_LUXUBOO}
         role: USER
-      - username: KaiTran
-        password: "@KaiTran225"
+      - username: ${SECURITY_USERNAME_KAITRAN}
+        password: ${SECURITY_PASSWORD_KAITRAN}
         role: ADMIN
     # Legacy credentials (kept for backward compatibility)
-    username: admin
-    password: 123
+    username: ${LEGACY_USERNAME}
+    password: ${LEGACY_PASSWORD}
     # List of trusted IPs that can access the system without authentication
-    # Default is localhost (IPv4 and IPv6)
-    trusted-ips: 127.0.0.1,::1,192.168.1.0/24,10.0.0.0/8
+    trusted-ips: ${SECURITY_TRUSTED_IPS}
     
   # Camera settings
   camera:
     # Options: webcam (USB camera) or ip (IP camera)
-    type: webcam
+    type: ${CAMERA_TYPE}
     
     # Frame rate (frames per second)
-    frame-rate: 30
+    frame-rate: ${CAMERA_FRAME_RATE}
     
     # Resolution
-    width: 640
-    height: 480
+    width: ${CAMERA_WIDTH}
+    height: ${CAMERA_HEIGHT}
     
     # Camera device index (usually 0 for the first camera)
-    device-index: 0
+    device-index: ${CAMERA_DEVICE_INDEX}
     
     # Force fallback mode (use this if you don't have a camera or want to test without one)
-    force-fallback: false
+    force-fallback: ${CAMERA_FORCE_FALLBACK}
     
     # IP camera settings (if type is set to 'ip')
-    ip-url: http://192.168.1.128:8080/
+    ip-url: ${CAMERA_IP_URL}
     
   # Motion detection settings
   motion-detection:
-    enabled: false # Disabled per user request
-    sensitivity: 30 # 1-100, higher is more sensitive
-    cooldown-period: 10 # Minimum time between detections (seconds)
+    enabled: ${MOTION_DETECTION_ENABLED}
+    sensitivity: ${MOTION_DETECTION_SENSITIVITY}
+    cooldown-period: ${MOTION_DETECTION_COOLDOWN}
     
   # Storage settings
   storage:
     # Save recordings when motion is detected
-    record-on-motion: false # Disabled since motion detection is disabled
+    record-on-motion: ${STORAGE_RECORD_ON_MOTION}
     
     # Recording length in seconds
-    recording-length: 30
+    recording-length: ${STORAGE_RECORDING_LENGTH}
     
     # Maximum storage space for recordings (MB)
-    max-size-mb: 5000
+    max-size-mb: ${STORAGE_MAX_SIZE_MB}
     
     # Delete oldest recordings when storage limit is reached
-    delete-oldest: true
+    delete-oldest: ${STORAGE_DELETE_OLDEST}
     
     # Path for recordings (relative to application)
-    recordings-path: ./recordings
+    recordings-path: ${STORAGE_RECORDINGS_PATH}
 
 # Swagger/OpenAPI configuration
 springdoc:
   api-docs:
-    path: /api-docs
+    path: ${SPRINGDOC_API_DOCS_PATH}
   swagger-ui:
-    path: /swagger-ui.html
-    operationsSorter: method
-    tagsSorter: alpha
-    disable-swagger-default-url: true
-  show-actuator: false
+    path: ${SPRINGDOC_SWAGGER_UI_PATH}
+    operationsSorter: ${SPRINGDOC_OPERATIONS_SORTER}
+    tagsSorter: ${SPRINGDOC_TAGS_SORTER}
+    disable-swagger-default-url: ${SPRINGDOC_DISABLE_DEFAULT_URL}
+  show-actuator: ${SPRINGDOC_SHOW_ACTUATOR}
   
-# Logging configuration
+# Logging configuration - super short format
 logging:
+  pattern:
+    console: ${LOGGING_PATTERN_CONSOLE}
+    file: ${LOGGING_PATTERN_FILE}
   level:
-    root: INFO
-    com.camcheck: DEBUG
-    org.springframework.web: INFO
-    org.springframework.security: INFO 
+    root: ${LOGGING_LEVEL_ROOT}
+    com.camcheck: ${LOGGING_LEVEL_CAMCHECK}
+    org.springframework.web: ${LOGGING_LEVEL_SPRING_WEB}
+    org.springframework.security: ${LOGGING_LEVEL_SPRING_SECURITY}
+    org.springframework.messaging: ${LOGGING_LEVEL_SPRING_MESSAGING}
+    org.springframework.web.socket: ${LOGGING_LEVEL_SPRING_WEBSOCKET}
+    io.undertow: ${LOGGING_LEVEL_UNDERTOW} 

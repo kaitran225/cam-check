@@ -1,37 +1,85 @@
 package com.camcheck.model;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Collections;
+import java.util.Map;
 
 /**
- * Generic API response model
+ * Standardized API response format
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Schema(description = "Generic API response")
-public class ApiResponse<T> {
-    
-    @Schema(description = "Response status", example = "success")
+public class ApiResponse {
     private String status;
-    
-    @Schema(description = "Optional message")
     private String message;
+    private Map<String, Object> data;
     
-    @Schema(description = "Response data")
-    private T data;
-    
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>("success", null, data);
+    public ApiResponse() {
+        // Default constructor
     }
     
-    public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>("success", message, data);
+    public ApiResponse(String status, String message, Map<String, Object> data) {
+        this.status = status;
+        this.message = message;
+        this.data = data;
     }
     
-    public static ApiResponse<Object> error(String message) {
-        return new ApiResponse<>("error", message, null);
+    /**
+     * Create a success response
+     * @param message Success message
+     * @return ApiResponse
+     */
+    public static ApiResponse success(String message) {
+        return new ApiResponse("success", message, Collections.emptyMap());
+    }
+    
+    /**
+     * Create a success response with data
+     * @param message Success message
+     * @param data Response data
+     * @return ApiResponse
+     */
+    public static ApiResponse success(String message, Map<String, Object> data) {
+        return new ApiResponse("success", message, data);
+    }
+    
+    /**
+     * Create an error response
+     * @param message Error message
+     * @return ApiResponse
+     */
+    public static ApiResponse error(String message) {
+        return new ApiResponse("error", message, Collections.emptyMap());
+    }
+    
+    /**
+     * Create an error response with data
+     * @param message Error message
+     * @param data Response data
+     * @return ApiResponse
+     */
+    public static ApiResponse error(String message, Map<String, Object> data) {
+        return new ApiResponse("error", message, data);
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public Map<String, Object> getData() {
+        return data;
+    }
+
+    public void setData(Map<String, Object> data) {
+        this.data = data;
     }
 } 

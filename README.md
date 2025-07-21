@@ -4,29 +4,32 @@ A lightweight, secure personal camera streaming solution built with Spring Boot 
 
 ## Features
 
-- **Lightweight**: Designed to run continuously on low-power devices
-- **Secure Access**: Spring Security authentication to protect your stream
+- **Lightweight**: Designed to run continuously on low-power devices with Undertow web server
+- **Secure Access**: Spring Security authentication with role-based access control
+- **Client-Side Camera**: Uses browser's camera API for efficient client-side streaming
+- **Session Management**: One-to-one camera sessions between admin and users
 - **Remote Viewing**: Stream camera footage to the web for viewing anywhere
-- **Motion Detection**: Optional motion detection with notifications
-- **Recording**: Save footage when motion is detected
+- **Recording**: Save snapshots from client cameras
 - **Self-Hosted**: Deploy directly to your own domain without third-party services
-- **Easy Setup**: Simple configuration for quick deployment
+- **Easy Setup**: Simple configuration with environment variables for quick deployment
 - **REST API**: Comprehensive API with Swagger documentation for integration
 
 ## Tech Stack
 
-- **Backend**: Spring Boot
-- **Streaming**: WebSocket for efficient video streaming
-- **Authentication**: Spring Security
+- **Backend**: Spring Boot with Undertow (high-performance web server)
+- **Streaming**: WebSocket (SockJS/STOMP) for efficient video streaming
+- **Authentication**: Spring Security with role-based access control
 - **Storage**: Local file system for recordings
 - **Frontend**: Thymeleaf with HTML/CSS/JS interface
+- **Client Camera**: WebRTC/MediaDevices API for browser camera access
+- **Configuration**: Environment variables (.env file) for flexible deployment
 - **API Documentation**: Swagger/OpenAPI 3.0
 
 ## Requirements
 
 - Java 17+
-- Webcam or IP camera
-- Domain name (already purchased)
+- Modern web browser with camera access
+- Domain name (optional, for remote access)
 - Server or Raspberry Pi to host the application
 
 ## Installation
@@ -35,6 +38,10 @@ A lightweight, secure personal camera streaming solution built with Spring Boot 
 # Clone the repository
 git clone https://github.com/yourusername/cam-check.git
 cd cam-check
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your preferred settings
 
 # Build the project
 ./mvnw clean package
@@ -49,22 +56,70 @@ java -jar target/cam-check-0.0.1-SNAPSHOT.jar
 # Start the server
 java -jar cam-check.jar
 
-# Access your camera stream
-# Visit https://your-domain.com in your browser
+# Access your camera dashboard
+# Visit http://localhost:80 in your browser (or your configured port)
+
+# Login credentials
+# Admin: KaiTran / @KaiTran225
+# User: LuxuBoo / @Anh2411
+# Legacy: admin / 123
 
 # Access API documentation
-# Visit https://your-domain.com/swagger-ui.html
+# Visit http://localhost:80/swagger-ui.html
 ```
 
 ## Configuration Options
 
-Edit `application.yml` to customize your setup:
+The application is configured using environment variables in a `.env` file:
 
-- `server.port`: Server port (default: 8080)
-- `camcheck.security.username` and `password`: Authentication credentials
-- `camcheck.camera.motion-detection`: Enable/disable motion detection
-- `camcheck.storage.record-on-motion`: Save video when motion is detected
-- `camcheck.storage.max-size-mb`: Maximum disk space for recordings (in MB)
+### Server Configuration
+- `SERVER_PORT`: Server port (default: 80)
+- `SERVER_ADDRESS`: Server address (default: 0.0.0.0)
+
+### Undertow Configuration
+- `UNDERTOW_WORKER_THREADS`: Worker thread count (default: 16)
+- `UNDERTOW_IO_THREADS`: I/O thread count (default: 8)
+- `UNDERTOW_BUFFER_SIZE`: Buffer size in bytes (default: 1024)
+- `UNDERTOW_DIRECT_BUFFERS`: Use direct buffers for better performance (default: true)
+
+### Security Configuration
+- `SECURITY_USERNAME_LUXUBOO`: Regular user username (default: LuxuBoo)
+- `SECURITY_PASSWORD_LUXUBOO`: Regular user password (default: @Anh2411)
+- `SECURITY_USERNAME_KAITRAN`: Admin username (default: KaiTran)
+- `SECURITY_PASSWORD_KAITRAN`: Admin password (default: @KaiTran225)
+- `LEGACY_USERNAME`: Legacy admin username (default: admin)
+- `LEGACY_PASSWORD`: Legacy admin password (default: 123)
+- `SECURITY_TRUSTED_IPS`: Comma-separated list of trusted IP addresses/ranges
+
+### Camera and Storage Configuration
+- `CAMERA_TYPE`: Camera type (webcam or ip)
+- `STORAGE_RECORDINGS_PATH`: Path for storing recordings (default: ./recordings)
+- `STORAGE_MAX_SIZE_MB`: Maximum storage size in MB (default: 5000)
+
+## User Roles and Functionality
+
+### Admin Role (KaiTran)
+- Create camera sessions
+- Generate and share session codes
+- View both local and remote cameras
+- Take snapshots
+
+### User Role (LuxuBoo)
+- Join camera sessions using codes
+- View both local and remote cameras
+- Take snapshots
+
+## Session Management
+
+1. **Admin Creates Session**:
+   - Admin logs in and clicks "Create Session"
+   - A unique 6-digit session code is generated
+   - Admin shares this code with the user
+
+2. **User Joins Session**:
+   - User logs in and enters the session code
+   - User clicks "Join Session"
+   - Both admin and user can now see each other's camera feeds
 
 ## Deployment Options
 
@@ -85,18 +140,7 @@ This project includes configuration files for easy deployment to Render.com:
    - Click "Create Blueprint"
 
 3. **Environment Variables**
-   - During deployment, you'll be prompted to set:
-     - `CAMCHECK_SECURITY_USERNAME`: Admin username
-     - `CAMCHECK_SECURITY_PASSWORD`: Admin password
-
-4. **Important Notes**
-   - The application is configured to use fallback mode on Render.com since webcam access is limited
-   - To use with real cameras, consider setting up a self-hosted instance
-   - The persistent disk is configured to store recordings
-
-5. **Access Your Deployed Application**
-   - Once deployed, your application will be available at `https://camcheck.onrender.com` (or your custom domain)
-   - Access the API documentation at `https://camcheck.onrender.com/swagger-ui.html`
+   - During deployment, you'll be prompted to set all variables from `.env.example`
 
 ### Self-Deployment
 
@@ -121,7 +165,7 @@ This project includes configuration files for easy deployment to Render.com:
    - Obtain certificate: `sudo certbot certonly --standalone -d yourdomain.com`
 
 4. **Deploy the application**
-   - Upload the JAR file to your server
+   - Upload the JAR file and `.env` file to your server
    - Configure as a system service for auto-restart
    - Set up Nginx as a reverse proxy (configuration provided in `deploy/nginx.conf`)
 
@@ -135,6 +179,7 @@ This project includes configuration files for easy deployment to Render.com:
 - Use HTTPS (SSL/TLS) for all connections
 - Keep the system updated regularly
 - Consider IP whitelisting for additional security
+- Store sensitive information in `.env` file (not in git repository)
 
 ## Project Structure
 
@@ -146,28 +191,38 @@ cam-check/
 │   │   │   └── com/
 │   │   │       └── camcheck/
 │   │   │           ├── controller/
+│   │   │           │   ├── ApiController.java
+│   │   │           │   ├── CameraController.java
+│   │   │           │   ├── ClientCameraController.java
+│   │   │           │   └── SessionController.java
 │   │   │           ├── service/
+│   │   │           │   ├── CameraService.java
+│   │   │           │   ├── MotionDetectionService.java
+│   │   │           │   └── RecordingService.java
 │   │   │           ├── model/
+│   │   │           │   ├── ApiResponse.java
+│   │   │           │   └── CameraStatus.java
 │   │   │           └── config/
+│   │   │               ├── SecurityConfig.java
+│   │   │               ├── WebSocketConfig.java
+│   │   │               ├── UndertowConfig.java
+│   │   │               └── EnvConfig.java
 │   │   └── resources/
 │   │       ├── static/
+│   │       │   ├── brutalist.css
+│   │       │   └── api-guide.html
 │   │       └── templates/
+│   │           ├── index.html
+│   │           ├── login.html
+│   │           ├── client-camera.html
+│   │           └── receiver.html
+├── .env
+├── .env.example
 ├── deploy/
 │   ├── nginx.conf
 │   └── camcheck.service
 └── pom.xml
 ```
-
-## Todo
-
-- [ ] Set up Spring Boot project
-- [ ] Implement camera streaming
-- [ ] Add Spring Security authentication
-- [ ] Create web interface
-- [ ] Implement motion detection
-- [ ] Add recording functionality
-- [ ] Optimize for long-term running
-- [ ] Create deployment scripts
 
 ## License
 

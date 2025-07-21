@@ -1,6 +1,7 @@
 package com.camcheck.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -30,6 +31,7 @@ public class SessionController {
     
     public SessionController(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
+        log.info("SessionController initialized");
     }
     
     /**
@@ -65,6 +67,7 @@ public class SessionController {
         event.setMessage("Session created successfully with code: " + request.getCode());
         messagingTemplate.convertAndSend("/topic/session/" + username, event);
         
+        log.info("Session created with code: {} for user: {}", request.getCode(), username);
         log.debug("Available sessions: {}", activeSessions);
     }
     
@@ -82,6 +85,7 @@ public class SessionController {
         
         // Check if session exists
         if (!activeSessions.containsKey(request.getCode())) {
+            log.warn("Session not found: {}", request.getCode());
             sendError(username, "Invalid session code or session expired");
             return;
         }
@@ -91,12 +95,14 @@ public class SessionController {
         
         // Check if admin is already connected to someone else
         if (activeConnections.containsKey(adminUsername)) {
+            log.warn("Admin {} is already connected to another user", adminUsername);
             sendError(username, "Admin is already connected to another user");
             return;
         }
         
         // Check if user is already connected to someone else
         if (activeConnections.containsKey(username)) {
+            log.warn("User {} is already connected to another session", username);
             sendError(username, "You are already connected to another session");
             return;
         }
@@ -113,6 +119,7 @@ public class SessionController {
         notifySessionConnected(username, adminUsername);
         
         log.info("Session established between {} and {}", adminUsername, username);
+        log.debug("Active connections: {}", activeConnections);
     }
     
     /**
@@ -137,6 +144,9 @@ public class SessionController {
             notifySessionDisconnected(connectedPeer, username);
             
             log.info("Session ended between {} and {}", username, connectedPeer);
+            log.debug("Active connections after end: {}", activeConnections);
+        } else {
+            log.warn("No active session found for user: {}", username);
         }
     }
     
@@ -144,16 +154,23 @@ public class SessionController {
      * Forward camera frames to the connected peer
      */
     @MessageMapping("/camera/{username}")
-    public void forwardCameraFrame(String imageData, String username) {
-        String connectedPeer = activeConnections.get(username);
+    public void forwardCameraFrame(String imageData, @DestinationVariable String username, SimpMessageHeaderAccessor headerAccessor) {
+        Principal user = headerAccessor.getUser();
+        String sender = user != null ? user.getName() : username;
+        
+        log.debug("Received camera frame from {} to forward to {}", sender, username);
+        String connectedPeer = activeConnections.get(sender);
         
         if (connectedPeer != null) {
+            log.debug("Forwarding camera frame from {} to {}", sender, connectedPeer);
             messagingTemplate.convertAndSend("/topic/camera/" + connectedPeer, imageData);
+        } else {
+            log.warn("Cannot forward camera frame: no connected peer found for {}", sender);
         }
     }
     
     /**
-     * Debugging endpoint to check active sessions
+     * Debug endpoint to check active sessions
      */
     @GetMapping("/api/debug/sessions")
     @ResponseBody
@@ -161,6 +178,20 @@ public class SessionController {
         Map<String, Object> result = new HashMap<>();
         result.put("activeSessions", new HashMap<>(activeSessions));
         result.put("activeConnections", new HashMap<>(activeConnections));
+        log.info("Debug sessions requested - Active sessions: {}, Active connections: {}", 
+                activeSessions.size(), activeConnections.size());
+        return result;
+    }
+    
+    /**
+     * Debug endpoint to check active connections
+     */
+    @GetMapping("/api/debug/connections")
+    @ResponseBody
+    public Map<String, Object> debugConnections() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("activeConnections", new HashMap<>(activeConnections));
+        log.info("Debug connections requested - Active connections: {}", activeConnections.size());
         return result;
     }
     
@@ -172,7 +203,6 @@ public class SessionController {
         event.setType("error");
         event.setMessage(message);
         
-        // Send to a topic that includes the username for better routing
         messagingTemplate.convertAndSend("/topic/session/" + username, event);
         log.warn("Session error for {}: {}", username, message);
     }
@@ -185,7 +215,6 @@ public class SessionController {
         event.setType("connected");
         event.setPeer(peer);
         
-        // Send to a topic that includes the username for better routing
         messagingTemplate.convertAndSend("/topic/session/" + username, event);
         log.info("Sent connection notification to {} about peer {}", username, peer);
     }
@@ -198,8 +227,8 @@ public class SessionController {
         event.setType("disconnected");
         event.setPeer(peer);
         
-        // Send to a topic that includes the username for better routing
         messagingTemplate.convertAndSend("/topic/session/" + username, event);
+        log.info("Sent disconnection notification to {} about peer {}", username, peer);
     }
     
     /**

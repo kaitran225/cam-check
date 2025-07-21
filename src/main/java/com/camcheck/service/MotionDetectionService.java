@@ -1,39 +1,18 @@
 package com.camcheck.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-
-import java.awt.image.BufferedImage;
 
 /**
  * Service for motion detection - DISABLED PER USER REQUEST
+ * Simplified version with no server-side camera functionality
  */
 @Service
 @Slf4j
 public class MotionDetectionService {
 
-    @SuppressWarnings("unused")
-    private final SimpMessagingTemplate messagingTemplate;
-    
-    @Value("${camcheck.motion-detection.enabled}")
-    private boolean enabled;
-    
-    public MotionDetectionService(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
-        this.enabled = false; // Always disabled
+    public MotionDetectionService() {
         log.info("Motion detection service initialized in disabled mode");
-    }
-    
-    /**
-     * Detect motion in the current frame - DISABLED
-     * @param currentFrame The current frame to check
-     * @return Always false (motion detection disabled)
-     */
-    public boolean detectMotion(BufferedImage currentFrame) {
-        // Motion detection completely disabled per user request
-        return false;
     }
     
     /**
@@ -52,6 +31,5 @@ public class MotionDetectionService {
         // Ignore the parameter and log the attempt
         log.debug("Attempt to {} motion detection ignored - motion detection permanently disabled", 
                  enabled ? "enable" : "disable");
-        this.enabled = false;
     }
 } 

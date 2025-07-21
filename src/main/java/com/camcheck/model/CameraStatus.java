@@ -1,25 +1,26 @@
 package com.camcheck.model;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
  * Camera status model
+ * Simplified version for client-only camera usage
  */
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-@Schema(description = "Camera system status")
+@AllArgsConstructor
 public class CameraStatus {
-    
-    @Schema(description = "Whether the camera is currently streaming", example = "true")
     private boolean streaming;
-    
-    @Schema(description = "Whether motion detection is enabled", example = "true")
-    private boolean motionDetection;
-    
-    @Schema(description = "Whether the system is using fallback mode (no real camera available)", example = "false")
+    private boolean motionDetectionEnabled;
     private boolean fallbackMode;
+    
+    /**
+     * Create a default status with all features disabled
+     * @return CameraStatus with default values
+     */
+    public static CameraStatus getDefault() {
+        return new CameraStatus(false, false, false);
+    }
 } 

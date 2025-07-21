@@ -640,8 +640,12 @@
                     }
                 };
                 
+                console.log('Requesting camera access with constraints:', constraints);
+                
                 stream = await navigator.mediaDevices.getUserMedia(constraints);
                 localVideo.srcObject = stream;
+                
+                console.log('Camera stream started successfully');
                 
                 // Hide camera not ready overlay
                 cameraNotReady.style.display = 'none';
@@ -656,7 +660,10 @@
                 
                 // Start sending frames to connected peer if in a session
                 if (connectedPeer) {
-                    startSendingFrames();
+                    console.log('Connected to peer, starting to send frames');
+                    setTimeout(() => {
+                        startSendingFrames();
+                    }, 1000); // Small delay to ensure video is initialized
                 }
                 
                 showNotification('Camera started successfully');
@@ -716,7 +723,12 @@
         
         // Start sending frames to connected peer
         function startSendingFrames() {
-            if (!stream || !stompClient || !connectedPeer) return;
+            if (!stream || !stompClient || !connectedPeer) {
+                console.log("Cannot start sending frames: missing stream, stompClient, or connectedPeer");
+                return;
+            }
+            
+            console.log("Starting to send frames to peer:", connectedPeer);
             
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -726,6 +738,7 @@
             // Send frames at regular intervals
             const frameInterval = setInterval(() => {
                 if (!isStreaming || !stream || !connectedPeer) {
+                    console.log("Stopping frame sending - conditions no longer met");
                     clearInterval(frameInterval);
                     return;
                 }
@@ -735,16 +748,20 @@
                     const imageData = canvas.toDataURL('image/jpeg', 0.7);
                     
                     // Send to connected peer via WebSocket
+                    console.log("Sending frame to peer:", connectedPeer);
                     stompClient.send("/app/camera/" + connectedPeer, {}, imageData.split(',')[1]);
                 } catch (error) {
                     console.error('Error sending frame:', error);
                 }
-            }, 100); // 10 frames per second
+            }, 200); // 5 frames per second to reduce bandwidth
         }
         
         // Create a new session (admin only)
         function createSession() {
-            if (!isAdmin) return;
+            if (!isAdmin) {
+                console.warn("Non-admin tried to create session");
+                return;
+            }
             
             // Generate a random 6-digit code
             const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -763,11 +780,17 @@
             }));
             
             showNotification('Session created. Share the code with a user.');
+            
+            // Log session creation for debugging
+            console.log('Session creation request sent with code:', code, 'username:', currentUsername);
         }
         
         // Join a session (user only)
         function joinSession() {
-            if (isAdmin) return;
+            if (isAdmin) {
+                console.warn("Admin tried to join session");
+                return;
+            }
             
             const code = joinSessionCode.value.trim();
             
@@ -785,6 +808,9 @@
             }));
             
             showNotification('Attempting to join session...');
+            
+            // Log join attempt for debugging
+            console.log('Session join request sent with code:', code, 'username:', currentUsername);
         }
         
         // End current session
@@ -837,12 +863,24 @@
                     noSessionMessage.style.display = 'none';
                     activeSessionInfo.style.display = 'block';
                     
-                    // Start sending frames if camera is active
-                    if (isStreaming) {
-                        startSendingFrames();
-                    }
-                    
                     showNotification(`Connected with ${data.peer}`);
+                    
+                    // Start sending frames if camera is active
+                    if (isStreaming && stream) {
+                        console.log('Camera is active, starting to send frames to', data.peer);
+                        setTimeout(() => {
+                            startSendingFrames();
+                        }, 1000); // Small delay to ensure connection is fully established
+                    } else {
+                        console.warn('Camera not active, cannot send frames to peer');
+                        showNotification('Please start your camera to share video with peer', true);
+                        
+                        // Auto-start camera if we have permission
+                        if (selectedCamera) {
+                            console.log('Auto-starting camera with selected device:', selectedCamera);
+                            startCameraStream();
+                        }
+                    }
                     break;
                     
                 case 'disconnected':
