@@ -37,10 +37,10 @@ public class SecurityConfig {
     @Value("${camcheck.security.trusted-ips:127.0.0.1,::1}")
     private String trustedIps;
     
-    @Value("${camcheck.security.superuser.username:${SUPERUSER_USERNAME:superuser}}")
+    @Value("${camcheck.security.superuser.username:${SUPERUSER_USERNAME}}")
     private String superuserUsername;
     
-    @Value("${camcheck.security.superuser.password:${SUPERUSER_PASSWORD:changeme}}")
+    @Value("${camcheck.security.superuser.password:${SUPERUSER_PASSWORD}}")
     private String superuserPassword;
     
     @ConfigurationProperties(prefix = "camcheck.security")

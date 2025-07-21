@@ -55,8 +55,8 @@ camcheck:
     trusted-ips: ${SECURITY_TRUSTED_IPS}
     # Superuser credentials
     superuser:
-      username: ${SUPERUSER_USERNAME:superuser}
-      password: ${SUPERUSER_PASSWORD:changeme}
+      username: ${SUPERUSER_USERNAME}
+      password: ${SUPERUSER_PASSWORD}
     
   # Camera settings
   camera:

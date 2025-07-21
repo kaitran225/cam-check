@@ -368,6 +368,7 @@
             <div class="user-info">
                 <span sec:authentication="name">Username</span>
                 <span sec:authorize="hasRole('ADMIN')">(Admin)</span>
+                <span sec:authorize="hasRole('SUPERUSER')">(Superuser)</span>
                 <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--white);">API Docs</a>
                 <form th:action="@{/logout}" method="post">
                     <button type="submit" class="logout-btn">Logout</button>
@@ -443,6 +444,18 @@
                     <button id="joinSessionBtn">Join Session</button>
                 </div>
                 
+                <div sec:authorize="hasRole('SUPERUSER')" class="control-group">
+                    <h3>Superuser Controls</h3>
+                    <button id="refreshActiveUsersBtn">Refresh Active Users</button>
+                    <div class="settings-row">
+                        <label for="activeUsersList">Users with Active Cameras:</label>
+                        <select id="activeUsersList">
+                            <option value="">No active users found</option>
+                        </select>
+                    </div>
+                    <button id="superuserConnectBtn">Connect to Selected User</button>
+                </div>
+                
                 <div class="control-group">
                     <h3>Connected Session</h3>
                     <div id="noSessionMessage">
@@ -470,8 +483,10 @@
         let selectedCamera = null;
         let sessionCode = null;
         let isAdmin = /*[[${#authorization.expression('hasRole(''ADMIN'')')}]]*/ false;
+        let isSuperuser = /*[[${#authorization.expression('hasRole(''SUPERUSER'')')}]]*/ false;
         let currentUsername = /*[[${#authentication.name}]]*/ 'user';
         let connectedPeer = null;
+        let activeUsers = [];
         
         // DOM elements
         const videoFeed = document.getElementById('videoFeed');
@@ -500,6 +515,11 @@
         const connectedWith = document.getElementById('connectedWith');
         const sessionStartTime = document.getElementById('sessionStartTime');
         const endSessionBtn = document.getElementById('endSessionBtn');
+        
+        // Superuser elements
+        const refreshActiveUsersBtn = isSuperuser ? document.getElementById('refreshActiveUsersBtn') : null;
+        const activeUsersList = isSuperuser ? document.getElementById('activeUsersList') : null;
+        const superuserConnectBtn = isSuperuser ? document.getElementById('superuserConnectBtn') : null;
         
         // Connect to WebSocket
         function connect() {
@@ -892,9 +912,76 @@
                     showNotification(data.message || 'An error occurred with the session', true);
                     break;
                     
+                case 'active-users':
+                    // Update active users list (superuser only)
+                    if (isSuperuser && data.activeUsers) {
+                        activeUsers = Array.from(data.activeUsers);
+                        updateActiveUsersList();
+                        showNotification('Active users list updated');
+                    }
+                    break;
+                    
                 default:
                     console.warn('Unknown session event type:', data.type);
             }
+        }
+        
+        // Update active users list dropdown
+        function updateActiveUsersList() {
+            if (!isSuperuser || !activeUsersList) return;
+            
+            // Clear current options
+            activeUsersList.innerHTML = '';
+            
+            if (activeUsers.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.text = 'No active users found';
+                activeUsersList.appendChild(option);
+                return;
+            }
+            
+            // Add each active user
+            activeUsers.forEach(username => {
+                const option = document.createElement('option');
+                option.value = username;
+                option.text = username;
+                activeUsersList.appendChild(option);
+            });
+            
+            showNotification(`Found ${activeUsers.length} active users`);
+        }
+        
+        // Refresh active users list (superuser only)
+        function refreshActiveUsers() {
+            if (!isSuperuser || !stompClient) return;
+            
+            stompClient.send("/app/session/superuser/active-users", {}, JSON.stringify({
+                username: currentUsername
+            }));
+            
+            showNotification('Requesting active users list...');
+        }
+        
+        // Connect to a specific user (superuser only)
+        function superuserConnect() {
+            if (!isSuperuser || !stompClient) return;
+            
+            const targetUser = activeUsersList.value;
+            
+            if (!targetUser) {
+                showNotification('Please select a user to connect to', true);
+                return;
+            }
+            
+            console.log('Superuser attempting to connect to:', targetUser);
+            
+            stompClient.send("/app/session/superuser/connect", {}, JSON.stringify({
+                username: currentUsername,
+                peer: targetUser
+            }));
+            
+            showNotification(`Attempting to connect to ${targetUser}...`);
         }
         
         // Event listeners
@@ -932,6 +1019,20 @@
             
             if (!isAdmin && joinSessionBtn) {
                 joinSessionBtn.addEventListener('click', joinSession);
+            }
+            
+            // Superuser controls
+            if (isSuperuser) {
+                if (refreshActiveUsersBtn) {
+                    refreshActiveUsersBtn.addEventListener('click', refreshActiveUsers);
+                }
+                
+                if (superuserConnectBtn) {
+                    superuserConnectBtn.addEventListener('click', superuserConnect);
+                }
+                
+                // Initial load of active users
+                setTimeout(refreshActiveUsers, 2000);
             }
             
             endSessionBtn.addEventListener('click', endSession);
