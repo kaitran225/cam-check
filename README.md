@@ -66,15 +66,47 @@ Edit `application.yml` to customize your setup:
 - `camcheck.storage.record-on-motion`: Save video when motion is detected
 - `camcheck.storage.max-size-mb`: Maximum disk space for recordings (in MB)
 
-## Self-Deployment
+## Deployment Options
 
-### Prerequisites
+### Deploy to Render.com
+
+This project includes configuration files for easy deployment to Render.com:
+
+1. **Prerequisites**
+   - A Render.com account
+   - Git repository with your CamCheck code
+
+2. **Deployment Steps**
+   - Fork or clone this repository
+   - Connect your Git repository to Render.com
+   - Select "Blueprint" as the deployment type
+   - Render will automatically detect the `render.yaml` file
+   - Configure the required environment variables when prompted
+   - Click "Create Blueprint"
+
+3. **Environment Variables**
+   - During deployment, you'll be prompted to set:
+     - `CAMCHECK_SECURITY_USERNAME`: Admin username
+     - `CAMCHECK_SECURITY_PASSWORD`: Admin password
+
+4. **Important Notes**
+   - The application is configured to use fallback mode on Render.com since webcam access is limited
+   - To use with real cameras, consider setting up a self-hosted instance
+   - The persistent disk is configured to store recordings
+
+5. **Access Your Deployed Application**
+   - Once deployed, your application will be available at `https://camcheck.onrender.com` (or your custom domain)
+   - Access the API documentation at `https://camcheck.onrender.com/swagger-ui.html`
+
+### Self-Deployment
+
+#### Prerequisites
 - Your domain name (already purchased)
 - A server with public IP address
 - JDK 17+ installed on the server
 - SSL certificate (Let's Encrypt recommended)
 
-### Steps for Self-Deployment
+#### Steps for Self-Deployment
 
 1. **Set up your server**
    - Install Java: `sudo apt install openjdk-17-jdk`
