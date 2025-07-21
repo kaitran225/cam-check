@@ -13,7 +13,10 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,16 +25,67 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties
 public class SecurityConfig {
 
     @Value("${camcheck.security.username}")
-    private String username;
+    private String legacyUsername;
     
     @Value("${camcheck.security.password}")
-    private String password;
+    private String legacyPassword;
     
     @Value("${camcheck.security.trusted-ips:127.0.0.1,::1}")
     private String trustedIps;
+    
+    @ConfigurationProperties(prefix = "camcheck.security")
+    @Configuration
+    public static class SecurityUsers {
+        private List<UserConfig> users = new ArrayList<>();
+        
+        public List<UserConfig> getUsers() {
+            return users;
+        }
+        
+        public void setUsers(List<UserConfig> users) {
+            this.users = users;
+        }
+        
+        public static class UserConfig {
+            private String username;
+            private String password;
+            private String role;
+            
+            public String getUsername() {
+                return username;
+            }
+            
+            public void setUsername(String username) {
+                this.username = username;
+            }
+            
+            public String getPassword() {
+                return password;
+            }
+            
+            public void setPassword(String password) {
+                this.password = password;
+            }
+            
+            public String getRole() {
+                return role;
+            }
+            
+            public void setRole(String role) {
+                this.role = role;
+            }
+        }
+    }
+    
+    private final SecurityUsers securityUsers;
+    
+    public SecurityConfig(SecurityUsers securityUsers) {
+        this.securityUsers = securityUsers;
+    }
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -55,6 +109,8 @@ public class SecurityConfig {
                 .requestMatchers("/ws/**").permitAll()
                 // Allow access from trusted IPs without authentication
                 .requestMatchers(request -> trustedIpMatcher.matches(request)).permitAll()
+                // Admin pages require ADMIN role
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
@@ -75,13 +131,27 @@ public class SecurityConfig {
     
     @Bean
     public InMemoryUserDetailsManager userDetailsService() {
-        UserDetails user = User.builder()
-            .username(username)
-            .password(passwordEncoder().encode(password))
+        List<UserDetails> userDetailsList = new ArrayList<>();
+        
+        // Add configured users from application.yml
+        for (SecurityUsers.UserConfig userConfig : securityUsers.getUsers()) {
+            UserDetails user = User.builder()
+                .username(userConfig.getUsername())
+                .password(passwordEncoder().encode(userConfig.getPassword()))
+                .roles(userConfig.getRole())
+                .build();
+            userDetailsList.add(user);
+        }
+        
+        // Add legacy user for backward compatibility
+        UserDetails legacyUser = User.builder()
+            .username(legacyUsername)
+            .password(passwordEncoder().encode(legacyPassword))
             .roles("USER", "ADMIN")
             .build();
+        userDetailsList.add(legacyUser);
         
-        return new InMemoryUserDetailsManager(user);
+        return new InMemoryUserDetailsManager(userDetailsList);
     }   
     
     @Bean

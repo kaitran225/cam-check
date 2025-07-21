@@ -70,9 +70,38 @@
             color: var(--white);
             position: relative;
         }
-        .video-feed img {
+        .video-feed video {
             max-width: 100%;
             max-height: 100%;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            height: 100%;
+        }
+        .video-cell {
+            position: relative;
+            background-color: var(--black);
+            border: 1px solid var(--gray);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-cell video, .video-cell img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .video-label {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: var(--white);
+            padding: 2px 5px;
+            font-size: 12px;
         }
         .fallback-indicator {
             position: absolute;
@@ -305,12 +334,26 @@
             color: var(--white);
             font-family: monospace;
         }
+        .session-code {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 5px;
+            text-align: center;
+            margin: 20px 0;
+            color: var(--white);
+            background-color: var(--black);
+            padding: 10px;
+            border: 1px solid var(--white);
+        }
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
             }
             .video-container, .controls {
                 min-width: 100%;
+            }
+            .video-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -322,7 +365,7 @@
             <h1>CamCheck</h1>
             <div class="user-info">
                 <span sec:authentication="name">Username</span>
-                <a href="/client-camera" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--white);">Client Camera</a>
+                <span sec:authorize="hasRole('ADMIN')">(Admin)</span>
                 <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--white);">API Docs</a>
                 <form th:action="@{/logout}" method="post">
                     <button type="submit" class="logout-btn">Logout</button>
@@ -333,30 +376,22 @@
         <div class="main-content">
             <div class="video-container">
                 <div class="video-feed" id="videoFeed">
-                    <span>Camera feed loading...</span>
+                    <div class="video-grid">
+                        <div class="video-cell" id="localVideoCell">
+                            <video id="localVideo" autoplay playsinline></video>
+                            <div class="video-label">Your Camera</div>
+                        </div>
+                        <div class="video-cell" id="remoteVideoCell">
+                            <span>No remote camera connected</span>
+                            <div class="video-label">Remote Camera</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="camera-not-ready" id="cameraNotReady">
                     <i class="fas fa-exclamation-triangle"></i>
                     <h2>Camera Not Started</h2>
                     <p>Start the camera stream to begin monitoring.</p>
                     <button id="startCameraBtn" class="success">Start Camera</button>
-                </div>
-                <div class="camera-not-ready" id="noCameraDetected" style="display: none;">
-                    <i class="fas fa-video-slash"></i>
-                    <h2>No Camera Detected</h2>
-                    <p>No camera was found on your system.</p>
-                    <button id="detectCamerasBtn" class="success">Detect Cameras</button>
-                    <div id="detectedCameras" style="margin-top: 20px; display: none;">
-                        <h3>Detected Cameras:</h3>
-                        <select id="detectedCameraSelect" style="width: 100%; padding: 8px; margin: 10px 0; background-color: var(--black); color: var(--white); border: 1px solid var(--white);">
-                            <option value="-1">Select a camera...</option>
-                        </select>
-                        <button id="useCameraBtn" class="success">Use Selected Camera</button>
-                        <button id="disableFallbackBtn" class="success" style="margin-top: 10px;">Exit Fallback Mode</button>
-                    </div>
-                </div>
-                <div class="fallback-indicator" id="fallbackIndicator" style="display: none;">
-                    Fallback Mode Active
                 </div>
                 <div class="notification" id="notifications" style="display: none;">
                     <strong>Notification:</strong> <span id="notificationText"></span>
@@ -367,86 +402,55 @@
                 <div class="control-group">
                     <h3>
                         Camera Controls
-                        <span id="streamingStatus" class="status-badge" th:classappend="${isStreaming ? 'status-active' : ''}">
-                            <span th:text="${isStreaming ? 'Active' : 'Inactive'}">Status</span>
+                        <span id="streamingStatus" class="status-badge">
+                            <span>Inactive</span>
                         </span>
                     </h3>
-                    <button id="startStreamBtn" th:style="${isStreaming ? 'display: none' : ''}">Start Stream</button>
-                    <button id="stopStreamBtn" class="danger" th:style="${!isStreaming ? 'display: none' : ''}">Stop Stream</button>
-                    <button id="takeSnapshotBtn">Take Snapshot</button>
-                    <button id="createSessionBtn">Create Session</button>
+                    <button id="startStreamBtn">Start Camera</button>
+                    <button id="stopStreamBtn" class="danger" style="display: none;">Stop Camera</button>
+                    <button id="takeSnapshotBtn" disabled>Take Snapshot</button>
                     
                     <div class="camera-info">
-                        <p><strong>Status:</strong> <span id="cameraStatus" th:text="${isStreaming ? 'Streaming' : 'Idle'}">Idle</span></p>
-                        <p><strong>Fallback Mode:</strong> <span id="fallbackStatus" th:text="${isFallbackMode ? 'Active' : 'Inactive'}">Unknown</span></p>
+                        <p><strong>Status:</strong> <span id="cameraStatus">Idle</span></p>
                     </div>
                 </div>
                 
-                <div id="sessionInfo" class="control-group" style="display: none;">
-                    <h3>One-to-One Session</h3>
-                    <div class="settings-row">
-                        <label>Receiver URL:</label>
-                        <div style="display: flex; margin-bottom: 10px;">
-                            <input type="text" id="receiverUrl" readonly style="margin-bottom: 0; flex: 1;">
-                            <button id="copyUrlBtn" style="margin: 0 0 0 10px;">Copy</button>
-                        </div>
-                        <button id="openReceiverBtn">Open Receiver View</button>
+                <div class="control-group">
+                    <h3>Camera Settings</h3>
+                    <select id="cameraSelect">
+                        <option value="">Select camera...</option>
+                    </select>
+                    <button id="refreshCamerasBtn">Refresh Camera List</button>
+                </div>
+                
+                <div sec:authorize="hasRole('ADMIN')" class="control-group">
+                    <h3>Admin Session</h3>
+                    <button id="createSessionBtn">Create Session</button>
+                    <div id="sessionCodeDisplay" style="display: none;">
+                        <p>Share this code with the user:</p>
+                        <div class="session-code" id="sessionCode"></div>
                     </div>
                 </div>
                 
-                <!-- Motion Detection controls removed per user request -->
-                
-                <!-- Admin Panel -->
-                <div class="admin-panel">
-                    <h3>Admin Controls</h3>
-                    
-                    <div class="stats-panel">
-                        <h4>System Statistics</h4>
-                        <div class="stats-row">
-                            <div class="stat-item">
-                                <div class="stat-value" id="uptime">00:00:00</div>
-                                <div class="stat-label">Uptime</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value" id="frameRate">0</div>
-                                <div class="stat-label">FPS</div>
-                            </div>
-                            <!-- Motion events counter removed per user request -->
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="cameraSelect">Camera Source</label>
-                        <select id="cameraSelect">
-                            <option value="fallback">Fallback Mode (No Camera)</option>
-                            <option value="webcam-0">Webcam 0</option>
-                            <option value="webcam-1">Webcam 1</option>
-                            <option value="ip">IP Camera</option>
-                        </select>
-                    </div>
-                    
+                <div sec:authorize="hasRole('USER')" class="control-group">
+                    <h3>Join Session</h3>
                     <div class="settings-row">
-                        <div class="settings-item">
-                            <div class="form-group">
-                                <label for="frameRateInput">Frame Rate</label>
-                                <input type="number" id="frameRateInput" min="1" max="60" value="30">
-                            </div>
-                        </div>
-                        <div class="settings-item">
-                            <div class="form-group">
-                                <label for="sensitivityInput">Motion Sensitivity</label>
-                                <input type="number" id="sensitivityInput" min="1" max="100" value="30">
-                            </div>
-                        </div>
+                        <label for="joinSessionCode">Enter Session Code:</label>
+                        <input type="text" id="joinSessionCode" placeholder="Enter 6-digit code">
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="ipCameraUrl">IP Camera URL</label>
-                        <input type="text" id="ipCameraUrl" placeholder="http://192.168.1.100:8080/video">
+                    <button id="joinSessionBtn">Join Session</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Connected Session</h3>
+                    <div id="noSessionMessage">
+                        <p>No active session</p>
                     </div>
-                    
-                    <button id="applySettingsBtn" class="success">Apply Settings</button>
-                    <button id="restartSystemBtn" class="danger">Restart System</button>
+                    <div id="activeSessionInfo" style="display: none;">
+                        <p><strong>Connected with:</strong> <span id="connectedWith"></span></p>
+                        <p><strong>Session started:</strong> <span id="sessionStartTime"></span></p>
+                        <button id="endSessionBtn" class="danger">End Session</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -459,77 +463,41 @@
     <script th:inline="javascript">
         // Global variables
         let stompClient = null;
-        const isStreaming = /*[[${isStreaming}]]*/ false;
-        const isMotionDetectionEnabled = /*[[${isMotionDetectionEnabled}]]*/ false;
-        const isFallbackMode = /*[[${isFallbackMode != null ? isFallbackMode : false}]]*/ false;
-    
-        let startTime = new Date();
-        // Motion events counter removed per user request
-        let currentFps = 0;
-        let frameCount = 0;
-        let lastFrameTime = Date.now();
-        let cameraStarted = false;
-        let lastCameraActivity = Date.now(); // Track last camera activity
+        let stream = null;
+        let isStreaming = false;
+        let selectedCamera = null;
+        let sessionCode = null;
+        let isAdmin = [[${#authorization.expression('hasRole(''ADMIN'')')}]];
+        let currentUsername = [[${#authentication.name}]];
+        let connectedPeer = null;
         
         // DOM elements
         const videoFeed = document.getElementById('videoFeed');
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideoCell = document.getElementById('remoteVideoCell');
         const startStreamBtn = document.getElementById('startStreamBtn');
         const stopStreamBtn = document.getElementById('stopStreamBtn');
+        const startCameraBtn = document.getElementById('startCameraBtn');
         const takeSnapshotBtn = document.getElementById('takeSnapshotBtn');
-        const motionDetectionToggle = document.getElementById('motionDetectionToggle');
+        const cameraNotReady = document.getElementById('cameraNotReady');
         const notifications = document.getElementById('notifications');
         const notificationText = document.getElementById('notificationText');
-        const fallbackIndicator = document.getElementById('fallbackIndicator');
-        const cameraStatus = document.getElementById('cameraStatus');
-        const fallbackStatus = document.getElementById('fallbackStatus');
         const streamingStatus = document.getElementById('streamingStatus');
-        // Motion status element removed per user request
-        const uptimeElement = document.getElementById('uptime');
-        const frameRateElement = document.getElementById('frameRate');
-        // Motion events element removed per user request
+        const cameraStatus = document.getElementById('cameraStatus');
         const cameraSelect = document.getElementById('cameraSelect');
-        const frameRateInput = document.getElementById('frameRateInput');
-        const sensitivityInput = document.getElementById('sensitivityInput');
-        const ipCameraUrl = document.getElementById('ipCameraUrl');
-        const applySettingsBtn = document.getElementById('applySettingsBtn');
-        const restartSystemBtn = document.getElementById('restartSystemBtn');
-        const cameraNotReady = document.getElementById('cameraNotReady');
-        const startCameraBtn = document.getElementById('startCameraBtn');
-        const noCameraDetected = document.getElementById('noCameraDetected');
-        const detectCamerasBtn = document.getElementById('detectCamerasBtn');
-        const detectedCameras = document.getElementById('detectedCameras');
-        const detectedCameraSelect = document.getElementById('detectedCameraSelect');
-        const useCameraBtn = document.getElementById('useCameraBtn');
-        const disableFallbackBtn = document.getElementById('disableFallbackBtn');
+        const refreshCamerasBtn = document.getElementById('refreshCamerasBtn');
         
-        // Show fallback indicator if in fallback mode
-        if (isFallbackMode) {
-            fallbackIndicator.style.display = 'block';
-            cameraSelect.value = 'fallback';
-        } else {
-            cameraSelect.value = 'webcam-0';
-        }
-        
-        // Check camera status and show/hide overlay
-        function checkCameraStatus() {
-            if (isStreaming) {
-                cameraStarted = true;
-                cameraNotReady.style.display = 'none';
-                noCameraDetected.style.display = 'none';
-            } else {
-                // If in fallback mode, show no camera detected message
-                if (isFallbackMode) {
-                    cameraNotReady.style.display = 'none';
-                    noCameraDetected.style.display = 'flex';
-                } else {
-                    cameraNotReady.style.display = 'flex';
-                    noCameraDetected.style.display = 'none';
-                }
-            }
-            
-            // Disable snapshot button if camera is not started
-            takeSnapshotBtn.disabled = !cameraStarted;
-        }
+        // Session elements
+        const createSessionBtn = isAdmin ? document.getElementById('createSessionBtn') : null;
+        const sessionCodeDisplay = isAdmin ? document.getElementById('sessionCodeDisplay') : null;
+        const sessionCodeElement = isAdmin ? document.getElementById('sessionCode') : null;
+        const joinSessionCode = !isAdmin ? document.getElementById('joinSessionCode') : null;
+        const joinSessionBtn = !isAdmin ? document.getElementById('joinSessionBtn') : null;
+        const noSessionMessage = document.getElementById('noSessionMessage');
+        const activeSessionInfo = document.getElementById('activeSessionInfo');
+        const connectedWith = document.getElementById('connectedWith');
+        const sessionStartTime = document.getElementById('sessionStartTime');
+        const endSessionBtn = document.getElementById('endSessionBtn');
         
         // Connect to WebSocket
         function connect() {
@@ -538,383 +506,51 @@
             stompClient.connect({}, function(frame) {
                 console.log('Connected to WebSocket: ' + frame);
                 
-                // Subscribe to camera feed
-                stompClient.subscribe('/topic/camera', function(message) {
-                    // Only process if we have valid image data
+                // Subscribe to remote camera feed
+                stompClient.subscribe('/topic/camera/' + currentUsername, function(message) {
                     if (message && message.body) {
-                        try {
-                            updateCameraFeed(message.body);
-                            updateFrameRate();
-                            
-                            // If this is the first frame, hide the overlay and update status
-                            if (!cameraStarted) {
-                                cameraStarted = true;
-                                cameraNotReady.style.display = 'none';
-                                noCameraDetected.style.display = 'none';
-                                
-                                // Force update status badges to reflect that camera is working
-                                updateStatusBadge(streamingStatus, true);
-                                cameraStatus.textContent = 'Streaming';
-                                startStreamBtn.style.display = 'none';
-                                stopStreamBtn.style.display = 'inline-block';
-                                takeSnapshotBtn.disabled = false;
-                                
-                                console.log('Camera stream started successfully');
-                            } else {
-                                // Even if not the first frame, ensure the camera status UI is correct
-                                // This prevents "Camera Not Started" messages from appearing during streaming
-                                cameraNotReady.style.display = 'none';
-                                noCameraDetected.style.display = 'none';
-                                updateStatusBadge(streamingStatus, true);
-                            }
-                            
-                            // Reset last activity timestamp to track camera activity
-                            lastCameraActivity = Date.now();
-                            
-                            // Ensure streaming flag is set to true when receiving frames
-                            if (!isStreaming) {
-                                isStreaming = true;
-                            }
-                        } catch (error) {
-                            console.error('Error processing camera frame:', error);
-                            // Don't change camera status on error
-                        }
+                        updateRemoteVideoFeed(message.body);
                     }
                 });
                 
-                // Motion detection subscription removed per user request
-                
-                // Subscribe to status updates
-                stompClient.subscribe('/topic/status', function(message) {
+                // Subscribe to session events
+                stompClient.subscribe('/topic/session/events', function(message) {
                     const data = JSON.parse(message.body);
-                    // Mark this update as coming from WebSocket
-                    data.source = 'websocket';
-                    updateStatus(data);
+                    handleSessionEvent(data);
                 });
-                
-                // If streaming is enabled, start it
-                if (isStreaming) {
-                    startStreaming();
-                }
             });
         }
         
-        // Update camera feed with new image
-        function updateCameraFeed(imageData) {
-            if (videoFeed.querySelector('img')) {
-                videoFeed.querySelector('img').src = `data:image/jpeg;base64,${imageData}`;
+        // Update remote video feed
+        function updateRemoteVideoFeed(imageData) {
+            if (remoteVideoCell.querySelector('img')) {
+                remoteVideoCell.querySelector('img').src = `data:image/jpeg;base64,${imageData}`;
             } else {
                 const img = document.createElement('img');
                 img.src = `data:image/jpeg;base64,${imageData}`;
-                videoFeed.innerHTML = '';
-                videoFeed.appendChild(img);
+                remoteVideoCell.innerHTML = '';
+                remoteVideoCell.appendChild(img);
+                remoteVideoCell.appendChild(createVideoLabel('Remote Camera'));
             }
         }
         
-        // Update frame rate calculation
-        function updateFrameRate() {
-            frameCount++;
-            const now = Date.now();
-            const elapsed = now - lastFrameTime;
-            
-            if (elapsed >= 1000) { // Update every second
-                currentFps = Math.round((frameCount * 1000) / elapsed);
-                frameRateElement.textContent = currentFps;
-                frameCount = 0;
-                lastFrameTime = now;
-            }
-        }
-        
-        // Update uptime display
-        function updateUptime() {
-            const now = new Date();
-            const diff = Math.floor((now - startTime) / 1000);
-            
-            const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
-            const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-            const seconds = Math.floor(diff % 60).toString().padStart(2, '0');
-            
-            uptimeElement.textContent = `${hours}:${minutes}:${seconds}`;
+        // Create video label
+        function createVideoLabel(text) {
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            label.textContent = text;
+            return label;
         }
         
         // Update status badges
         function updateStatusBadge(element, isActive) {
             if (isActive) {
                 element.classList.add('status-active');
-                element.querySelector('span').textContent = element.id === 'motionStatus' ? 'Enabled' : 'Active';
+                element.querySelector('span').textContent = 'Active';
             } else {
                 element.classList.remove('status-active');
-                element.querySelector('span').textContent = element.id === 'motionStatus' ? 'Disabled' : 'Inactive';
+                element.querySelector('span').textContent = 'Inactive';
             }
-        }
-        
-        // Update status based on server response
-        function updateStatus(data) {
-            // Don't update UI if this is from an API status request and we're already streaming
-            if (data.source === 'api_status' && cameraStarted) {
-                console.log('Ignoring status update from API request while camera is active');
-                return;
-            }
-            
-            if (data.streaming !== undefined) {
-                updateStatusBadge(streamingStatus, data.streaming);
-                cameraStatus.textContent = data.streaming ? 'Streaming' : 'Idle';
-                
-                // Only update UI elements, don't change the cameraStarted flag
-                // This prevents health checks from disrupting the camera stream
-                if (data.streaming) {
-                    // If server says streaming, hide overlays
-                    cameraNotReady.style.display = 'none';
-                    noCameraDetected.style.display = 'none';
-                } else if (!cameraStarted) {
-                    // Only show overlays if we're not actually receiving frames
-                    // This prevents false "Camera Not Started" messages
-                    if (data.fallbackMode) {
-                        cameraNotReady.style.display = 'none';
-                        noCameraDetected.style.display = 'flex';
-                    } else {
-                        cameraNotReady.style.display = 'flex';
-                        noCameraDetected.style.display = 'none';
-                    }
-                }
-                
-                // Update button states
-                startStreamBtn.style.display = data.streaming ? 'none' : 'inline-block';
-                stopStreamBtn.style.display = data.streaming ? 'inline-block' : 'none';
-                takeSnapshotBtn.disabled = !cameraStarted;
-            }
-            
-            if (data.fallbackMode !== undefined) {
-                fallbackStatus.textContent = data.fallbackMode ? 'Active' : 'Inactive';
-                fallbackIndicator.style.display = data.fallbackMode ? 'block' : 'none';
-                cameraSelect.value = data.fallbackMode ? 'fallback' : 'webcam-0';
-                
-                // Show appropriate overlay based on fallback mode
-                if (!isStreaming) {
-                    if (data.fallbackMode) {
-                        cameraNotReady.style.display = 'none';
-                        noCameraDetected.style.display = 'flex';
-                    } else {
-                        cameraNotReady.style.display = 'flex';
-                        noCameraDetected.style.display = 'none';
-                    }
-                }
-            }
-            
-            if (data.motionDetection !== undefined) {
-                updateStatusBadge(motionStatus, data.motionDetection);
-                const statusIndicator = document.querySelector('.status-indicator');
-                const statusText = statusIndicator.nextElementSibling;
-                
-                if (data.motionDetection) {
-                    statusIndicator.classList.remove('status-off');
-                    statusIndicator.classList.add('status-on');
-                    statusText.textContent = 'Enabled';
-                } else {
-                    statusIndicator.classList.remove('status-on');
-                    statusIndicator.classList.add('status-off');
-                    statusText.textContent = 'Disabled';
-                }
-                
-                motionDetectionToggle.checked = data.motionDetection;
-            }
-        }
-        
-        // Start streaming
-        function startStreaming() {
-            // Disable buttons during operation
-            startStreamBtn.disabled = true;
-            stopStreamBtn.disabled = true;
-            
-            // Add a timestamp to prevent caching
-            const timestamp = new Date().getTime();
-            
-            fetch(`/api/v1/camera/stream/start?_=${timestamp}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    startStreamBtn.style.display = 'none';
-                    stopStreamBtn.style.display = 'inline-block';
-                    updateStatusBadge(streamingStatus, true);
-                    cameraStatus.textContent = 'Streaming';
-                    showNotification('Camera streaming started');
-                    
-                    // Hide the camera not ready overlay
-                    cameraStarted = true;
-                    cameraNotReady.style.display = 'none';
-                    takeSnapshotBtn.disabled = false;
-                    
-                    // Set the streaming flag
-                    isStreaming = true;
-                    
-                    console.log('Camera stream started successfully via API');
-                } else {
-                    showNotification('Failed to start streaming: ' + (data.message || 'Unknown error'), true);
-                }
-            })
-            .catch(error => {
-                console.error('Error starting stream:', error);
-                showNotification('Failed to start streaming', true);
-            })
-            .finally(() => {
-                // Re-enable buttons
-                startStreamBtn.disabled = false;
-                stopStreamBtn.disabled = false;
-            });
-        }
-        
-        // Stop streaming
-        function stopStreaming() {
-            // Disable buttons during operation
-            startStreamBtn.disabled = true;
-            stopStreamBtn.disabled = true;
-            
-            // Add a timestamp to prevent caching
-            const timestamp = new Date().getTime();
-            
-            fetch(`/api/v1/camera/stream/stop?_=${timestamp}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    stopStreamBtn.style.display = 'none';
-                    startStreamBtn.style.display = 'inline-block';
-                    updateStatusBadge(streamingStatus, false);
-                    cameraStatus.textContent = 'Idle';
-                    showNotification('Camera streaming stopped');
-                    videoFeed.innerHTML = '<span>Camera feed stopped</span>';
-                    
-                    // Show the camera not ready overlay
-                    cameraStarted = false;
-                    isStreaming = false;
-                    cameraNotReady.style.display = 'flex';
-                    takeSnapshotBtn.disabled = true;
-                    
-                    console.log('Camera stream stopped successfully via API');
-                } else {
-                    showNotification('Failed to stop streaming: ' + (data.message || 'Unknown error'), true);
-                }
-            })
-            .catch(error => {
-                console.error('Error stopping stream:', error);
-                showNotification('Failed to stop streaming', true);
-            })
-            .finally(() => {
-                // Re-enable buttons
-                startStreamBtn.disabled = false;
-                stopStreamBtn.disabled = false;
-            });
-        }
-        
-        // Take snapshot
-        function takeSnapshot() {
-            fetch('/api/v1/camera/snapshot')
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Create a link to download the image
-                    const link = document.createElement('a');
-                    link.href = `data:image/jpeg;base64,${data.image}`;
-                    link.download = `snapshot_${new Date().toISOString().replace(/:/g, '-')}.jpg`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    showNotification('Snapshot taken and downloaded');
-                } else {
-                    showNotification('Failed to take snapshot', true);
-                }
-            })
-            .catch(error => {
-                console.error('Error taking snapshot:', error);
-                showNotification('Failed to take snapshot', true);
-            });
-        }
-        
-        // Motion detection functionality removed per user request
-        
-        // Apply camera settings
-        function applySettings() {
-            const settings = {
-                cameraSource: cameraSelect.value,
-                frameRate: parseInt(frameRateInput.value),
-                sensitivity: parseInt(sensitivityInput.value),
-                ipCameraUrl: ipCameraUrl.value
-            };
-            
-            // Disable button during request
-            applySettingsBtn.disabled = true;
-            
-            fetch('/api/v1/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(settings)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showNotification('Settings applied successfully');
-                } else {
-                    showNotification('Failed to apply settings: ' + data.message, true);
-                }
-                applySettingsBtn.disabled = false;
-            })
-            .catch(error => {
-                console.error('Error applying settings:', error);
-                showNotification('Failed to apply settings', true);
-                applySettingsBtn.disabled = false;
-            });
-        }
-        
-        // Restart system
-        function restartSystem() {
-            if (!confirm('Are you sure you want to restart the system?')) {
-                return;
-            }
-            
-            // Disable button during request
-            restartSystemBtn.disabled = true;
-            
-            fetch('/api/v1/system/restart', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showNotification('System restart initiated');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 5000);
-                } else {
-                    showNotification('Failed to restart system: ' + data.message, true);
-                    restartSystemBtn.disabled = false;
-                }
-            })
-            .catch(error => {
-                console.error('Error restarting system:', error);
-                showNotification('Failed to restart system', true);
-                restartSystemBtn.disabled = false;
-            });
         }
         
         // Show notification
@@ -934,159 +570,258 @@
             }, 5000);
         }
         
-        // Fetch current status
-        function fetchStatus() {
-            // Don't fetch status if we're already receiving frames
-            if (cameraStarted && Date.now() - lastCameraActivity < 2000) {
-                console.log('Skipping status fetch - camera is active');
+        // Get available cameras
+        async function getAvailableCameras() {
+            try {
+                cameraSelect.innerHTML = '<option value="">Select camera...</option>';
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                if (videoDevices.length === 0) {
+                    showNotification('No cameras found', true);
+                    return;
+                }
+                
+                videoDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${cameraSelect.options.length}`;
+                    cameraSelect.appendChild(option);
+                });
+                
+                showNotification(`Found ${videoDevices.length} camera(s)`);
+            } catch (error) {
+                console.error('Error getting cameras:', error);
+                showNotification('Error accessing cameras. Please check permissions.', true);
+            }
+        }
+        
+        // Start camera stream
+        async function startCameraStream() {
+            try {
+                const deviceId = cameraSelect.value;
+                
+                if (!deviceId) {
+                    showNotification('Please select a camera', true);
+                    return;
+                }
+                
+                // Stop any existing stream
+                if (stream) {
+                    stopCameraStream();
+                }
+                
+                // Get user media with selected camera
+                const constraints = {
+                    video: {
+                        deviceId: { exact: deviceId },
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                localVideo.srcObject = stream;
+                
+                // Hide camera not ready overlay
+                cameraNotReady.style.display = 'none';
+                
+                // Update UI
+                startStreamBtn.style.display = 'none';
+                stopStreamBtn.style.display = 'inline-block';
+                takeSnapshotBtn.disabled = false;
+                updateStatusBadge(streamingStatus, true);
+                cameraStatus.textContent = 'Streaming';
+                isStreaming = true;
+                
+                // Start sending frames to connected peer if in a session
+                if (connectedPeer) {
+                    startSendingFrames();
+                }
+                
+                showNotification('Camera started successfully');
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                showNotification('Error starting camera: ' + error.message, true);
+            }
+        }
+        
+        // Stop camera stream
+        function stopCameraStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                localVideo.srcObject = null;
+            }
+            
+            // Update UI
+            startStreamBtn.style.display = 'inline-block';
+            stopStreamBtn.style.display = 'none';
+            takeSnapshotBtn.disabled = true;
+            updateStatusBadge(streamingStatus, false);
+            cameraStatus.textContent = 'Idle';
+            cameraNotReady.style.display = 'flex';
+            isStreaming = false;
+            
+            showNotification('Camera stopped');
+        }
+        
+        // Take snapshot
+        function takeSnapshot() {
+            if (!stream) {
+                showNotification('Camera not active', true);
                 return;
             }
             
-            // Add a timestamp to prevent caching
-            const timestamp = new Date().getTime();
-            fetch(`/api/v1/status?_=${timestamp}`, {
-                method: 'GET',
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success' && data.data) {
-                    // If we're actively receiving frames, trust the UI state over server state
-                    if (cameraStarted) {
-                        // Only update non-streaming related status
-                        // NEVER update the streaming status if we're receiving frames
-                        updateStatus({
-                            streaming: true, // Keep this true if we're seeing frames
-                            fallbackMode: data.data.fallbackMode,
-                            motionDetection: data.data.motionDetection,
-                            source: 'api_status' // Mark this update as coming from API status
-                        });
-                    } else {
-                        // If no frames are being received, trust the server state
-                        updateStatus({
-                            streaming: data.data.streaming,
-                            fallbackMode: data.data.fallbackMode,
-                            motionDetection: data.data.motionDetection,
-                            source: 'api_status' // Mark this update as coming from API status
-                        });
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching status:', error);
-                // Don't attempt to reconnect or change status on error
-            });
-        }
-        
-        // Detect available cameras
-        function detectAvailableCameras() {
-            showNotification('Detecting cameras...');
-            detectedCameraSelect.innerHTML = '<option value="-1">Select a camera...</option>';
+            const canvas = document.createElement('canvas');
+            canvas.width = localVideo.videoWidth;
+            canvas.height = localVideo.videoHeight;
             
-            fetch('/api/v1/cameras/detect')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        const cameras = data.cameras;
-                        if (cameras.length > 0) {
-                            showNotification(`Detected ${cameras.length} camera(s)`);
-                            
-                            // Add cameras to select dropdown
-                            cameras.forEach(camera => {
-                                const option = document.createElement('option');
-                                option.value = camera.index;
-                                option.textContent = `${camera.name} (${camera.index})`;
-                                detectedCameraSelect.appendChild(option);
-                            });
-                            
-                            detectedCameras.style.display = 'block';
-                        } else {
-                            showNotification('No cameras detected', true);
-                        }
-                    } else {
-                        showNotification('Failed to detect cameras', true);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error detecting cameras:', error);
-                    showNotification('Error detecting cameras', true);
-                });
-        }
-        
-        // Switch to selected camera
-        function switchToCamera(cameraIndex) {
-            showNotification(`Switching to camera ${cameraIndex}...`);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
             
-            fetch(`/api/v1/cameras/switch/${cameraIndex}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showNotification('Camera switched successfully');
-                    noCameraDetected.style.display = 'none';
-                    cameraNotReady.style.display = 'flex';
-                    
-                    // Update camera source dropdown
-                    cameraSelect.value = `webcam-${cameraIndex}`;
-                    
-                    // Refresh status
-                    fetchStatus();
-                } else {
-                    showNotification(`Failed to switch camera: ${data.message}`, true);
-                }
-            })
-            .catch(error => {
-                console.error('Error switching camera:', error);
-                showNotification('Error switching camera', true);
-            });
+            // Convert to base64
+            const imageData = canvas.toDataURL('image/jpeg');
+            
+            // Create a link to download the image
+            const link = document.createElement('a');
+            link.href = imageData;
+            link.download = `snapshot_${new Date().toISOString().replace(/:/g, '-')}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('Snapshot saved');
         }
         
-        // Create a new one-to-one session
+        // Start sending frames to connected peer
+        function startSendingFrames() {
+            if (!stream || !stompClient || !connectedPeer) return;
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = localVideo.videoWidth || 640;
+            canvas.height = localVideo.videoHeight || 480;
+            
+            // Send frames at regular intervals
+            const frameInterval = setInterval(() => {
+                if (!isStreaming || !stream || !connectedPeer) {
+                    clearInterval(frameInterval);
+                    return;
+                }
+                
+                try {
+                    ctx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
+                    const imageData = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    // Send to connected peer via WebSocket
+                    stompClient.send("/app/camera/" + connectedPeer, {}, imageData.split(',')[1]);
+                } catch (error) {
+                    console.error('Error sending frame:', error);
+                }
+            }, 100); // 10 frames per second
+        }
+        
+        // Create a new session (admin only)
         function createSession() {
-            fetch('/session/new')
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Show session info
-                    const sessionInfo = document.getElementById('sessionInfo');
-                    sessionInfo.style.display = 'block';
-                    
-                    // Set receiver URL (use absolute URL)
-                    const baseUrl = window.location.origin;
-                    const receiverUrl = document.getElementById('receiverUrl');
-                    receiverUrl.value = baseUrl + data.receiverUrl;
-                    
-                    showNotification('Session created successfully');
-                } else {
-                    showNotification('Failed to create session', true);
-                }
-            })
-            .catch(error => {
-                console.error('Error creating session:', error);
-                showNotification('Error creating session', true);
-            });
+            if (!isAdmin) return;
+            
+            // Generate a random 6-digit code
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            sessionCode = code;
+            
+            // Display the code
+            sessionCodeElement.textContent = code;
+            sessionCodeDisplay.style.display = 'block';
+            
+            // Register the session
+            stompClient.send("/app/session/create", {}, JSON.stringify({
+                code: code,
+                username: currentUsername
+            }));
+            
+            showNotification('Session created. Share the code with a user.');
         }
         
-        // Copy receiver URL to clipboard
-        function copyReceiverUrl() {
-            const receiverUrl = document.getElementById('receiverUrl');
-            receiverUrl.select();
-            document.execCommand('copy');
-            showNotification('URL copied to clipboard');
+        // Join a session (user only)
+        function joinSession() {
+            if (isAdmin) return;
+            
+            const code = joinSessionCode.value.trim();
+            
+            if (!code || code.length !== 6) {
+                showNotification('Please enter a valid 6-digit session code', true);
+                return;
+            }
+            
+            // Send join request
+            stompClient.send("/app/session/join", {}, JSON.stringify({
+                code: code,
+                username: currentUsername
+            }));
         }
         
-        // Open receiver view in new window
-        function openReceiverView() {
-            const receiverUrl = document.getElementById('receiverUrl').value;
-            window.open(receiverUrl, '_blank');
+        // End current session
+        function endSession() {
+            if (!connectedPeer) return;
+            
+            // Send end session request
+            stompClient.send("/app/session/end", {}, JSON.stringify({
+                username: currentUsername,
+                peer: connectedPeer
+            }));
+            
+            // Reset session UI
+            resetSessionUI();
+        }
+        
+        // Reset session UI
+        function resetSessionUI() {
+            connectedPeer = null;
+            
+            if (isAdmin) {
+                sessionCodeDisplay.style.display = 'none';
+            } else {
+                joinSessionCode.value = '';
+            }
+            
+            noSessionMessage.style.display = 'block';
+            activeSessionInfo.style.display = 'none';
+            
+            // Clear remote video
+            remoteVideoCell.innerHTML = '<span>No remote camera connected</span>';
+            remoteVideoCell.appendChild(createVideoLabel('Remote Camera'));
+        }
+        
+        // Handle session events
+        function handleSessionEvent(data) {
+            switch (data.type) {
+                case 'connected':
+                    // Session established
+                    connectedPeer = data.peer;
+                    connectedWith.textContent = data.peer;
+                    sessionStartTime.textContent = new Date().toLocaleTimeString();
+                    noSessionMessage.style.display = 'none';
+                    activeSessionInfo.style.display = 'block';
+                    
+                    // Start sending frames if camera is active
+                    if (isStreaming) {
+                        startSendingFrames();
+                    }
+                    
+                    showNotification(`Connected with ${data.peer}`);
+                    break;
+                    
+                case 'disconnected':
+                    showNotification(`${data.peer} has disconnected`);
+                    resetSessionUI();
+                    break;
+                    
+                case 'error':
+                    showNotification(data.message, true);
+                    break;
+            }
         }
         
         // Event listeners
@@ -1094,74 +829,39 @@
             // Connect to WebSocket
             connect();
             
-            // Fetch initial status
-            fetchStatus();
-            
-            // Check initial camera status
-            checkCameraStatus();
-            
-            // Button event listeners
-            startStreamBtn.addEventListener('click', startStreaming);
-            stopStreamBtn.addEventListener('click', stopStreaming);
-            startCameraBtn.addEventListener('click', startStreaming);
-            takeSnapshotBtn.addEventListener('click', takeSnapshot);
-            
-            // Session management
-            document.getElementById('createSessionBtn').addEventListener('click', createSession);
-            document.getElementById('copyUrlBtn').addEventListener('click', copyReceiverUrl);
-            document.getElementById('openReceiverBtn').addEventListener('click', openReceiverView);
-            
-            // Motion detection toggle removed per user request
-            applySettingsBtn.addEventListener('click', applySettings);
-            restartSystemBtn.addEventListener('click', restartSystem);
-            detectCamerasBtn.addEventListener('click', detectAvailableCameras);
-            useCameraBtn.addEventListener('click', function() {
-                const selectedCamera = detectedCameraSelect.value;
-                if (selectedCamera !== "-1") {
-                    switchToCamera(selectedCamera);
-                }
-            });
-            disableFallbackBtn.addEventListener('click', function() {
-                showNotification('Exiting fallback mode...');
-                fetch('/api/v1/fallback/false', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        showNotification('Fallback mode disabled');
-                        noCameraDetected.style.display = 'none';
-                        cameraNotReady.style.display = 'flex';
-                        cameraSelect.value = 'webcam-0';
-                        fetchStatus();
-                    } else {
-                        showNotification(`Failed to disable fallback: ${data.message}`, true);
-                    }
+            // Request camera permissions to show labels
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(tempStream => {
+                    tempStream.getTracks().forEach(track => track.stop());
+                    getAvailableCameras();
                 })
                 .catch(error => {
-                    console.error('Error disabling fallback:', error);
-                    showNotification('Failed to disable fallback', true);
+                    console.error('Error requesting initial permissions:', error);
+                    showNotification('Please grant camera permissions', true);
                 });
+            
+            // Button event listeners
+            startStreamBtn.addEventListener('click', startCameraStream);
+            stopStreamBtn.addEventListener('click', stopCameraStream);
+            startCameraBtn.addEventListener('click', startCameraStream);
+            takeSnapshotBtn.addEventListener('click', takeSnapshot);
+            refreshCamerasBtn.addEventListener('click', getAvailableCameras);
+            
+            // Camera select change
+            cameraSelect.addEventListener('change', function() {
+                selectedCamera = cameraSelect.value;
             });
             
-            // Update uptime every second
-            setInterval(updateUptime, 1000);
-            
-            // Refresh status every 30 seconds
-            setInterval(fetchStatus, 30000);
-            
-            // Show camera source based on fallback mode
-            if (isFallbackMode) {
-                cameraSelect.value = 'fallback';
+            // Session management
+            if (isAdmin && createSessionBtn) {
+                createSessionBtn.addEventListener('click', createSession);
             }
             
-            // Initialize settings values
-            frameRateInput.value = 30;
-            sensitivityInput.value = 30;
-            ipCameraUrl.value = 'http://192.168.1.100:8080/video';
+            if (!isAdmin && joinSessionBtn) {
+                joinSessionBtn.addEventListener('click', joinSession);
+            }
+            
+            endSessionBtn.addEventListener('click', endSession);
         });
     </script>
 </body>

@@ -24,6 +24,15 @@ spring:
 camcheck:
   # Security settings
   security:
+    # User accounts
+    users:
+      - username: LuxuBoo
+        password: "@Anh2411"
+        role: USER
+      - username: KaiTran
+        password: "@KaiTran225"
+        role: ADMIN
+    # Legacy credentials (kept for backward compatibility)
     username: admin
     password: 123
     # List of trusted IPs that can access the system without authentication
