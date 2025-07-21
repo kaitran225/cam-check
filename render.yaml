@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: camcheck
+    env: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon # Change to your preferred region
+    plan: standard # Choose appropriate plan
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: SERVER_PORT
+        value: 80
+      - key: CAMCHECK_SECURITY_USERNAME
+        sync: false # This will prompt for a value during deployment
+      - key: CAMCHECK_SECURITY_PASSWORD
+        sync: false # This will prompt for a value during deployment
+      - key: CAMCHECK_CAMERA_FORCE_FALLBACK
+        value: true # Set to true since webcam access might be limited on Render
+    disk:
+      name: recordings
+      mountPath: /app/recordings
+      sizeGB: 10 # Adjust based on your needs 
