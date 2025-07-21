@@ -74,7 +74,7 @@
             You have been logged out
         </div>
         
-        <form th:action="@{/login}" method="post">
+        <form method="post" action="/login">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required autofocus>
@@ -85,6 +85,7 @@
                 <input type="password" id="password" name="password" required>
             </div>
             
+            <input type="hidden" name="_csrf" th:if="${_csrf}" th:value="${_csrf.token}">
             <button type="submit">Sign In</button>
         </form>
     </div>
