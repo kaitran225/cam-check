@@ -2,9 +2,14 @@ package com.camcheck.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.security.Principal;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -31,11 +36,15 @@ public class SessionController {
      * Create a new session (admin only)
      */
     @MessageMapping("/session/create")
-    public void createSession(SessionRequest request) {
-        log.info("Session creation request: {} by {}", request.getCode(), request.getUsername());
+    public void createSession(SessionRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        Principal user = headerAccessor.getUser();
+        String username = user != null ? user.getName() : request.getUsername();
+        
+        log.info("Session creation request: {} by {} (authenticated as: {})", 
+                request.getCode(), request.getUsername(), username);
         
         // Store the session
-        activeSessions.put(request.getCode(), request.getUsername());
+        activeSessions.put(request.getCode(), username);
         
         // Session will expire after 10 minutes if not used
         new Thread(() -> {
@@ -49,67 +58,85 @@ public class SessionController {
                 Thread.currentThread().interrupt();
             }
         }).start();
+        
+        // Confirm to the admin that the session was created
+        SessionEvent event = new SessionEvent();
+        event.setType("created");
+        event.setMessage("Session created successfully with code: " + request.getCode());
+        messagingTemplate.convertAndSend("/topic/session/" + username, event);
+        
+        log.debug("Available sessions: {}", activeSessions);
     }
     
     /**
      * Join an existing session (user only)
      */
     @MessageMapping("/session/join")
-    public void joinSession(SessionRequest request) {
-        log.info("Session join request: {} by {}", request.getCode(), request.getUsername());
+    public void joinSession(SessionRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        Principal user = headerAccessor.getUser();
+        String username = user != null ? user.getName() : request.getUsername();
+        
+        log.info("Session join request: {} by {} (authenticated as: {})", 
+                request.getCode(), request.getUsername(), username);
+        log.debug("Available sessions: {}", activeSessions);
         
         // Check if session exists
         if (!activeSessions.containsKey(request.getCode())) {
-            sendError(request.getUsername(), "Invalid session code or session expired");
+            sendError(username, "Invalid session code or session expired");
             return;
         }
         
         String adminUsername = activeSessions.get(request.getCode());
+        log.info("Found admin {} for session code {}", adminUsername, request.getCode());
         
         // Check if admin is already connected to someone else
         if (activeConnections.containsKey(adminUsername)) {
-            sendError(request.getUsername(), "Admin is already connected to another user");
+            sendError(username, "Admin is already connected to another user");
             return;
         }
         
         // Check if user is already connected to someone else
-        if (activeConnections.containsKey(request.getUsername())) {
-            sendError(request.getUsername(), "You are already connected to another session");
+        if (activeConnections.containsKey(username)) {
+            sendError(username, "You are already connected to another session");
             return;
         }
         
         // Establish connection
-        activeConnections.put(adminUsername, request.getUsername());
-        activeConnections.put(request.getUsername(), adminUsername);
+        activeConnections.put(adminUsername, username);
+        activeConnections.put(username, adminUsername);
         
         // Remove the session code as it's now used
         activeSessions.remove(request.getCode());
         
         // Notify both parties
-        notifySessionConnected(adminUsername, request.getUsername());
-        notifySessionConnected(request.getUsername(), adminUsername);
+        notifySessionConnected(adminUsername, username);
+        notifySessionConnected(username, adminUsername);
         
-        log.info("Session established between {} and {}", adminUsername, request.getUsername());
+        log.info("Session established between {} and {}", adminUsername, username);
     }
     
     /**
      * End an active session
      */
     @MessageMapping("/session/end")
-    public void endSession(SessionRequest request) {
-        log.info("Session end request by {}", request.getUsername());
+    public void endSession(SessionRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        Principal user = headerAccessor.getUser();
+        String username = user != null ? user.getName() : request.getUsername();
         
-        String connectedPeer = activeConnections.get(request.getUsername());
+        log.info("Session end request by {} (authenticated as: {})", 
+                request.getUsername(), username);
+        
+        String connectedPeer = activeConnections.get(username);
         
         if (connectedPeer != null) {
             // Remove both connections
-            activeConnections.remove(request.getUsername());
+            activeConnections.remove(username);
             activeConnections.remove(connectedPeer);
             
             // Notify the peer
-            notifySessionDisconnected(connectedPeer, request.getUsername());
+            notifySessionDisconnected(connectedPeer, username);
             
-            log.info("Session ended between {} and {}", request.getUsername(), connectedPeer);
+            log.info("Session ended between {} and {}", username, connectedPeer);
         }
     }
     
@@ -126,6 +153,18 @@ public class SessionController {
     }
     
     /**
+     * Debugging endpoint to check active sessions
+     */
+    @GetMapping("/api/debug/sessions")
+    @ResponseBody
+    public Map<String, Object> debugSessions() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("activeSessions", new HashMap<>(activeSessions));
+        result.put("activeConnections", new HashMap<>(activeConnections));
+        return result;
+    }
+    
+    /**
      * Send error message to user
      */
     private void sendError(String username, String message) {
@@ -133,7 +172,8 @@ public class SessionController {
         event.setType("error");
         event.setMessage(message);
         
-        messagingTemplate.convertAndSend("/topic/session/events", event);
+        // Send to a topic that includes the username for better routing
+        messagingTemplate.convertAndSend("/topic/session/" + username, event);
         log.warn("Session error for {}: {}", username, message);
     }
     
@@ -145,7 +185,9 @@ public class SessionController {
         event.setType("connected");
         event.setPeer(peer);
         
-        messagingTemplate.convertAndSend("/topic/session/events", event);
+        // Send to a topic that includes the username for better routing
+        messagingTemplate.convertAndSend("/topic/session/" + username, event);
+        log.info("Sent connection notification to {} about peer {}", username, peer);
     }
     
     /**
@@ -156,7 +198,8 @@ public class SessionController {
         event.setType("disconnected");
         event.setPeer(peer);
         
-        messagingTemplate.convertAndSend("/topic/session/events", event);
+        // Send to a topic that includes the username for better routing
+        messagingTemplate.convertAndSend("/topic/session/" + username, event);
     }
     
     /**

@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <title>CamCheck - Security Camera</title>
     <style>
         :root {
@@ -467,8 +469,8 @@
         let isStreaming = false;
         let selectedCamera = null;
         let sessionCode = null;
-        let isAdmin = [[${#authorization.expression('hasRole(''ADMIN'')')}]];
-        let currentUsername = [[${#authentication.name}]];
+        let isAdmin = /*[[${#authorization.expression('hasRole(''ADMIN'')')}]]*/ false;
+        let currentUsername = /*[[${#authentication.name}]]*/ 'user';
         let connectedPeer = null;
         
         // DOM elements
@@ -503,7 +505,17 @@
         function connect() {
             const socket = new SockJS('/ws');
             stompClient = Stomp.over(socket);
-            stompClient.connect({}, function(frame) {
+            
+            // Disable debug logging
+            stompClient.debug = null;
+            
+            // Connect with authentication headers
+            const headers = {
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'username': currentUsername
+            };
+            
+            stompClient.connect(headers, function(frame) {
                 console.log('Connected to WebSocket: ' + frame);
                 
                 // Subscribe to remote camera feed
@@ -513,11 +525,18 @@
                     }
                 });
                 
-                // Subscribe to session events
-                stompClient.subscribe('/topic/session/events', function(message) {
+                // Subscribe to session events - use username-specific topic
+                stompClient.subscribe('/topic/session/' + currentUsername, function(message) {
                     const data = JSON.parse(message.body);
+                    console.log('Received session event:', data);
                     handleSessionEvent(data);
                 });
+            }, function(error) {
+                console.error('WebSocket connection error:', error);
+                showNotification('Connection error. Please refresh the page.', true);
+                
+                // Try to reconnect after 5 seconds
+                setTimeout(connect, 5000);
             });
         }
         
@@ -731,6 +750,8 @@
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             sessionCode = code;
             
+            console.log('Creating session with code:', code);
+            
             // Display the code
             sessionCodeElement.textContent = code;
             sessionCodeDisplay.style.display = 'block';
@@ -755,11 +776,15 @@
                 return;
             }
             
+            console.log('Attempting to join session with code:', code);
+            
             // Send join request
             stompClient.send("/app/session/join", {}, JSON.stringify({
                 code: code,
                 username: currentUsername
             }));
+            
+            showNotification('Attempting to join session...');
         }
         
         // End current session
@@ -796,7 +821,14 @@
         
         // Handle session events
         function handleSessionEvent(data) {
+            console.log('Handling session event:', data);
+            
             switch (data.type) {
+                case 'created':
+                    // Session created successfully
+                    showNotification(data.message || 'Session created successfully');
+                    break;
+                    
                 case 'connected':
                     // Session established
                     connectedPeer = data.peer;
@@ -819,8 +851,11 @@
                     break;
                     
                 case 'error':
-                    showNotification(data.message, true);
+                    showNotification(data.message || 'An error occurred with the session', true);
                     break;
+                    
+                default:
+                    console.warn('Unknown session event type:', data.type);
             }
         }
         
@@ -863,6 +898,12 @@
             
             endSessionBtn.addEventListener('click', endSession);
         });
+
+        // Get CSRF token from meta tag
+        function getCsrfToken() {
+            const token = document.querySelector('meta[name="_csrf"]');
+            return token ? token.content : '';
+        }
     </script>
 </body>
 </html> 

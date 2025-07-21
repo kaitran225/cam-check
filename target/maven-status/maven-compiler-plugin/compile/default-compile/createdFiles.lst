@@ -1,7 +1,7 @@
 com\camcheck\config\WebSocketConfig.class
 com\camcheck\CamCheckApplication.class
 com\camcheck\config\SecurityConfig.class
+com\camcheck\controller\CameraController.class
 com\camcheck\controller\ApiController.class
 com\camcheck\model\ApiResponse.class
 com\camcheck\service\RecordingService.class
-com\camcheck\controller\CameraController.class
