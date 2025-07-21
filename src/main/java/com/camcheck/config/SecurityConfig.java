@@ -37,6 +37,12 @@ public class SecurityConfig {
     @Value("${camcheck.security.trusted-ips:127.0.0.1,::1}")
     private String trustedIps;
     
+    @Value("${camcheck.security.superuser.username:${SUPERUSER_USERNAME:superuser}}")
+    private String superuserUsername;
+    
+    @Value("${camcheck.security.superuser.password:${SUPERUSER_PASSWORD:changeme}}")
+    private String superuserPassword;
+    
     @ConfigurationProperties(prefix = "camcheck.security")
     @Configuration
     public static class SecurityUsers {
@@ -109,8 +115,10 @@ public class SecurityConfig {
                 .requestMatchers("/ws/**").permitAll()
                 // Allow access from trusted IPs without authentication
                 .requestMatchers(request -> trustedIpMatcher.matches(request)).permitAll()
-                // Admin pages require ADMIN role
-                .requestMatchers("/admin/**").hasRole("ADMIN")
+                // Superuser pages require SUPERUSER role
+                .requestMatchers("/superuser/**").hasRole("SUPERUSER")
+                // Admin pages require ADMIN or SUPERUSER role
+                .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERUSER")
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
@@ -150,6 +158,14 @@ public class SecurityConfig {
             .roles("USER", "ADMIN")
             .build();
         userDetailsList.add(legacyUser);
+        
+        // Add superuser with highest privileges
+        UserDetails superuser = User.builder()
+            .username(superuserUsername)
+            .password(passwordEncoder().encode(superuserPassword))
+            .roles("USER", "ADMIN", "SUPERUSER")
+            .build();
+        userDetailsList.add(superuser);
         
         return new InMemoryUserDetailsManager(userDetailsList);
     }   

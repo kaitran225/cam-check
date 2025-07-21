@@ -53,6 +53,10 @@ camcheck:
     password: ${LEGACY_PASSWORD}
     # List of trusted IPs that can access the system without authentication
     trusted-ips: ${SECURITY_TRUSTED_IPS}
+    # Superuser credentials
+    superuser:
+      username: ${SUPERUSER_USERNAME:superuser}
+      password: ${SUPERUSER_PASSWORD:changeme}
     
   # Camera settings
   camera:

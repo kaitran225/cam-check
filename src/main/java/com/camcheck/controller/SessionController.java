@@ -5,14 +5,19 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Controller for managing camera sessions between users
@@ -28,6 +33,9 @@ public class SessionController {
     
     // Store active connections: username -> connectedPeer
     private final Map<String, String> activeConnections = new ConcurrentHashMap<>();
+    
+    // Store users with active cameras
+    private final Set<String> activeUsers = ConcurrentHashMap.newKeySet();
     
     public SessionController(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
@@ -123,6 +131,63 @@ public class SessionController {
     }
     
     /**
+     * Superuser direct connection to any user with active camera
+     */
+    @MessageMapping("/session/superuser/connect")
+    public void superuserConnect(SessionRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        Principal principal = headerAccessor.getUser();
+        
+        if (principal == null || !isSuperuser(principal)) {
+            log.warn("Unauthorized superuser connection attempt from {}", 
+                    request.getUsername());
+            sendError(request.getUsername(), "Unauthorized: Superuser role required");
+            return;
+        }
+        
+        String superuserName = principal.getName();
+        String targetUser = request.getPeer();
+        
+        log.info("Superuser {} attempting to connect to {}", superuserName, targetUser);
+        
+        // Check if target user exists and has active camera
+        if (!activeUsers.contains(targetUser)) {
+            log.warn("Target user {} not found or has no active camera", targetUser);
+            sendError(superuserName, "Target user not found or has no active camera");
+            return;
+        }
+        
+        // Check if superuser is already connected to someone else
+        if (activeConnections.containsKey(superuserName)) {
+            // Disconnect from current peer first
+            String currentPeer = activeConnections.get(superuserName);
+            activeConnections.remove(superuserName);
+            activeConnections.remove(currentPeer);
+            notifySessionDisconnected(currentPeer, superuserName);
+            log.info("Superuser {} disconnected from current peer {}", superuserName, currentPeer);
+        }
+        
+        // Check if target user is already connected to someone else
+        if (activeConnections.containsKey(targetUser)) {
+            // Force disconnect the current peer
+            String currentPeer = activeConnections.get(targetUser);
+            activeConnections.remove(targetUser);
+            activeConnections.remove(currentPeer);
+            notifySessionDisconnected(currentPeer, targetUser);
+            log.info("Forced disconnect between {} and {} for superuser connection", targetUser, currentPeer);
+        }
+        
+        // Establish connection
+        activeConnections.put(superuserName, targetUser);
+        activeConnections.put(targetUser, superuserName);
+        
+        // Notify both parties
+        notifySessionConnected(superuserName, targetUser);
+        notifySessionConnected(targetUser, superuserName);
+        
+        log.info("Superuser connection established between {} and {}", superuserName, targetUser);
+    }
+    
+    /**
      * End an active session
      */
     @MessageMapping("/session/end")
@@ -158,6 +223,9 @@ public class SessionController {
         Principal user = headerAccessor.getUser();
         String sender = user != null ? user.getName() : username;
         
+        // Mark this user as having an active camera
+        activeUsers.add(sender);
+        
         log.debug("Received camera frame from {} to forward to {}", sender, username);
         String connectedPeer = activeConnections.get(sender);
         
@@ -165,8 +233,34 @@ public class SessionController {
             log.debug("Forwarding camera frame from {} to {}", sender, connectedPeer);
             messagingTemplate.convertAndSend("/topic/camera/" + connectedPeer, imageData);
         } else {
-            log.warn("Cannot forward camera frame: no connected peer found for {}", sender);
+            log.debug("Cannot forward camera frame: no connected peer found for {}", sender);
         }
+    }
+    
+    /**
+     * Get users with active cameras (superuser only)
+     */
+    @MessageMapping("/session/superuser/active-users")
+    public void getActiveUsers(SessionRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        Principal principal = headerAccessor.getUser();
+        
+        if (principal == null || !isSuperuser(principal)) {
+            log.warn("Unauthorized attempt to get active users from {}", 
+                    request.getUsername());
+            sendError(request.getUsername(), "Unauthorized: Superuser role required");
+            return;
+        }
+        
+        String superuserName = principal.getName();
+        
+        // Send list of active users to the superuser
+        SessionEvent event = new SessionEvent();
+        event.setType("active-users");
+        event.setMessage("Users with active cameras: " + String.join(", ", activeUsers));
+        event.setActiveUsers(activeUsers);
+        
+        messagingTemplate.convertAndSend("/topic/session/" + superuserName, event);
+        log.info("Sent active users list to superuser {}", superuserName);
     }
     
     /**
@@ -178,8 +272,9 @@ public class SessionController {
         Map<String, Object> result = new HashMap<>();
         result.put("activeSessions", new HashMap<>(activeSessions));
         result.put("activeConnections", new HashMap<>(activeConnections));
-        log.info("Debug sessions requested - Active sessions: {}, Active connections: {}", 
-                activeSessions.size(), activeConnections.size());
+        result.put("activeUsers", activeUsers);
+        log.info("Debug sessions requested - Active sessions: {}, Active connections: {}, Active users: {}", 
+                activeSessions.size(), activeConnections.size(), activeUsers.size());
         return result;
     }
     
@@ -193,6 +288,19 @@ public class SessionController {
         result.put("activeConnections", new HashMap<>(activeConnections));
         log.info("Debug connections requested - Active connections: {}", activeConnections.size());
         return result;
+    }
+    
+    /**
+     * Check if the principal has the SUPERUSER role
+     */
+    private boolean isSuperuser(Principal principal) {
+        if (principal instanceof Authentication) {
+            Authentication auth = (Authentication) principal;
+            Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
+            return authorities.stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERUSER"));
+        }
+        return false;
     }
     
     /**
@@ -271,6 +379,7 @@ public class SessionController {
         private String type;
         private String peer;
         private String message;
+        private Set<String> activeUsers;
         
         public String getType() {
             return type;
@@ -294,6 +403,14 @@ public class SessionController {
         
         public void setMessage(String message) {
             this.message = message;
+        }
+        
+        public Set<String> getActiveUsers() {
+            return activeUsers;
+        }
+        
+        public void setActiveUsers(Set<String> activeUsers) {
+            this.activeUsers = activeUsers;
         }
     }
 } 
