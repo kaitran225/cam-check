@@ -160,7 +160,7 @@
         
         .main-content {
             flex: 1;
-            margin-left: var(--sidebar-width);
+            margin-left: calc(var(--sidebar-width) + var(--spacing-md));
             margin-right: var(--chat-sidebar-width);
             padding: var(--spacing-md);
             transition: margin-left 0.3s ease, margin-right 0.3s ease;
@@ -200,6 +200,11 @@
             display: flex;
             align-items: center;
             font-size: var(--font-size-small);
+            position: absolute;
+            top: var(--spacing-md);
+            right: calc(var(--chat-sidebar-width) + var(--spacing-md));
+            z-index: 100;
+            width: 250px;
         }
         
         .notification-container.error {
@@ -252,13 +257,45 @@
             bottom: var(--spacing-md);
             right: var(--spacing-md);
             z-index: 2;
-            cursor: pointer;
             transition: all 0.3s ease;
             border: 2px solid var(--accent);
         }
         
+        #localVideoCell.minimized {
+            width: 20%;
+            height: 20%;
+            opacity: 0.7;
+        }
+        
         #localVideoCell:hover {
-            transform: scale(1.05);
+            opacity: 1;
+        }
+        
+        .video-controls {
+            position: absolute;
+            top: var(--spacing-xs);
+            right: var(--spacing-xs);
+            display: flex;
+            gap: var(--spacing-xs);
+            z-index: 10;
+        }
+        
+        .video-control-btn {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: var(--font-size-small);
+            transition: background-color 0.2s;
+        }
+        
+        .video-control-btn:hover {
+            background-color: var(--accent);
         }
         
         .swap-icon {
@@ -678,9 +715,6 @@
                     <p sec:authorize="hasRole('ADMIN')"><strong>Role:</strong> Admin</p>
                     <p sec:authorize="hasRole('SUPERUSER')"><strong>Role:</strong> Superuser</p>
                     <div class="sidebar-links">
-                        <a href="/chat" style="text-decoration: none; color: var(--text-primary);">
-                            <i class="fas fa-comments"></i> Chat
-                        </a>
                         <a href="/swagger-ui.html" target="_blank" style="text-decoration: none; color: var(--text-primary);">
                             <i class="fas fa-code"></i> API Docs
                         </a>
@@ -780,6 +814,9 @@
             <div class="notification-container" id="notifications" style="display: none;">
                 <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
                 <span id="notificationText">Notifications will appear here</span>
+                <div style="margin-left: auto; cursor: pointer;" onclick="document.getElementById('notifications').style.display='none';">
+                    <i class="fas fa-times"></i>
+                </div>
             </div>
             
             <!-- View toggle for superusers -->
@@ -795,10 +832,20 @@
                         <div class="video-cell" id="remoteVideoCell">
                             <span>No remote camera connected</span>
                             <div class="video-label">Remote Camera</div>
+                            <div class="video-controls">
+                                <div class="video-control-btn" id="swapViewsBtn" title="Swap Views">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </div>
+                            </div>
                         </div>
                         <div class="video-cell" id="localVideoCell">
                             <video id="localVideo" autoplay playsinline></video>
                             <div class="video-label">Your Camera</div>
+                            <div class="video-controls">
+                                <div class="video-control-btn" id="minimizeLocalBtn" title="Minimize">
+                                    <i class="fas fa-compress-alt"></i>
+                                </div>
+                            </div>
                             <!-- Camera not ready overlay only on local video cell -->
                             <div class="camera-not-ready" id="cameraNotReady">
                                 <i class="fas fa-exclamation-triangle"></i>
@@ -806,9 +853,6 @@
                                 <p>Start the camera stream to begin monitoring.</p>
                                 <button id="startCameraBtn" class="success">Start Camera</button>
                             </div>
-                        </div>
-                        <div class="swap-icon" id="swapViews">
-                            <i class="fas fa-exchange-alt"></i>
                         </div>
                     </div>
                 </div>
@@ -925,8 +969,10 @@
         const themeToggle = document.getElementById('themeToggle');
         
         // DOM elements for video swapping
-        const swapViewsBtn = document.getElementById('swapViews');
+        const swapViewsBtn = document.getElementById('swapViewsBtn');
+        const minimizeLocalBtn = document.getElementById('minimizeLocalBtn');
         let isLocalViewPrimary = false;
+        let isLocalViewMinimized = false;
 
         // Function to swap local and remote views
         function swapCameraViews() {
@@ -940,6 +986,8 @@
                 localVideoCell.style.bottom = 'auto';
                 localVideoCell.style.right = 'auto';
                 localVideoCell.style.zIndex = '1';
+                localVideoCell.classList.remove('minimized');
+                isLocalViewMinimized = false;
                 
                 remoteVideoCell.style.position = 'absolute';
                 remoteVideoCell.style.width = '33%';
@@ -951,6 +999,12 @@
                 // Update labels
                 localVideoCell.querySelector('.video-label').textContent = 'Your Camera (Primary)';
                 remoteVideoCell.querySelector('.video-label').textContent = 'Remote Camera';
+                
+                // Update minimize button location
+                minimizeLocalBtn.parentElement.parentElement.removeChild(minimizeLocalBtn.parentElement);
+                remoteVideoCell.querySelector('.video-controls').appendChild(minimizeLocalBtn.parentElement);
+                minimizeLocalBtn.title = "Minimize";
+                minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
             } else {
                 // Make remote view primary
                 remoteVideoCell.style.position = 'static';
@@ -970,9 +1024,46 @@
                 // Update labels
                 remoteVideoCell.querySelector('.video-label').textContent = 'Remote Camera (Primary)';
                 localVideoCell.querySelector('.video-label').textContent = 'Your Camera';
+                
+                // Update minimize button location
+                minimizeLocalBtn.parentElement.parentElement.removeChild(minimizeLocalBtn.parentElement);
+                localVideoCell.querySelector('.video-controls').appendChild(minimizeLocalBtn.parentElement);
+                minimizeLocalBtn.title = "Minimize";
+                minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
             }
             
             showNotification(isLocalViewPrimary ? 'Your camera is now primary' : 'Remote camera is now primary');
+        }
+
+        // Function to toggle minimize state of the small view
+        function toggleMinimizeView() {
+            if (isLocalViewPrimary) {
+                // Remote view is small
+                isLocalViewMinimized = !isLocalViewMinimized;
+                if (isLocalViewMinimized) {
+                    remoteVideoCell.classList.add('minimized');
+                    minimizeLocalBtn.title = "Expand";
+                    minimizeLocalBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                } else {
+                    remoteVideoCell.classList.remove('minimized');
+                    minimizeLocalBtn.title = "Minimize";
+                    minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
+                }
+            } else {
+                // Local view is small
+                isLocalViewMinimized = !isLocalViewMinimized;
+                if (isLocalViewMinimized) {
+                    localVideoCell.classList.add('minimized');
+                    minimizeLocalBtn.title = "Expand";
+                    minimizeLocalBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                } else {
+                    localVideoCell.classList.remove('minimized');
+                    minimizeLocalBtn.title = "Minimize";
+                    minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
+                }
+            }
+            
+            showNotification(isLocalViewMinimized ? 'Small view minimized' : 'Small view expanded');
         }
 
         // Connect to WebSocket

@@ -55,13 +55,7 @@ public class CameraController {
         return "login";
     }
     
-    /**
-     * Chat page
-     */
-    @GetMapping("/chat")
-    public String chat() {
-        return "chat";
-    }
+
     
     /**
      * Get system status
