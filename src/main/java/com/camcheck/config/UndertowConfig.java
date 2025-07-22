@@ -19,25 +19,25 @@ import java.io.File;
 @Slf4j
 public class UndertowConfig implements WebServerFactoryCustomizer<UndertowServletWebServerFactory> {
 
-    @Value("${UNDERTOW_WORKER_THREADS}")
+    @Value("${server.undertow.worker-threads}")
     private int workerThreads;
     
-    @Value("${UNDERTOW_IO_THREADS}")
+    @Value("${server.undertow.io-threads}")
     private int ioThreads;
     
-    @Value("${UNDERTOW_BUFFER_SIZE}")
+    @Value("${server.undertow.buffer-size}")
     private int bufferSize;
     
-    @Value("${UNDERTOW_DIRECT_BUFFERS}")
+    @Value("${server.undertow.direct-buffers}")
     private boolean directBuffers;
     
-    @Value("${UNDERTOW_MAX_HTTP_POST_SIZE}")
+    @Value("${server.undertow.max-http-post-size}")
     private long maxHttpPostSize;
     
-    @Value("${UNDERTOW_TCP_NODELAY:true}")
+    @Value("${server.undertow.options.socket.TCP_NODELAY}")
     private boolean tcpNoDelay;
     
-    @Value("${UNDERTOW_REUSE_ADDRESSES:true}")
+    @Value("${server.undertow.options.socket.REUSE_ADDRESSES}")
     private boolean reuseAddresses;
     
     @Override

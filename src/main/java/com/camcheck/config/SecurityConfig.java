@@ -13,6 +13,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
@@ -37,10 +38,10 @@ public class SecurityConfig {
     @Value("${camcheck.security.trusted-ips:127.0.0.1,::1}")
     private String trustedIps;
     
-    @Value("${camcheck.security.superuser.username:${SUPERUSER_USERNAME}}")
+    @Value("${camcheck.security.superuser.username}")
     private String superuserUsername;
     
-    @Value("${camcheck.security.superuser.password:${SUPERUSER_PASSWORD}}")
+    @Value("${camcheck.security.superuser.password}")
     private String superuserPassword;
     
     @ConfigurationProperties(prefix = "camcheck.security")
@@ -104,23 +105,34 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(authorize -> authorize
                 // Static resources
-                .requestMatchers("/resources/**", "/static/**", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/resources/**"), 
+                                new AntPathRequestMatcher("/static/**"), 
+                                new AntPathRequestMatcher("/css/**"), 
+                                new AntPathRequestMatcher("/js/**"), 
+                                new AntPathRequestMatcher("/images/**"), 
+                                new AntPathRequestMatcher("/webjars/**")).permitAll()
                 // Swagger UI and API docs
-                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/swagger-ui.html"), 
+                                new AntPathRequestMatcher("/swagger-ui/**"), 
+                                new AntPathRequestMatcher("/api-docs"), 
+                                new AntPathRequestMatcher("/api-docs/**"), 
+                                new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
                 // Allow receiver endpoint without authentication
-                .requestMatchers("/receiver", "/receiver/**").permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/receiver"), 
+                                new AntPathRequestMatcher("/receiver/**")).permitAll()
                 // Allow client-camera endpoint without authentication
-                .requestMatchers("/client-camera", "/client-camera/**").permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/client-camera"), 
+                                new AntPathRequestMatcher("/client-camera/**")).permitAll()
                 // WebSocket endpoints
-                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/ws/**")).permitAll()
                 // H2 Console
-                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
                 // Allow access from trusted IPs without authentication
                 .requestMatchers(request -> trustedIpMatcher.matches(request)).permitAll()
                 // Superuser pages require SUPERUSER role
-                .requestMatchers("/superuser/**").hasRole("SUPERUSER")
+                .requestMatchers(new AntPathRequestMatcher("/superuser/**")).hasRole("SUPERUSER")
                 // Admin pages require ADMIN or SUPERUSER role
-                .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERUSER")
+                .requestMatchers(new AntPathRequestMatcher("/admin/**")).hasAnyRole("ADMIN", "SUPERUSER")
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
@@ -133,7 +145,17 @@ public class SecurityConfig {
                 .permitAll()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**", "/api/v1/**", "/ws/**", "/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/receiver/**", "/client-camera/**", "/h2-console/**")
+                .ignoringRequestMatchers(
+                    new AntPathRequestMatcher("/api/**"), 
+                    new AntPathRequestMatcher("/api/v1/**"), 
+                    new AntPathRequestMatcher("/ws/**"), 
+                    new AntPathRequestMatcher("/api-docs/**"), 
+                    new AntPathRequestMatcher("/swagger-ui/**"), 
+                    new AntPathRequestMatcher("/v3/api-docs/**"), 
+                    new AntPathRequestMatcher("/receiver/**"), 
+                    new AntPathRequestMatcher("/client-camera/**"), 
+                    new AntPathRequestMatcher("/h2-console/**")
+                )
             )
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.sameOrigin()) // Required for H2 Console

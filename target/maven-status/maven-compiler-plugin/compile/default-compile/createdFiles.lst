@@ -4,7 +4,6 @@ com\camcheck\controller\SessionController$SessionEvent.class
 com\camcheck\CamCheckApplication.class
 com\camcheck\config\SecurityConfig.class
 com\camcheck\config\WebSocketConfig$1.class
-com\camcheck\repository\ChatMessageRepository.class
 com\camcheck\config\SecurityConfig$SecurityUsers.class
 com\camcheck\controller\CameraController.class
 com\camcheck\controller\SessionController$SessionRequest.class

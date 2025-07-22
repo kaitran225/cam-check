@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Controller for chat functionality
@@ -70,7 +71,7 @@ public class ChatController {
         // Mark messages as read
         List<ChatMessage> unreadMessages = messages.getContent().stream()
                 .filter(m -> m.getRecipient().equals(currentUser) && !m.isRead())
-                .toList();
+                .collect(Collectors.toList());
         
         if (!unreadMessages.isEmpty()) {
             chatService.markAsRead(unreadMessages);
@@ -107,7 +108,7 @@ public class ChatController {
         // Filter messages to ensure user can only mark their own messages as read
         List<ChatMessage> filteredMessages = messages.stream()
                 .filter(m -> m.getRecipient().equals(currentUser))
-                .toList();
+                .collect(Collectors.toList());
         
         chatService.markAsRead(filteredMessages);
         return ResponseEntity.ok().build();

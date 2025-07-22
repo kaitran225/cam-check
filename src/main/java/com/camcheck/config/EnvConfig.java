@@ -7,10 +7,10 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.Environment;
 
 import jakarta.annotation.PostConstruct;
+import java.util.Arrays;
 
 /**
- * Configuration for environment variables
- * Loads variables from .env file and system environment
+ * Configuration for environment variables and profiles
  */
 @Configuration
 @Slf4j
@@ -25,17 +25,23 @@ public class EnvConfig {
     @PostConstruct
     public void logEnvironmentInfo() {
         String[] activeProfiles = env.getActiveProfiles();
-        log.info("Active profiles: {}", String.join(", ", activeProfiles.length > 0 ? activeProfiles : new String[]{"default"}));
+        if (activeProfiles.length == 0) {
+            activeProfiles = new String[]{"default"};
+        }
+        
+        log.info("Active profiles: {}", String.join(", ", activeProfiles));
+        log.info("Available profiles: {}", String.join(", ", env.getDefaultProfiles()));
         
         // Log server configuration
         log.info("Server running on {}:{}", 
-                env.getProperty("SERVER_ADDRESS"), 
-                env.getProperty("SERVER_PORT"));
+                env.getProperty("server.address", "0.0.0.0"), 
+                env.getProperty("server.port", "8080"));
         
-        // Log Undertow configuration
-        log.info("Undertow configured with worker threads: {}, IO threads: {}", 
-                env.getProperty("UNDERTOW_WORKER_THREADS"),
-                env.getProperty("UNDERTOW_IO_THREADS"));
+        // Log database configuration
+        log.info("Database URL: {}", env.getProperty("spring.datasource.url"));
+        
+        // Log chat enabled status
+        log.info("Chat feature enabled");
     }
     
     @Bean

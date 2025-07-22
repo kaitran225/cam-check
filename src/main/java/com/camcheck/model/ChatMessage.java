@@ -1,43 +1,26 @@
 package com.camcheck.model;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * Entity class for storing chat messages
+ * Model class for chat messages (in-memory storage)
  */
-@Entity
-@Table(name = "chat_messages")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessage {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(nullable = false)
+    private String id;
     private String sender;
-    
-    @Column(nullable = false)
     private String recipient;
-    
-    @Column(nullable = false, length = 1000)
     private String content;
-    
-    @Column(nullable = false)
     private Instant timestamp;
-    
-    @Column(nullable = false)
     private boolean read = false;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private MessageType type = MessageType.TEXT;
     
     /**
@@ -54,6 +37,7 @@ public class ChatMessage {
      */
     public static ChatMessage createTextMessage(String sender, String recipient, String content) {
         ChatMessage message = new ChatMessage();
+        message.setId(UUID.randomUUID().toString());
         message.setSender(sender);
         message.setRecipient(recipient);
         message.setContent(content);
@@ -67,6 +51,7 @@ public class ChatMessage {
      */
     public static ChatMessage createAlertMessage(String sender, String recipient, String content) {
         ChatMessage message = new ChatMessage();
+        message.setId(UUID.randomUUID().toString());
         message.setSender(sender);
         message.setRecipient(recipient);
         message.setContent(content);

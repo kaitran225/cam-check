@@ -7,7 +7,6 @@ E:\cam-check-1\src\main\java\com\camcheck\model\CameraStatus.java
 E:\cam-check-1\src\main\java\com\camcheck\service\ChatService.java
 E:\cam-check-1\src\main\java\com\camcheck\service\RecordingService.java
 E:\cam-check-1\src\main\java\com\camcheck\controller\SessionController.java
-E:\cam-check-1\src\main\java\com\camcheck\repository\ChatMessageRepository.java
 E:\cam-check-1\src\main\java\com\camcheck\config\SecurityConfig.java
 E:\cam-check-1\src\main\java\com\camcheck\config\EnvConfig.java
 E:\cam-check-1\src\main\java\com\camcheck\config\WebSocketConfig.java

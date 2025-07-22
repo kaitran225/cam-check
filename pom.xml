@@ -64,13 +64,6 @@
             <scope>runtime</scope>
         </dependency>
         
-        <!-- Environment Variables Support -->
-        <dependency>
-            <groupId>me.paulschwarz</groupId>
-            <artifactId>spring-dotenv</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-        
         <!-- Utilities -->
         <dependency>
             <groupId>org.projectlombok</groupId>
