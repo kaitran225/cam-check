@@ -32,8 +32,8 @@
             --input-border: #333333;
             --input-text: #ffffff;
             --shadow: rgba(0, 0, 0, 0.3);
-            --sidebar-width: 220px;
-            --chat-sidebar-width: 240px;
+            --sidebar-width: 280px;
+            --chat-sidebar-width: 280px;
             --header-height: 40px;
             --notification-height: 40px;
             --font-size-base: 12px;
@@ -117,21 +117,38 @@
             bottom: 0;
             z-index: 100;
             transition: transform 0.3s ease;
+            transform: translateX(-100%);
+        }
+        
+        .sidebar.open {
+            transform: translateX(0);
         }
         
         .chat-sidebar {
             width: var(--chat-sidebar-width);
             background-color: var(--surface);
-            border-left: 1px solid var(--border);
+            border: 1px solid var(--border);
+            border-radius: 5px;
             padding: 0;
             overflow-y: hidden;
             position: fixed;
-            top: 0;
-            right: 0;
-            bottom: 0;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            bottom: 80px; /* Leave space for action bar */
             z-index: 100;
             display: flex;
             flex-direction: column;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: translateX(110%);
+        }
+        
+        .chat-sidebar.open {
+            transform: translateX(0);
+        }
+        
+        .main-content {
+            margin-right: var(--spacing-md);
         }
         
         .sidebar-header {
@@ -158,14 +175,35 @@
             padding: 0;
         }
         
+        .open-sidebar-btn {
+            position: fixed;
+            top: var(--spacing-md);
+            left: var(--spacing-md);
+            background-color: var(--button-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: var(--spacing-xs);
+            cursor: pointer;
+            z-index: 99;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .open-sidebar-btn {
+                display: block;
+            }
+        }
+        
         .main-content {
             flex: 1;
             margin-left: calc(var(--sidebar-width) + var(--spacing-md));
-            margin-right: var(--chat-sidebar-width);
+            margin-right: var(--spacing-md);
             padding: var(--spacing-md);
-            transition: margin-left 0.3s ease, margin-right 0.3s ease;
+            transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         
         .header {
@@ -194,17 +232,14 @@
             border: 1px solid var(--border);
             border-radius: 3px;
             padding: var(--spacing-sm);
-            margin-bottom: var(--spacing-md);
+            margin: var(--spacing-sm);
             min-height: var(--notification-height);
             box-shadow: 0 1px 4px var(--shadow);
             display: flex;
             align-items: center;
             font-size: var(--font-size-small);
-            position: absolute;
-            top: var(--spacing-md);
-            right: calc(var(--chat-sidebar-width) + var(--spacing-md));
+            position: relative;
             z-index: 100;
-            width: 250px;
         }
         
         .notification-container.error {
@@ -265,6 +300,7 @@
             width: 20%;
             height: 20%;
             opacity: 0.7;
+            transition: opacity 0.3s ease;
         }
         
         #localVideoCell:hover {
@@ -378,12 +414,141 @@
             background-color: var(--button-hover);
         }
         
+        /* Action Bar Styles - Microsoft Teams like */
+        .action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-md);
+            padding: 0 var(--spacing-lg);
+            z-index: 90;
+            transition: all 0.3s ease;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .action-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-primary);
+            width: 60px;
+            height: 50px;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            background-color: transparent;
+            border: none;
+        }
+        
+        .action-button:hover {
+            background-color: var(--button-hover);
+        }
+        
+        .action-button.active {
+            background-color: var(--accent);
+            color: var(--background);
+        }
+        
+        .action-button.danger {
+            color: var(--error);
+        }
+        
+        .action-button.danger:hover {
+            background-color: rgba(207, 102, 121, 0.2);
+        }
+        
+        .action-button i {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+        
+        .action-button span {
+            font-size: 10px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .action-bar {
+                left: 0;
+                right: 0;
+                justify-content: space-around;
+                padding: 0 var(--spacing-xs);
+                gap: var(--spacing-xs);
+            }
+            
+            .action-button {
+                width: auto;
+                flex: 1;
+            }
+        }
+        
+        /* Adjust main content to make room for action bar */
+        .main-content {
+            padding-bottom: 70px;
+        }
+        
+        /* Modal styles for session joining */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: var(--spacing-md);
+            width: 300px;
+            max-width: 90%;
+        }
+        
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: var(--spacing-xs);
+        }
+        
+        .modal-content input {
+            width: 100%;
+            padding: var(--spacing-sm);
+            margin: var(--spacing-md) 0;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--input-text);
+            border-radius: 3px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+        
         /* Chat container styles */
         .chat-container {
             display: flex;
             flex-direction: column;
             flex: 1;
             overflow: hidden;
+            height: 100%;
         }
         
         .user-info-sidebar {
@@ -642,6 +807,7 @@
             
             .main-content {
                 flex-direction: column;
+                margin-right: var(--spacing-md);
             }
             
             .video-container, .controls {
@@ -664,6 +830,26 @@
             button {
                 padding: 4px var(--spacing-xs);
                 font-size: 11px;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                width: 80%;
+                max-width: 300px;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .chat-sidebar {
+                transform: translateX(100%);
+                width: 80%;
+                max-width: 300px;
+            }
+            
+            .chat-sidebar.open {
+                transform: translateX(0);
             }
         }
         
@@ -697,6 +883,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 </head>
 <body>
+    <button class="open-sidebar-btn" id="openSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
     <div class="app-container">
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
@@ -810,14 +999,6 @@
         
         <!-- Main content -->
         <div class="main-content">
-            <!-- Notification area -->
-            <div class="notification-container" id="notifications" style="display: none;">
-                <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
-                <span id="notificationText">Notifications will appear here</span>
-                <div style="margin-left: auto; cursor: pointer;" onclick="document.getElementById('notifications').style.display='none';">
-                    <i class="fas fa-times"></i>
-                </div>
-            </div>
             
             <!-- View toggle for superusers -->
             <div sec:authorize="hasRole('SUPERUSER')" class="view-toggle">
@@ -871,6 +1052,16 @@
         
         <!-- Chat sidebar -->
         <div class="chat-sidebar" id="chatSidebar">
+            
+             <!-- Notification area -->
+             <div class="notification-container" id="notifications" style="display: none;">
+                <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
+                <span id="notificationText">Notifications will appear here</span>
+                <div style="margin-left: auto; cursor: pointer;" onclick="document.getElementById('notifications').style.display='none';">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+
             <div class="chat-container">
                 <div class="chat-header">
                     <h3>Chat</h3>
@@ -887,6 +1078,54 @@
                     <button id="sendChatBtn" disabled>Send</button>
                 </div>
             </div>
+        </div>
+        
+        <!-- Action Bar (Microsoft Teams style) -->
+        <div class="action-bar" id="actionBar">
+            <button class="action-button" id="actionSidebarToggle">
+                <i class="fas fa-bars"></i>
+                <span>Menu</span>
+            </button>
+            <button class="action-button" id="actionCameraToggle">
+                <i class="fas fa-video"></i>
+                <span>Camera</span>
+            </button>
+            <button class="action-button" id="actionSnapshot">
+                <i class="fas fa-camera"></i>
+                <span>Snapshot</span>
+            </button>
+            <button class="action-button" id="actionSwapViews">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Swap</span>
+            </button>
+            <button class="action-button" id="actionCameraSettings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </button>
+            <button class="action-button" id="actionChatToggle">
+                <i class="fas fa-comments"></i>
+                <span>Chat</span>
+            </button>
+            <button class="action-button" id="actionSession" sec:authorize="hasAnyRole('ADMIN','USER')">
+                <i class="fas fa-link"></i>
+                <span>Session</span>
+            </button>
+            <button class="action-button danger" id="actionEndSession" style="display: none;">
+                <i class="fas fa-unlink"></i>
+                <span>End</span>
+            </button>
+            <button class="action-button" id="actionSuperuser" sec:authorize="hasRole('SUPERUSER')">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </button>
+            <button class="action-button" id="actionThemeToggle">
+                <i class="fas fa-moon"></i>
+                <span>Theme</span>
+            </button>
+            <button class="action-button" id="actionLogout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
         </div>
     </div>
     
@@ -1287,29 +1526,34 @@
         
         // Get available cameras
         async function getAvailableCameras() {
-            try {
-                cameraSelect.innerHTML = '<option value="">Select camera...</option>';
-                
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                
-                if (videoDevices.length === 0) {
-                    showNotification('No cameras found', true);
-                    return;
+            return new Promise(async (resolve, reject) => {
+                try {
+                    cameraSelect.innerHTML = '<option value="">Select camera...</option>';
+                    
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    
+                    if (videoDevices.length === 0) {
+                        showNotification('No cameras found', true);
+                        resolve([]);
+                        return;
+                    }
+                    
+                    videoDevices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Camera ${cameraSelect.options.length}`;
+                        cameraSelect.appendChild(option);
+                    });
+                    
+                    showNotification(`Found ${videoDevices.length} camera(s)`);
+                    resolve(videoDevices);
+                } catch (error) {
+                    console.error('Error getting cameras:', error);
+                    showNotification('Error accessing cameras. Please check permissions.', true);
+                    reject(error);
                 }
-                
-                videoDevices.forEach(device => {
-                    const option = document.createElement('option');
-                    option.value = device.deviceId;
-                    option.text = device.label || `Camera ${cameraSelect.options.length}`;
-                    cameraSelect.appendChild(option);
-                });
-                
-                showNotification(`Found ${videoDevices.length} camera(s)`);
-            } catch (error) {
-                console.error('Error getting cameras:', error);
-                showNotification('Error accessing cameras. Please check permissions.', true);
-            }
+            });
         }
         
         // Start camera stream
@@ -1367,6 +1611,9 @@
                 // Set up heartbeat interval (every 3 seconds)
                 window.heartbeatInterval = setInterval(sendCameraHeartbeat, 3000);
                 
+                // Update action bar state
+                updateActionBarState();
+                
                 showNotification('Camera started successfully');
             } catch (error) {
                 console.error('Error starting camera:', error);
@@ -1396,6 +1643,9 @@
                 clearInterval(window.heartbeatInterval);
                 window.heartbeatInterval = null;
             }
+            
+            // Update action bar state
+            updateActionBarState();
             
             showNotification('Camera stopped');
         }
@@ -1809,6 +2059,9 @@
             
             // Reset session UI
             resetSessionUI();
+            
+            // Update action bar state
+            updateActionBarState();
         }
         
         // Reset session UI
@@ -1860,6 +2113,9 @@
                     // Add welcome message
                     addSystemMessage(`Connected to ${data.peer}. You can now chat.`);
                     
+                    // Update action bar state
+                    updateActionBarState();
+                    
                     showNotification(`Connected with ${data.peer}`);
                     
                     // Start sending frames if camera is active
@@ -1909,6 +2165,8 @@
                         }, 3000);
                     } else {
                         resetSessionUI();
+                        // Update action bar state
+                        updateActionBarState();
                     }
                     break;
                     
@@ -2077,6 +2335,9 @@
             
             // Store preference in localStorage
             localStorage.setItem('darkTheme', isDarkTheme.toString());
+            
+            // Update action bar state
+            updateActionBarState();
         }
         
         // Refresh active users list (superuser only)
@@ -2250,6 +2511,11 @@
                     box-shadow: 0 2px 10px var(--shadow);
                     z-index: 99;
                     display: none;
+                    transition: transform 0.3s ease;
+                }
+                
+                .chat-toggle:hover {
+                    transform: scale(1.1);
                 }
                 
                 @media (max-width: 1280px) {
@@ -2274,6 +2540,9 @@
             
             chatToggle.addEventListener('click', function() {
                 chatSidebar.classList.toggle('open');
+                if (chatSidebar.classList.contains('open')) {
+                    showNotification('Chat sidebar opened');
+                }
             });
             
             if (openSidebarBtn) {
@@ -2397,12 +2666,321 @@
                     }
                 }
             });
+            
+            // Add event listener for minimize button
+            if (minimizeLocalBtn) {
+                minimizeLocalBtn.addEventListener('click', toggleMinimizeView);
+            }
+            
+            // Action Bar Event Handlers
+            const actionSidebarToggle = document.getElementById('actionSidebarToggle');
+            const actionCameraToggle = document.getElementById('actionCameraToggle');
+            const actionSnapshot = document.getElementById('actionSnapshot');
+            const actionSwapViews = document.getElementById('actionSwapViews');
+            const actionCameraSettings = document.getElementById('actionCameraSettings');
+            const actionChatToggle = document.getElementById('actionChatToggle');
+            const actionSession = document.getElementById('actionSession');
+            const actionEndSession = document.getElementById('actionEndSession');
+            const actionSuperuser = isSuperuser ? document.getElementById('actionSuperuser') : null;
+            const actionThemeToggle = document.getElementById('actionThemeToggle');
+            const actionLogout = document.getElementById('actionLogout');
+            
+            // Camera toggle action
+            actionCameraToggle.addEventListener('click', function() {
+                if (isStreaming) {
+                    stopCameraStream();
+                    actionCameraToggle.classList.remove('active');
+                } else {
+                    startCameraStream();
+                    actionCameraToggle.classList.add('active');
+                }
+            });
+            
+            // Snapshot action
+            actionSnapshot.addEventListener('click', function() {
+                if (isStreaming) {
+                    takeSnapshot();
+                } else {
+                    showNotification('Start camera first to take snapshot', true);
+                }
+            });
+            
+            // Swap views action
+            actionSwapViews.addEventListener('click', function() {
+                swapCameraViews();
+            });
+            
+            // Chat toggle action
+            actionChatToggle.addEventListener('click', function() {
+                const chatSidebar = document.getElementById('chatSidebar');
+                chatSidebar.classList.toggle('open');
+                if (chatSidebar.classList.contains('open')) {
+                    actionChatToggle.classList.add('active');
+                } else {
+                    actionChatToggle.classList.remove('active');
+                }
+            });
+            
+            // Session action
+            if (actionSession) {
+                actionSession.addEventListener('click', function() {
+                    if (isAdmin) {
+                        // Admin creates session
+                        if (!sessionCode) {
+                            createSession();
+                        } else {
+                            showNotification('Session already created: ' + sessionCode);
+                        }
+                    } else {
+                        // User joins session
+                        const modal = document.createElement('div');
+                        modal.className = 'modal';
+                        modal.innerHTML = `
+                            <div class="modal-content">
+                                <h3>Join Session</h3>
+                                <p>Enter the 6-digit session code:</p>
+                                <input type="text" id="modalSessionCode" placeholder="Enter code">
+                                <div class="modal-buttons">
+                                    <button id="modalJoinBtn">Join</button>
+                                    <button id="modalCancelBtn">Cancel</button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+                        
+                        document.getElementById('modalJoinBtn').addEventListener('click', function() {
+                            const code = document.getElementById('modalSessionCode').value.trim();
+                            if (code) {
+                                joinSession(code);
+                                document.body.removeChild(modal);
+                            }
+                        });
+                        
+                        document.getElementById('modalCancelBtn').addEventListener('click', function() {
+                            document.body.removeChild(modal);
+                        });
+                    }
+                });
+            }
+            
+            // End session action
+            actionEndSession.addEventListener('click', function() {
+                endSession();
+            });
+            
+            // Sidebar toggle action
+            actionSidebarToggle.addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar');
+                sidebar.classList.toggle('open');
+                if (sidebar.classList.contains('open')) {
+                    actionSidebarToggle.classList.add('active');
+                } else {
+                    actionSidebarToggle.classList.remove('active');
+                }
+            });
+            
+            // Camera settings action
+            actionCameraSettings.addEventListener('click', function() {
+                // Create a modal for camera settings
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h3>Camera Settings</h3>
+                        <div class="settings-row">
+                            <label for="modalCameraSelect">Select Camera:</label>
+                            <select id="modalCameraSelect">
+                                ${Array.from(cameraSelect.options).map(opt => 
+                                    `<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.text}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="modal-buttons">
+                            <button id="modalRefreshBtn">Refresh List</button>
+                            <button id="modalSaveBtn">Save</button>
+                            <button id="modalCancelBtn">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                // Set up event handlers
+                document.getElementById('modalRefreshBtn').addEventListener('click', function() {
+                    getAvailableCameras().then(() => {
+                        // Update the modal select with new cameras
+                        const modalSelect = document.getElementById('modalCameraSelect');
+                        modalSelect.innerHTML = '';
+                        Array.from(cameraSelect.options).forEach(opt => {
+                            const newOpt = document.createElement('option');
+                            newOpt.value = opt.value;
+                            newOpt.text = opt.text;
+                            newOpt.selected = opt.selected;
+                            modalSelect.appendChild(newOpt);
+                        });
+                    });
+                });
+                
+                document.getElementById('modalSaveBtn').addEventListener('click', function() {
+                    const modalSelect = document.getElementById('modalCameraSelect');
+                    selectedCamera = modalSelect.value;
+                    cameraSelect.value = selectedCamera;
+                    document.body.removeChild(modal);
+                    showNotification('Camera settings saved');
+                });
+                
+                document.getElementById('modalCancelBtn').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+            });
+            
+            // Superuser action
+            if (actionSuperuser) {
+                actionSuperuser.addEventListener('click', function() {
+                    // Create a modal for superuser actions
+                    const modal = document.createElement('div');
+                    modal.className = 'modal';
+                    modal.innerHTML = `
+                        <div class="modal-content">
+                            <h3>Active Users</h3>
+                            <div class="settings-row">
+                                <label for="modalActiveUsersList">Users with Active Cameras:</label>
+                                <select id="modalActiveUsersList">
+                                    ${Array.from(activeUsersList ? activeUsersList.options : []).map(opt => 
+                                        `<option value="${opt.value}">${opt.text}</option>`
+                                    ).join('') || '<option value="">No active users found</option>'}
+                                </select>
+                            </div>
+                            <div class="modal-buttons">
+                                <button id="modalRefreshUsersBtn">Refresh List</button>
+                                <button id="modalConnectBtn">Connect</button>
+                                <button id="modalCancelUsersBtn">Cancel</button>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                    
+                    // Set up event handlers
+                    document.getElementById('modalRefreshUsersBtn').addEventListener('click', function() {
+                        refreshActiveUsers();
+                        setTimeout(() => {
+                            // Update the modal select with new users
+                            const modalSelect = document.getElementById('modalActiveUsersList');
+                            modalSelect.innerHTML = '';
+                            if (activeUsersList && activeUsersList.options.length > 0) {
+                                Array.from(activeUsersList.options).forEach(opt => {
+                                    const newOpt = document.createElement('option');
+                                    newOpt.value = opt.value;
+                                    newOpt.text = opt.text;
+                                    modalSelect.appendChild(newOpt);
+                                });
+                            } else {
+                                const newOpt = document.createElement('option');
+                                newOpt.value = "";
+                                newOpt.text = "No active users found";
+                                modalSelect.appendChild(newOpt);
+                            }
+                        }, 1000);
+                    });
+                    
+                    document.getElementById('modalConnectBtn').addEventListener('click', function() {
+                        const modalSelect = document.getElementById('modalActiveUsersList');
+                        const targetUser = modalSelect.value;
+                        if (targetUser) {
+                            superuserConnectToUser(targetUser);
+                            document.body.removeChild(modal);
+                        } else {
+                            showNotification('Please select a user to connect to', true);
+                        }
+                    });
+                    
+                    document.getElementById('modalCancelUsersBtn').addEventListener('click', function() {
+                        document.body.removeChild(modal);
+                    });
+                });
+            }
+            
+            // Logout action
+            actionLogout.addEventListener('click', function() {
+                // Create a hidden form and submit it to logout
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/logout';
+                
+                // Add CSRF token
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_csrf';
+                csrfToken.value = getCsrfToken();
+                form.appendChild(csrfToken);
+                
+                document.body.appendChild(form);
+                form.submit();
+            });
+            
+            // Theme toggle action
+            actionThemeToggle.addEventListener('click', function() {
+                toggleTheme();
+                if (isDarkTheme) {
+                    actionThemeToggle.innerHTML = '<i class="fas fa-moon"></i><span>Dark</span>';
+                } else {
+                    actionThemeToggle.innerHTML = '<i class="fas fa-sun"></i><span>Light</span>';
+                }
+            });
+            
+            // Update action bar state based on initial conditions
+            updateActionBarState();
         });
 
         // Get CSRF token from meta tag
         function getCsrfToken() {
             const token = document.querySelector('meta[name="_csrf"]');
             return token ? token.content : '';
+        }
+        
+        // Function to update action bar state based on current application state
+        function updateActionBarState() {
+            // Sidebar toggle button
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('open')) {
+                actionSidebarToggle.classList.add('active');
+            } else {
+                actionSidebarToggle.classList.remove('active');
+            }
+            
+            // Camera toggle button
+            if (isStreaming) {
+                actionCameraToggle.classList.add('active');
+                actionCameraToggle.innerHTML = '<i class="fas fa-video-slash"></i><span>Stop</span>';
+                actionSnapshot.disabled = false;
+            } else {
+                actionCameraToggle.classList.remove('active');
+                actionCameraToggle.innerHTML = '<i class="fas fa-video"></i><span>Camera</span>';
+                actionSnapshot.disabled = true;
+            }
+            
+            // Chat toggle button
+            const chatSidebar = document.getElementById('chatSidebar');
+            if (chatSidebar.classList.contains('open')) {
+                actionChatToggle.classList.add('active');
+            } else {
+                actionChatToggle.classList.remove('active');
+            }
+            
+            // Session buttons
+            if (connectedPeer) {
+                actionEndSession.style.display = 'flex';
+                if (actionSession) actionSession.style.display = 'none';
+            } else {
+                actionEndSession.style.display = 'none';
+                if (actionSession) actionSession.style.display = 'flex';
+            }
+            
+            // Theme button
+            if (isDarkTheme) {
+                actionThemeToggle.innerHTML = '<i class="fas fa-moon"></i><span>Dark</span>';
+            } else {
+                actionThemeToggle.innerHTML = '<i class="fas fa-sun"></i><span>Light</span>';
+            }
         }
     </script>
 </body>
