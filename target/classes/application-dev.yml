@@ -1,0 +1,128 @@
+# CamCheck Application Configuration - Development Profile
+
+# Server settings
+server:
+  port: ${SERVER_PORT:8080}
+  address: ${SERVER_ADDRESS:0.0.0.0}
+  servlet:
+    context-path: /
+  ssl:
+    enabled: false
+  undertow:
+    worker-threads: ${UNDERTOW_WORKER_THREADS:16}
+    buffer-size: ${UNDERTOW_BUFFER_SIZE:8192}
+    direct-buffers: ${UNDERTOW_DIRECT_BUFFERS:true}
+    max-http-post-size: ${UNDERTOW_MAX_HTTP_POST_SIZE:10485760}
+    io-threads: ${UNDERTOW_IO_THREADS:4}
+    accesslog:
+      enabled: ${UNDERTOW_ACCESSLOG_ENABLED:true}
+      pattern: ${UNDERTOW_ACCESSLOG_PATTERN:'%t %a "%r" %s (%D ms)'}
+    options:
+      server:
+        ALWAYS_SET_DATE: ${UNDERTOW_ALWAYS_SET_DATE:true}
+        MAX_ENTITY_SIZE: ${UNDERTOW_MAX_ENTITY_SIZE:10485760}
+      socket:
+        TCP_NODELAY: ${UNDERTOW_TCP_NODELAY:true}
+        REUSE_ADDRESSES: ${UNDERTOW_REUSE_ADDRESSES:true}
+
+# Spring settings
+spring:
+  application:
+    name: cam-check
+  thymeleaf:
+    cache: ${THYMELEAF_CACHE:false}
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:10MB}
+
+# Custom CamCheck settings
+camcheck:
+  # Security settings
+  security:
+    # User accounts
+    users:
+      - username: ${SECURITY_USERNAME_LUXUBOO:dev_user}
+        password: ${SECURITY_PASSWORD_LUXUBOO:}
+        role: USER
+      - username: ${SECURITY_USERNAME_KAITRAN:dev_admin}
+        password: ${SECURITY_PASSWORD_KAITRAN:dev_admin_password}
+        role: ADMIN
+    # Legacy credentials (kept for backward compatibility)
+    username: ${LEGACY_USERNAME:legacy_user}
+    password: ${LEGACY_PASSWORD:legacy_password}
+    # List of trusted IPs that can access the system without authentication
+    trusted-ips: ${SECURITY_TRUSTED_IPS:127.0.0.1,::1}
+    # Superuser credentials
+    superuser:
+      username: ${SUPERUSER_USERNAME:superuser}
+      password: ${SUPERUSER_PASSWORD:superuser_password}
+    
+  # Camera settings
+  camera:
+    # Options: webcam (USB camera) or ip (IP camera)
+    type: ${CAMERA_TYPE:webcam}
+    
+    # Frame rate (frames per second)
+    frame-rate: ${CAMERA_FRAME_RATE:15}
+    
+    # Resolution
+    width: ${CAMERA_WIDTH:640}
+    height: ${CAMERA_HEIGHT:480}
+    
+    # Camera device index (usually 0 for the first camera)
+    device-index: ${CAMERA_DEVICE_INDEX:0}
+    
+    # Force fallback mode (use this if you don't have a camera or want to test without one)
+    force-fallback: ${CAMERA_FORCE_FALLBACK:true}
+    
+    # IP camera settings (if type is set to 'ip')
+    ip-url: ${CAMERA_IP_URL:http://localhost:8081/video}
+    
+  # Motion detection settings
+  motion-detection:
+    enabled: ${MOTION_DETECTION_ENABLED:true}
+    sensitivity: ${MOTION_DETECTION_SENSITIVITY:20}
+    cooldown-period: ${MOTION_DETECTION_COOLDOWN:5000}
+    
+  # Storage settings
+  storage:
+    # Save recordings when motion is detected
+    record-on-motion: ${STORAGE_RECORD_ON_MOTION:true}
+    
+    # Recording length in seconds
+    recording-length: ${STORAGE_RECORDING_LENGTH:10}
+    
+    # Maximum storage space for recordings (MB)
+    max-size-mb: ${STORAGE_MAX_SIZE_MB:1000}
+    
+    # Delete oldest recordings when storage limit is reached
+    delete-oldest: ${STORAGE_DELETE_OLDEST:true}
+    
+    # Path for recordings (relative to application)
+    recordings-path: ${STORAGE_RECORDINGS_PATH:./recordings}
+
+# Swagger/OpenAPI configuration
+springdoc:
+  api-docs:
+    path: ${SPRINGDOC_API_DOCS_PATH:/api-docs}
+  swagger-ui:
+    path: ${SPRINGDOC_SWAGGER_UI_PATH:/swagger-ui}
+    operationsSorter: ${SPRINGDOC_OPERATIONS_SORTER:alpha}
+    tagsSorter: ${SPRINGDOC_TAGS_SORTER:alpha}
+    disable-swagger-default-url: ${SPRINGDOC_DISABLE_DEFAULT_URL:true}
+  show-actuator: ${SPRINGDOC_SHOW_ACTUATOR:true}
+  
+# Logging configuration - super short format
+logging:
+  pattern:
+    console: ${LOGGING_PATTERN_CONSOLE:%d{HH:mm:ss} %-5p [%c{1}] %m%n}
+    file: ${LOGGING_PATTERN_FILE:%d{yyyy-MM-dd HH:mm:ss} %-5p [%c{1}] %m%n}
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.camcheck: ${LOGGING_LEVEL_CAMCHECK:DEBUG}
+    org.springframework.web: ${LOGGING_LEVEL_SPRING_WEB:INFO}
+    org.springframework.security: ${LOGGING_LEVEL_SPRING_SECURITY:INFO}
+    org.springframework.messaging: ${LOGGING_LEVEL_SPRING_MESSAGING:INFO}
+    org.springframework.web.socket: ${LOGGING_LEVEL_SPRING_WEBSOCKET:INFO}
+    io.undertow: ${LOGGING_LEVEL_UNDERTOW:INFO} 
