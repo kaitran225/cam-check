@@ -15,7 +15,7 @@ server:
     max-http-post-size: ${UNDERTOW_MAX_HTTP_POST_SIZE}
     io-threads: ${UNDERTOW_IO_THREADS}
     accesslog:
-      enabled: ${UNDERTOW_ACCESSLOG_ENABLED}
+      enabled: false #${UNDERTOW_ACCESSLOG_ENABLED}
       pattern: ${UNDERTOW_ACCESSLOG_PATTERN}
     options:
       server:

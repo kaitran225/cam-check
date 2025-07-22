@@ -15,7 +15,7 @@ server:
     max-http-post-size: ${UNDERTOW_MAX_HTTP_POST_SIZE:10485760}
     io-threads: ${UNDERTOW_IO_THREADS:4}
     accesslog:
-      enabled: ${UNDERTOW_ACCESSLOG_ENABLED:true}
+      enabled: ${UNDERTOW_ACCESSLOG_ENABLED:false}
       pattern: ${UNDERTOW_ACCESSLOG_PATTERN:'%t %a "%r" %s (%D ms)'}
     options:
       server:
@@ -81,14 +81,14 @@ camcheck:
     
   # Motion detection settings
   motion-detection:
-    enabled: ${MOTION_DETECTION_ENABLED:true}
+    enabled: ${MOTION_DETECTION_ENABLED:false}
     sensitivity: ${MOTION_DETECTION_SENSITIVITY:20}
     cooldown-period: ${MOTION_DETECTION_COOLDOWN:5000}
     
   # Storage settings
   storage:
     # Save recordings when motion is detected
-    record-on-motion: ${STORAGE_RECORD_ON_MOTION:true}
+    record-on-motion: ${STORAGE_RECORD_ON_MOTION:false}
     
     # Recording length in seconds
     recording-length: ${STORAGE_RECORDING_LENGTH:10}
@@ -113,14 +113,13 @@ springdoc:
     disable-swagger-default-url: ${SPRINGDOC_DISABLE_DEFAULT_URL:true}
   show-actuator: ${SPRINGDOC_SHOW_ACTUATOR:true}
   
-# Logging configuration - super short format
+# Logging configuration - console only, no file logging
 logging:
   pattern:
     console: ${LOGGING_PATTERN_CONSOLE:%d{HH:mm:ss} %-5p [%c{1}] %m%n}
-    file: ${LOGGING_PATTERN_FILE:%d{yyyy-MM-dd HH:mm:ss} %-5p [%c{1}] %m%n}
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
-    com.camcheck: ${LOGGING_LEVEL_CAMCHECK:DEBUG}
+    com.camcheck: ${LOGGING_LEVEL_CAMCHECK:INFO}
     org.springframework.web: ${LOGGING_LEVEL_SPRING_WEB:INFO}
     org.springframework.security: ${LOGGING_LEVEL_SPRING_SECURITY:INFO}
     org.springframework.messaging: ${LOGGING_LEVEL_SPRING_MESSAGING:INFO}

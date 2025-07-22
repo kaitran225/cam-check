@@ -153,7 +153,9 @@ public class SecurityConfig {
                     new AntPathRequestMatcher("/swagger-ui/**"), 
                     new AntPathRequestMatcher("/v3/api-docs/**"), 
                     new AntPathRequestMatcher("/receiver/**"), 
-                    new AntPathRequestMatcher("/client-camera/**"), 
+                    new AntPathRequestMatcher("/client-camera/**"),
+                    new AntPathRequestMatcher("/login"),
+                    new AntPathRequestMatcher("/logout"),
                     new AntPathRequestMatcher("/h2-console/**")
                 )
             )

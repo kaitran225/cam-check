@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Service for handling snapshots from client cameras
- * Simplified version with no server-side camera functionality
+ * Snapshot saving functionality is disabled
  */
 @Service
 @Slf4j
@@ -25,46 +25,21 @@ public class RecordingService {
     
     @PostConstruct
     public void init() {
-        // Create recordings directory if it doesn't exist
-        try {
-            Path path = Paths.get(recordingsPath);
-            if (!Files.exists(path)) {
-                Files.createDirectories(path);
-                log.info("Created recordings directory: {}", path.toAbsolutePath());
-            }
-            
-            // Create snapshots subdirectory
-            Path snapshotsDir = Paths.get(recordingsPath, "snapshots");
-            if (!Files.exists(snapshotsDir)) {
-                Files.createDirectories(snapshotsDir);
-                log.info("Created snapshots directory: {}", snapshotsDir.toAbsolutePath());
-            }
-        } catch (IOException e) {
-            log.error("Failed to create recordings directory: {}", e.getMessage(), e);
-        }
+        // Log that recording is disabled
+        log.info("Recording service initialized with snapshot saving disabled");
     }
     
     /**
-     * Save a snapshot from client camera
+     * Disabled snapshot saving
      * @param imageData Raw image data bytes
-     * @return Filename of the saved snapshot
-     * @throws IOException If there's an error saving the file
+     * @return Filename of the would-be snapshot (not actually saved)
      */
     public String saveSnapshot(byte[] imageData) throws IOException {
-        // Create snapshots directory if it doesn't exist
-        Path snapshotsDir = Paths.get(recordingsPath, "snapshots");
-        if (!Files.exists(snapshotsDir)) {
-            Files.createDirectories(snapshotsDir);
-        }
-        
-        // Generate filename with timestamp
+        // Generate mock filename with timestamp
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
         String filename = "snapshot_" + timestamp + ".jpg";
-        Path filePath = snapshotsDir.resolve(filename);
         
-        // Save the image file
-        Files.write(filePath, imageData);
-        log.info("Saved snapshot: {}", filePath);
+        log.info("Snapshot saving is disabled. Would have saved: {}", filename);
         
         return filename;
     }
