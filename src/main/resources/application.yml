@@ -35,6 +35,31 @@ spring:
     multipart:
       max-file-size: ${MAX_FILE_SIZE}
       max-request-size: ${MAX_REQUEST_SIZE}
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:h2:file:./data/camcheck;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: password
+    driver-class-name: org.h2.Driver
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: ${SHOW_SQL:false}
+    database-platform: org.hibernate.dialect.H2Dialect
+  
+  # H2 Console Configuration
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
 
 # Custom CamCheck settings
 camcheck:

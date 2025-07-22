@@ -549,6 +549,9 @@
                 <span sec:authentication="name">Username</span>
                 <span sec:authorize="hasRole('ADMIN')">(Admin)</span>
                 <span sec:authorize="hasRole('SUPERUSER')">(Superuser)</span>
+                <a href="/chat" style="margin-right: 15px; text-decoration: none; color: var(--text-primary);">
+                    <i class="fas fa-comments"></i> Chat
+                </a>
                 <a href="/swagger-ui.html" target="_blank" style="margin-right: 15px; text-decoration: none; color: var(--text-primary);">API Docs</a>
                 <form th:action="@{/logout}" method="post" style="display: inline;">
                     <button type="submit" class="logout-btn">Logout</button>

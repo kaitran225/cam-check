@@ -113,6 +113,8 @@ public class SecurityConfig {
                 .requestMatchers("/client-camera", "/client-camera/**").permitAll()
                 // WebSocket endpoints
                 .requestMatchers("/ws/**").permitAll()
+                // H2 Console
+                .requestMatchers("/h2-console/**").permitAll()
                 // Allow access from trusted IPs without authentication
                 .requestMatchers(request -> trustedIpMatcher.matches(request)).permitAll()
                 // Superuser pages require SUPERUSER role
@@ -131,7 +133,10 @@ public class SecurityConfig {
                 .permitAll()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**", "/api/v1/**", "/ws/**", "/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/receiver/**", "/client-camera/**")
+                .ignoringRequestMatchers("/api/**", "/api/v1/**", "/ws/**", "/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/receiver/**", "/client-camera/**", "/h2-console/**")
+            )
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.sameOrigin()) // Required for H2 Console
             );
         
         return http.build();
