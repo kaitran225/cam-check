@@ -40,7 +40,7 @@ USER camcheck
 EXPOSE 80
 
 # Set environment variables that can be overridden
-ENV SPRING_PROFILES_ACTIVE=production
+ENV SPRING_PROFILES_ACTIVE=prod
 ENV SERVER_PORT=80
 
 # Command to run the application
