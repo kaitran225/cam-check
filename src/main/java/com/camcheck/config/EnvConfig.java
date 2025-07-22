@@ -7,7 +7,6 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.Environment;
 
 import jakarta.annotation.PostConstruct;
-import java.util.Arrays;
 
 /**
  * Configuration for environment variables and profiles
