@@ -34,19 +34,19 @@
             --input-border: #2a2a2a;
             --input-text: #ffffff;
             --shadow: rgba(0, 0, 0, 0.5);
-            --sidebar-width: 280px;
-            --chat-sidebar-width: 300px;
-            --header-height: 40px;
-            --notification-height: 40px;
-            --font-size-base: 12px;
-            --font-size-small: 11px;
-            --font-size-heading: 14px;
-            --spacing-xs: 4px;
-            --spacing-sm: 8px;
-            --spacing-md: 12px;
-            --spacing-lg: 16px;
-            --action-bar-height: 60px;
-            --panel-radius: 6px;
+            --sidebar-width: 20vw;
+            --chat-sidebar-width: 22vw;
+            --header-height: 5vh;
+            --notification-height: 5vh;
+            --font-size-base: 0.75rem;
+            --font-size-small: 0.7rem;
+            --font-size-heading: 0.875rem;
+            --spacing-xs: 0.5vh;
+            --spacing-sm: 1vh;
+            --spacing-md: 1.5vh;
+            --spacing-lg: 2vh;
+            --action-bar-height: 7vh;
+            --panel-radius: 0.375rem;
         }
         
         body.light-theme {
@@ -133,7 +133,7 @@
         .panel {
             padding: 0 var(--spacing-md);
             border-radius: var(--panel-radius);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0.25vh 1.25vh rgba(0, 0, 0, 0.5);
             overflow: hidden;
             transition: all 0.3s ease;
             flex-shrink: 0;
@@ -156,7 +156,7 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            min-width: 300px;
+            min-width: 30vw;
             max-width: calc(80%);
             transition: all 0.3s ease;
         }
@@ -232,8 +232,8 @@
             left: var(--spacing-md);
             background-color: var(--button-bg);
             color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-radius: 3px;
+            border: 0.0625rem solid var(--border);
+            border-radius: 0.1875rem;
             padding: var(--spacing-xs);
             cursor: pointer;
             z-index: 99;
@@ -368,8 +368,8 @@
             background-color: rgba(0, 0, 0, 0.5);
             color: white;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 1.5rem;
+            height: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -415,9 +415,9 @@
             left: var(--spacing-xs);
             background-color: rgba(0, 0, 0, 0.7);
             color: var(--text-primary);
-            padding: 2px var(--spacing-xs);
+            padding: 0.125rem var(--spacing-xs);
             font-size: var(--font-size-small);
-            border-radius: 2px;
+            border-radius: 0.125rem;
             z-index: 5;
         }
         
@@ -467,9 +467,9 @@
         .action-bar {
             height: var(--action-bar-height);
             background-color: rgba(10, 10, 10, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-top: 1px solid var(--border);
+            backdrop-filter: blur(0.625rem);
+            -webkit-backdrop-filter: blur(0.625rem);
+            border-top: 0.0625rem solid var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -477,7 +477,7 @@
             padding: 0 var(--spacing-lg);
             z-index: 100;
             transition: all 0.3s ease;
-            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 -0.125vh 0.9375vh rgba(0, 0, 0, 0.5);
             border-bottom-left-radius: var(--panel-radius);
             border-bottom-right-radius: var(--panel-radius);
             position: sticky;
@@ -493,8 +493,8 @@
             justify-content: center;
             cursor: pointer;
             color: var(--text-secondary);
-            width: 60px;
-            height: 50px;
+            width: 4vw;
+            height: 6vh;
             border-radius: var(--panel-radius);
             transition: all 0.2s ease;
             background-color: transparent;
@@ -514,11 +514,11 @@
         .action-button.active::after {
             content: '';
             position: absolute;
-            bottom: -5px;
+            bottom: -0.3125rem;
             left: 50%;
             transform: translateX(-50%);
-            width: 20px;
-            height: 2px;
+            width: 1.25rem;
+            height: 0.125rem;
             background-color: var(--accent);
         }
 
@@ -530,19 +530,19 @@
             background-color: rgba(231, 76, 60, 0.2);
         }
 
-        .action-button i {
-            font-size: 20px;
-            margin-bottom: 4px;
+                .action-button i {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
         }
-
+        
         .action-button span {
-            font-size: 9px;
+            font-size: 0.5625rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.03125rem;
             text-align: center;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 48rem) {
             .app-container {
                 padding: var(--spacing-xs);
                 flex-direction: column;
@@ -579,15 +579,16 @@
                 max-height: 0;
             }
 
-            .action-bar {
+                        .action-bar {
                 justify-content: space-around;
                 padding: 0 var(--spacing-xs);
                 gap: var(--spacing-xs);
             }
-
+            
             .action-button {
                 width: auto;
                 flex: 1;
+                height: 5vh;
             }
         }
 
@@ -754,8 +755,8 @@
             color: var(--text-secondary);
             font-style: italic;
             border-radius: var(--panel-radius);
-            padding: 5px var(--spacing-sm);
-            font-size: 10px;
+            padding: 0.3125rem var(--spacing-sm);
+            font-size: 0.625rem;
             max-width: 70%;
             text-align: center;
         }
@@ -990,15 +991,15 @@
             }
         }
         
-        @media (max-width: 480px) {
+        @media (max-width: 30rem) {
             :root {
-                --font-size-base: 11px;
-                --font-size-small: 10px;
-                --font-size-heading: 13px;
+                --font-size-base: 0.6875rem;
+                --font-size-small: 0.625rem;
+                --font-size-heading: 0.8125rem;
             }
             
             .video-feed {
-                height: 180px;
+                height: 30vh;
             }
             
             .dashboard-grid {
@@ -1012,8 +1013,8 @@
             .theme-toggle {
                 bottom: var(--spacing-xs);
                 right: var(--spacing-xs);
-                width: 32px;
-                height: 32px;
+                width: 2rem;
+                height: 2rem;
             }
         }
     </style>
