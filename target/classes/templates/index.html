@@ -1016,19 +1016,8 @@
 
 <body>
     <div class="app-container" id="appContainer">
-        <div>
-             <!-- Notification area --> <!-- Notification area -->
-         <div class="notification-container" id="notifications" style="display: none;">
-            <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
-            <span id="notificationText">Notifications will appear here</span>
-            <div style="margin-left: auto; cursor: pointer;"
-                onclick="document.getElementById('notifications').style.display='none';">
-                <i class="fas fa-times"></i>
-            </div>
-        </div>
         <!-- Sidebar -->
         <div class="sidebar panel" id="sidebar">
-
             <div class="sidebar-header">
                 <h1>CamCheck</h1>
                 <button class="sidebar-toggle" id="closeSidebar">
@@ -1125,7 +1114,6 @@
             <div class="theme-toggle" id="themeToggle">
                 <i class="fas fa-moon"></i>
             </div>
-        </div>
         </div>
 
         <!-- Main content -->
@@ -1234,7 +1222,15 @@
         <!-- Chat sidebar -->
         <div class="chat-sidebar panel" id="chatSidebar">
 
-           
+            <!-- Notification area -->
+            <div class="notification-container" id="notifications" style="display: none;">
+                <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
+                <span id="notificationText">Notifications will appear here</span>
+                <div style="margin-left: auto; cursor: pointer;"
+                    onclick="document.getElementById('notifications').style.display='none';">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
 
             <div class="chat-container">
                 <div class="chat-header">
