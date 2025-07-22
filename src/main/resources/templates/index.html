@@ -1,39 +1,41 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="_csrf" th:content="${_csrf.token}"/>
-    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title>CamCheck - Security Camera</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Dark theme (default) */
-            --background: #000000;
+            /* Zenless Zone Zero inspired theme (matte black material) */
+            --background: #0a0a0a;
             --foreground: #ffffff;
-            --surface: #121212;
-            --border: #333333;
+            --surface: #151515;
+            --border: #2a2a2a;
             --text-primary: #ffffff;
-            --text-secondary: #aaaaaa;
-            --accent: #ffffff;
-            --error: #cf6679;
-            --success: #03dac6;
-            --button-bg: #1a1a1a;
-            --button-hover: #333333;
+            --text-secondary: #999999;
+            --accent: #e74c3c;
+            --accent-secondary: #3498db;
+            --error: #e74c3c;
+            --success: #2ecc71;
+            --button-bg: #1e1e1e;
+            --button-hover: #2a2a2a;
             --button-text: #ffffff;
-            --button-danger-bg: #1a1a1a;
-            --button-danger-hover: #333333;
-            --button-disabled-bg: #121212;
+            --button-danger-bg: #2a1a1a;
+            --button-danger-hover: #3a2a2a;
+            --button-disabled-bg: #1a1a1a;
             --button-disabled-text: #666666;
             --input-bg: #1a1a1a;
-            --input-border: #333333;
+            --input-border: #2a2a2a;
             --input-text: #ffffff;
-            --shadow: rgba(0, 0, 0, 0.3);
+            --shadow: rgba(0, 0, 0, 0.5);
             --sidebar-width: 280px;
-            --chat-sidebar-width: 280px;
+            --chat-sidebar-width: 300px;
             --header-height: 40px;
             --notification-height: 40px;
             --font-size-base: 12px;
@@ -43,8 +45,10 @@
             --spacing-sm: 8px;
             --spacing-md: 12px;
             --spacing-lg: 16px;
+            --action-bar-height: 60px;
+            --panel-radius: 6px;
         }
-        
+
         body.light-theme {
             /* Light theme */
             --background: #f5f5f5;
@@ -68,11 +72,9 @@
             --input-text: #000000;
             --shadow: rgba(0, 0, 0, 0.1);
         }
-        
+
         body {
             font-family: 'Roboto Mono', monospace;
-            margin: 0;
-            padding: 0;
             background-color: var(--background);
             color: var(--text-primary);
             transition: all 0.3s ease;
@@ -80,77 +82,120 @@
             font-size: var(--font-size-base);
             line-height: 1.4;
         }
-        
-        h1, h2, h3, h4, h5, h6 {
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
             margin-top: var(--spacing-sm);
             margin-bottom: var(--spacing-sm);
         }
-        
+
         h1 {
             font-size: var(--font-size-heading);
             font-weight: 700;
         }
-        
+
         h3 {
             font-size: var(--font-size-base);
             font-weight: 700;
         }
-        
+
         p {
             margin: var(--spacing-xs) 0;
         }
-        
+
         .app-container {
             display: flex;
-            min-height: 100vh;
+            min-height: 50%;
         }
-        
+
         .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--surface);
-            border-right: 1px solid var(--border);
-            padding: var(--spacing-sm);
-            overflow-y: auto;
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            z-index: 100;
-            transition: transform 0.3s ease;
-            transform: translateX(-100%);
-        }
-        
-        .sidebar.open {
-            transform: translateX(0);
-        }
-        
-        .chat-sidebar {
-            width: var(--chat-sidebar-width);
+            height: 100%; 
             background-color: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 5px;
+            padding: var(--spacing-sm);
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .app-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            overflow: hidden;
+            background-color: var(--background);
+        }
+
+        .panel {
+            padding: 0 var(--spacing-md);
+            border-radius: var(--panel-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+        }
+
+        .app-container.sidebar-hidden .sidebar {
+            height: 0;
+            width: 0;
+            margin: 0;
+            opacity: 0;
+        }
+
+        .main-view-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-width: 300px;
+            max-width: calc(80%);
+            transition: all 0.3s ease;
+        }
+
+        .chat-sidebar {
+            width: var(--chat-sidebar-width);
+        }
+
+        .app-container.chat-hidden .chat-sidebar {
+            width: 0;
+            margin: 0;
+            opacity: 0;
+        }
+
+        .chat-sidebar {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
             padding: 0;
             overflow-y: hidden;
-            position: fixed;
-            top: var(--spacing-lg);
-            right: var(--spacing-lg);
-            bottom: 80px; /* Leave space for action bar */
-            z-index: 100;
+            z-index: 10;
             display: flex;
             flex-direction: column;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            transform: translateX(110%);
+            position: relative;
         }
-        
-        .chat-sidebar.open {
-            transform: translateX(0);
-        }
-        
+
         .main-content {
-            margin-right: var(--spacing-md);
+            overflow-y:hidden;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--panel-radius);
+            display: flex;
+            flex-direction: column;
         }
-        
+
+        .main-view-container {
+            /* display: flex; */
+            flex-direction: column;
+        }
+
         .sidebar-header {
             display: flex;
             justify-content: space-between;
@@ -159,12 +204,12 @@
             padding-bottom: var(--spacing-xs);
             border-bottom: 1px solid var(--border);
         }
-        
+
         .sidebar-header h1 {
             margin: 0;
             font-size: var(--font-size-heading);
         }
-        
+
         .sidebar-toggle {
             display: none;
             background: none;
@@ -174,7 +219,7 @@
             cursor: pointer;
             padding: 0;
         }
-        
+
         .open-sidebar-btn {
             position: fixed;
             top: var(--spacing-md);
@@ -188,24 +233,21 @@
             z-index: 99;
             display: none;
         }
-        
+
         @media (max-width: 768px) {
             .open-sidebar-btn {
                 display: block;
             }
         }
-        
+
         .main-content {
-            flex: 1;
-            margin-left: calc(var(--sidebar-width) + var(--spacing-md));
-            margin-right: var(--spacing-md);
             padding: var(--spacing-md);
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
             position: relative;
         }
-        
+
         .header {
             display: flex;
             justify-content: space-between;
@@ -215,18 +257,18 @@
             border-bottom: 1px solid var(--border);
             height: var(--header-height);
         }
-        
+
         .user-info {
             display: flex;
             align-items: center;
             font-size: var(--font-size-small);
         }
-        
+
         .user-info span {
             margin-right: var(--spacing-sm);
             color: var(--text-primary);
         }
-        
+
         .notification-container {
             background-color: var(--surface);
             border: 1px solid var(--border);
@@ -241,15 +283,15 @@
             position: relative;
             z-index: 100;
         }
-        
+
         .notification-container.error {
             border-left: 3px solid var(--error);
         }
-        
+
         .notification-container.success {
             border-left: 3px solid var(--success);
         }
-        
+
         .video-container {
             display: flex;
             flex-direction: column;
@@ -258,14 +300,14 @@
             flex-grow: 1;
             position: relative;
         }
-        
+
         .video-grid {
             display: block;
             width: 100%;
             height: 100%;
             position: relative;
         }
-        
+
         .video-cell {
             position: relative;
             background-color: var(--surface);
@@ -278,13 +320,13 @@
             aspect-ratio: 16/9;
             box-shadow: 0 1px 4px var(--shadow);
         }
-        
+
         #remoteVideoCell {
             width: 100%;
             height: 100%;
             z-index: 1;
         }
-        
+
         #localVideoCell {
             position: absolute;
             width: 33%;
@@ -295,18 +337,18 @@
             transition: all 0.3s ease;
             border: 2px solid var(--accent);
         }
-        
+
         #localVideoCell.minimized {
             width: 20%;
             height: 20%;
             opacity: 0.7;
             transition: opacity 0.3s ease;
         }
-        
+
         #localVideoCell:hover {
             opacity: 1;
         }
-        
+
         .video-controls {
             position: absolute;
             top: var(--spacing-xs);
@@ -315,7 +357,7 @@
             gap: var(--spacing-xs);
             z-index: 10;
         }
-        
+
         .video-control-btn {
             background-color: rgba(0, 0, 0, 0.5);
             color: white;
@@ -329,11 +371,11 @@
             font-size: var(--font-size-small);
             transition: background-color 0.2s;
         }
-        
+
         .video-control-btn:hover {
             background-color: var(--accent);
         }
-        
+
         .swap-icon {
             position: absolute;
             top: var(--spacing-xs);
@@ -350,16 +392,17 @@
             z-index: 3;
             font-size: var(--font-size-small);
         }
-        
+
         .swap-icon:hover {
             background-color: var(--accent);
         }
-        
-        .video-cell video, .video-cell img {
+
+        .video-cell video,
+        .video-cell img {
             max-width: 100%;
             max-height: 100%;
         }
-        
+
         .video-label {
             position: absolute;
             bottom: var(--spacing-xs);
@@ -371,7 +414,7 @@
             border-radius: 2px;
             z-index: 5;
         }
-        
+
         .control-group {
             background-color: var(--surface);
             border: 1px solid var(--border);
@@ -380,7 +423,7 @@
             margin-bottom: var(--spacing-md);
             box-shadow: 0 1px 4px var(--shadow);
         }
-        
+
         .control-group h3 {
             margin-top: 0;
             margin-bottom: var(--spacing-sm);
@@ -393,7 +436,7 @@
             text-transform: uppercase;
             font-size: var(--font-size-small);
         }
-        
+
         .theme-toggle {
             display: flex;
             align-items: center;
@@ -409,92 +452,139 @@
             border: 1px solid var(--border);
             margin-top: var(--spacing-md);
         }
-        
+
         .theme-toggle:hover {
             background-color: var(--button-hover);
         }
-        
-        /* Action Bar Styles - Microsoft Teams like */
+
+        /* Action Bar Styles - Zenless Zone Zero inspired */
         .action-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background-color: var(--surface);
+            height: var(--action-bar-height);
+            background-color: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-top: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: var(--spacing-md);
             padding: 0 var(--spacing-lg);
-            z-index: 90;
+            z-index: 100;
             transition: all 0.3s ease;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.5);
+            border-bottom-left-radius: var(--panel-radius);
+            border-bottom-right-radius: var(--panel-radius);
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
         }
-        
+
         .action-button {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            color: var(--text-primary);
+            color: var(--text-secondary);
             width: 60px;
             height: 50px;
-            border-radius: 5px;
+            border-radius: var(--panel-radius);
             transition: all 0.2s ease;
             background-color: transparent;
             border: none;
+            position: relative;
         }
-        
+
         .action-button:hover {
+            color: var(--text-primary);
             background-color: var(--button-hover);
         }
-        
+
         .action-button.active {
-            background-color: var(--accent);
-            color: var(--background);
+            color: var(--accent);
         }
-        
+
+        .action-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 2px;
+            background-color: var(--accent);
+        }
+
         .action-button.danger {
             color: var(--error);
         }
-        
+
         .action-button.danger:hover {
-            background-color: rgba(207, 102, 121, 0.2);
+            background-color: rgba(231, 76, 60, 0.2);
         }
-        
+
         .action-button i {
-            font-size: 18px;
+            font-size: 20px;
             margin-bottom: 4px;
         }
-        
+
         .action-button span {
-            font-size: 10px;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             text-align: center;
         }
-        
+
         @media (max-width: 768px) {
+            .app-container {
+                padding: var(--spacing-xs);
+                flex-direction: column;
+                justify-content: flex-start;
+            }
+
+            .panel {
+                margin: var(--spacing-xs) 0;
+                /* height: auto; */
+                width: 100% !important;
+            }
+
+            .main-view-container {
+                flex: 1;
+                min-height: 60vh;
+                order: 1;
+            }
+
+            .sidebar {
+                max-height: 0;
+                order: 3;
+            }
+
+            .chat-sidebar {
+                max-height: 30vh;
+                order: 2;
+            }
+
+            .app-container.sidebar-hidden .sidebar {
+                max-height: 0;
+            }
+
+            .app-container.chat-hidden .chat-sidebar {
+                max-height: 0;
+            }
+
             .action-bar {
-                left: 0;
-                right: 0;
                 justify-content: space-around;
                 padding: 0 var(--spacing-xs);
                 gap: var(--spacing-xs);
             }
-            
+
             .action-button {
                 width: auto;
                 flex: 1;
             }
         }
-        
-        /* Adjust main content to make room for action bar */
-        .main-content {
-            padding-bottom: 70px;
-        }
-        
+
         /* Modal styles for session joining */
         .modal {
             position: fixed;
@@ -508,7 +598,7 @@
             justify-content: center;
             z-index: 1000;
         }
-        
+
         .modal-content {
             background-color: var(--surface);
             border: 1px solid var(--border);
@@ -517,14 +607,14 @@
             width: 300px;
             max-width: 90%;
         }
-        
+
         .modal-content h3 {
             margin-top: 0;
             margin-bottom: var(--spacing-md);
             border-bottom: 1px solid var(--border);
             padding-bottom: var(--spacing-xs);
         }
-        
+
         .modal-content input {
             width: 100%;
             padding: var(--spacing-sm);
@@ -534,14 +624,14 @@
             color: var(--input-text);
             border-radius: 3px;
         }
-        
+
         .modal-buttons {
             display: flex;
             justify-content: flex-end;
             gap: var(--spacing-sm);
             margin-top: var(--spacing-md);
         }
-        
+
         /* Chat container styles */
         .chat-container {
             display: flex;
@@ -549,122 +639,161 @@
             flex: 1;
             overflow: hidden;
             height: 100%;
+            background-color: var(--surface);
         }
-        
+
         .user-info-sidebar {
             font-size: var(--font-size-small);
             margin-bottom: var(--spacing-xs);
         }
-        
+
         .user-info-sidebar p {
             margin: var(--spacing-xs) 0;
         }
-        
+
         .sidebar-links {
             display: flex;
             flex-direction: column;
             gap: var(--spacing-xs);
             margin: var(--spacing-sm) 0;
         }
-        
+
         .sidebar-links a {
             display: block;
             padding: var(--spacing-xs);
             border-radius: 3px;
             transition: background-color 0.2s;
         }
-        
+
         .sidebar-links a:hover {
             background-color: var(--button-hover);
         }
-        
+
         .chat-header {
-            padding: var(--spacing-sm);
+            padding: var(--spacing-md);
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background-color: rgba(20, 20, 20, 0.9);
         }
-        
+
         .chat-header h3 {
             margin: 0;
             font-size: var(--font-size-base);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
         }
-        
+
         .chat-messages {
             flex: 1;
-            padding: var(--spacing-sm);
+            padding: var(--spacing-md);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            background-image: linear-gradient(to bottom, rgba(20, 20, 20, 0.7), rgba(10, 10, 10, 0.9));
         }
-        
+
         .message {
             max-width: 85%;
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: 8px;
-            margin-bottom: var(--spacing-xs);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--panel-radius);
+            margin-bottom: var(--spacing-sm);
             word-break: break-word;
             font-size: var(--font-size-small);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            position: relative;
         }
-        
+
         .message-sent {
             align-self: flex-end;
             background-color: var(--accent);
             color: var(--background);
-            border-bottom-right-radius: 3px;
+            border-bottom-right-radius: 0;
         }
-        
+
+        .message-sent::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -8px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid var(--accent);
+            border-top: 8px solid transparent;
+        }
+
         .message-received {
             align-self: flex-start;
-            background-color: var(--button-bg);
+            background-color: rgba(30, 30, 30, 0.9);
             color: var(--text-primary);
-            border-bottom-left-radius: 3px;
+            border-bottom-left-radius: 0;
         }
-        
+
+        .message-received::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -8px;
+            width: 0;
+            height: 0;
+            border-right: 8px solid rgba(30, 30, 30, 0.9);
+            border-top: 8px solid transparent;
+        }
+
         .message-alert {
             align-self: center;
-            background-color: var(--button-bg);
+            background-color: rgba(20, 20, 20, 0.6);
             color: var(--text-secondary);
             font-style: italic;
-            border-radius: 3px;
-            padding: 3px var(--spacing-xs);
+            border-radius: var(--panel-radius);
+            padding: 5px var(--spacing-sm);
             font-size: 10px;
+            max-width: 70%;
+            text-align: center;
         }
-        
+
         .chat-input {
-            padding: var(--spacing-sm);
+            padding: var(--spacing-md);
             border-top: 1px solid var(--border);
             display: flex;
-            gap: var(--spacing-xs);
+            gap: var(--spacing-sm);
+            background-color: rgba(15, 15, 15, 0.9);
         }
-        
+
         .chat-input input {
             flex: 1;
-            padding: var(--spacing-xs);
+            padding: var(--spacing-sm);
             border: 1px solid var(--input-border);
-            border-radius: 3px;
-            background-color: var(--input-bg);
+            border-radius: var(--panel-radius);
+            background-color: rgba(25, 25, 25, 0.8);
             color: var(--input-text);
             font-family: 'Roboto Mono', monospace;
             font-size: var(--font-size-small);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
         }
-        
+
         .chat-input button {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            background-color: var(--button-bg);
-            color: var(--button-text);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background-color: var(--accent);
+            color: var(--background);
             border: none;
-            border-radius: 3px;
+            border-radius: var(--panel-radius);
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
             font-size: var(--font-size-small);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
         }
-        
+
         .chat-input button:hover {
-            background-color: var(--button-hover);
+            background-color: var(--accent);
+            filter: brightness(1.2);
+            transform: translateY(-1px);
         }
-        
+
         button {
             padding: var(--spacing-xs) var(--spacing-sm);
             background-color: var(--button-bg);
@@ -677,47 +806,48 @@
             font-family: 'Roboto Mono', monospace;
             font-size: var(--font-size-small);
         }
-        
+
         button:hover {
             background-color: var(--button-hover);
         }
-        
+
         button.danger {
             background-color: var(--button-danger-bg);
             color: var(--error);
         }
-        
+
         button.danger:hover {
             background-color: var(--button-danger-hover);
         }
-        
+
         button:disabled {
             background-color: var(--button-disabled-bg);
             color: var(--button-disabled-text);
             cursor: not-allowed;
         }
-        
-        select, input {
+
+        select,
+        input {
             font-size: var(--font-size-small);
             padding: var(--spacing-xs);
             margin-bottom: var(--spacing-xs);
         }
-        
+
         .settings-row {
             margin-bottom: var(--spacing-xs);
         }
-        
+
         .settings-row label {
             display: block;
             margin-bottom: 2px;
             font-size: var(--font-size-small);
         }
-        
+
         .camera-info {
             font-size: var(--font-size-small);
             margin-top: var(--spacing-xs);
         }
-        
+
         .camera-not-ready {
             position: absolute;
             top: 0;
@@ -733,55 +863,55 @@
             text-align: center;
             padding: var(--spacing-md);
         }
-        
+
         .camera-not-ready h2 {
             font-size: var(--font-size-heading);
             margin-bottom: var(--spacing-sm);
         }
-        
+
         .camera-not-ready p {
             margin-bottom: var(--spacing-md);
             font-size: var(--font-size-small);
         }
-        
+
         /* Responsive design */
         @media (max-width: 1280px) {
             .chat-sidebar {
                 transform: translateX(100%);
                 box-shadow: -2px 0 8px var(--shadow);
             }
-            
+
             .chat-sidebar.open {
                 transform: translateX(0);
             }
-            
+
             .main-content {
                 margin-right: 0;
             }
-            
+
             .chat-toggle {
                 display: block;
             }
         }
-        
+
         @media (max-width: 1024px) {
             .sidebar {
                 transform: translateX(-100%);
                 box-shadow: 2px 0 8px var(--shadow);
             }
-            
+
             .sidebar.open {
                 transform: translateX(0);
             }
-            
+
             .sidebar-toggle {
                 display: block;
             }
-            
+
             .main-content {
                 margin-left: 0;
             }
-            
+
             .mobile-header {
                 display: flex;
                 justify-content: space-between;
@@ -793,85 +923,86 @@
                 top: 0;
                 z-index: 99;
             }
-            
+
             .mobile-header h1 {
                 margin: 0;
                 font-size: var(--font-size-heading);
             }
         }
-        
+
         @media (max-width: 768px) {
             .video-grid {
                 grid-template-rows: auto;
             }
-            
+
             .main-content {
                 flex-direction: column;
                 margin-right: var(--spacing-md);
             }
-            
-            .video-container, .controls {
+
+            .video-container,
+            .controls {
                 min-width: 100%;
             }
-            
+
             h1 {
                 font-size: var(--font-size-heading);
             }
-            
+
             .user-info {
                 flex-direction: column;
                 align-items: flex-end;
             }
-            
+
             .user-info span {
                 margin-bottom: 2px;
             }
-            
+
             button {
                 padding: 4px var(--spacing-xs);
                 font-size: 11px;
             }
-            
+
             .sidebar {
                 transform: translateX(-100%);
                 width: 80%;
                 max-width: 300px;
             }
-            
+
             .sidebar.open {
                 transform: translateX(0);
             }
-            
+
             .chat-sidebar {
                 transform: translateX(100%);
                 width: 80%;
                 max-width: 300px;
             }
-            
+
             .chat-sidebar.open {
                 transform: translateX(0);
             }
         }
-        
+
         @media (max-width: 480px) {
             :root {
                 --font-size-base: 11px;
                 --font-size-small: 10px;
                 --font-size-heading: 13px;
             }
-            
+
             .video-feed {
                 height: 180px;
             }
-            
+
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .controls {
                 padding: var(--spacing-xs);
             }
-            
+
             .theme-toggle {
                 bottom: var(--spacing-xs);
                 right: var(--spacing-xs);
@@ -880,22 +1011,20 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 </head>
+
 <body>
-    <button class="open-sidebar-btn" id="openSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
-    <div class="app-container">
+    <div class="app-container" id="appContainer">
         <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
+        <div class="sidebar panel" id="sidebar">
             <div class="sidebar-header">
                 <h1>CamCheck</h1>
                 <button class="sidebar-toggle" id="closeSidebar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <!-- User info moved from header to sidebar -->
             <div class="control-group">
                 <h3>User Info</h3>
@@ -904,7 +1033,8 @@
                     <p sec:authorize="hasRole('ADMIN')"><strong>Role:</strong> Admin</p>
                     <p sec:authorize="hasRole('SUPERUSER')"><strong>Role:</strong> Superuser</p>
                     <div class="sidebar-links">
-                        <a href="/swagger-ui.html" target="_blank" style="text-decoration: none; color: var(--text-primary);">
+                        <a href="/swagger-ui.html" target="_blank"
+                            style="text-decoration: none; color: var(--text-primary);">
                             <i class="fas fa-code"></i> API Docs
                         </a>
                     </div>
@@ -913,7 +1043,7 @@
                     </form>
                 </div>
             </div>
-            
+
             <div class="control-group">
                 <h3>
                     Camera Controls
@@ -924,12 +1054,12 @@
                 <button id="startStreamBtn">Start Camera</button>
                 <button id="stopStreamBtn" class="danger" style="display: none;">Stop Camera</button>
                 <button id="takeSnapshotBtn" disabled>Take Snapshot</button>
-                
+
                 <div class="camera-info">
                     <p><strong>Status:</strong> <span id="cameraStatus">Idle</span></p>
                 </div>
             </div>
-            
+
             <div class="control-group">
                 <h3>Camera Settings</h3>
                 <select id="cameraSelect">
@@ -937,7 +1067,7 @@
                 </select>
                 <button id="refreshCamerasBtn">Refresh Camera List</button>
             </div>
-            
+
             <div sec:authorize="hasRole('ADMIN')" class="control-group">
                 <h3>Admin Session</h3>
                 <button id="createSessionBtn">Create Session</button>
@@ -946,7 +1076,7 @@
                     <div class="session-code" id="sessionCode"></div>
                 </div>
             </div>
-            
+
             <div sec:authorize="hasRole('USER')" class="control-group">
                 <h3>Join Session</h3>
                 <div class="settings-row">
@@ -955,7 +1085,7 @@
                 </div>
                 <button id="joinSessionBtn">Join Session</button>
             </div>
-            
+
             <div sec:authorize="hasRole('SUPERUSER')" class="control-group">
                 <h3>Superuser Controls</h3>
                 <button id="refreshActiveUsersBtn">Refresh Active Users</button>
@@ -967,7 +1097,7 @@
                 </div>
                 <button id="superuserConnectBtn">Connect to Selected User</button>
             </div>
-            
+
             <div class="control-group">
                 <h3>Connected Session</h3>
                 <div id="noSessionMessage">
@@ -979,85 +1109,125 @@
                     <button id="endSessionBtn" class="danger">End Session</button>
                 </div>
             </div>
-            
+
             <!-- Theme toggle moved to sidebar -->
             <div class="theme-toggle" id="themeToggle">
                 <i class="fas fa-moon"></i>
             </div>
         </div>
-        
-        <!-- Mobile header (visible on small screens) -->
-        <!-- <div class="mobile-header">
-            <button class="sidebar-toggle" id="openSidebar">
-                <i class="fas fa-bars"></i>
-            </button>
-            <h1>CamCheck</h1>
-            <div class="user-info">
-                <span sec:authentication="name">Username</span>
-            </div>
-        </div> -->
-        
+
         <!-- Main content -->
-        <div class="main-content">
-            
-            <!-- View toggle for superusers -->
-            <div sec:authorize="hasRole('SUPERUSER')" class="view-toggle">
-                <button id="standardViewBtn" class="active">Standard View</button>
-                <button id="dashboardViewBtn">Dashboard View</button>
-            </div>
-            
-            <!-- Standard view (default) -->
-            <div id="standardView">
-                <div class="video-container">
-                    <div class="video-grid">
-                        <div class="video-cell" id="remoteVideoCell">
-                            <span>No remote camera connected</span>
-                            <div class="video-label">Remote Camera</div>
-                            <div class="video-controls">
-                                <div class="video-control-btn" id="swapViewsBtn" title="Swap Views">
-                                    <i class="fas fa-exchange-alt"></i>
+        <div class="main-view-container panel">
+            <div class="main-content">
+
+                <!-- View toggle for superusers -->
+                <div sec:authorize="hasRole('SUPERUSER')" class="view-toggle">
+                    <button id="standardViewBtn" class="active">Standard View</button>
+                    <button id="dashboardViewBtn">Dashboard View</button>
+                </div>
+
+                <!-- Standard view (default) -->
+                <div id="standardView">
+                    <div class="video-container">
+                        <div class="video-grid">
+                            <div class="video-cell" id="remoteVideoCell">
+                                <span>No remote camera connected</span>
+                                <div class="video-label">Remote Camera</div>
+                                <div class="video-controls">
+                                    <div class="video-control-btn" id="swapViewsBtn" title="Swap Views">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="video-cell" id="localVideoCell">
-                            <video id="localVideo" autoplay playsinline></video>
-                            <div class="video-label">Your Camera</div>
-                            <div class="video-controls">
-                                <div class="video-control-btn" id="minimizeLocalBtn" title="Minimize">
-                                    <i class="fas fa-compress-alt"></i>
+                            <div class="video-cell" id="localVideoCell">
+                                <video id="localVideo" autoplay playsinline></video>
+                                <div class="video-label">Your Camera</div>
+                                <div class="video-controls">
+                                    <div class="video-control-btn" id="minimizeLocalBtn" title="Minimize">
+                                        <i class="fas fa-compress-alt"></i>
+                                    </div>
                                 </div>
-                            </div>
-                            <!-- Camera not ready overlay only on local video cell -->
-                            <div class="camera-not-ready" id="cameraNotReady">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <h2>Camera Not Started</h2>
-                                <p>Start the camera stream to begin monitoring.</p>
-                                <button id="startCameraBtn" class="success">Start Camera</button>
+                                <!-- Camera not ready overlay only on local video cell -->
+                                <div class="camera-not-ready" id="cameraNotReady">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <h2>Camera Not Started</h2>
+                                    <p>Start the camera stream to begin monitoring.</p>
+                                    <button id="startCameraBtn" class="success">Start Camera</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Dashboard view (superuser only) -->
-            <div id="dashboardView" style="display: none;">
-                <div class="dashboard-grid" id="cameraDashboard">
-                    <!-- Camera cells will be added dynamically -->
-                    <div class="dashboard-cell empty-cell">
-                        <span>No active cameras found</span>
+                <!-- Action Bar (Microsoft Teams style) -->
+                <div class="action-bar" id="actionBar">
+                    <button class="action-button" id="actionSidebarToggle">
+                        <i class="fas fa-bars"></i>
+                        <span>Menu</span>
+                    </button>
+                    <button class="action-button" id="actionCameraToggle">
+                        <i class="fas fa-video"></i>
+                        <span>Camera</span>
+                    </button>
+                    <button class="action-button" id="actionSnapshot">
+                        <i class="fas fa-camera"></i>
+                        <span>Snapshot</span>
+                    </button>
+                    <button class="action-button" id="actionSwapViews">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>Swap</span>
+                    </button>
+                    <button class="action-button" id="actionCameraSettings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </button>
+                    <button class="action-button" id="actionChatToggle">
+                        <i class="fas fa-comments"></i>
+                        <span>Chat</span>
+                    </button>
+                    <button class="action-button" id="actionSession" sec:authorize="hasAnyRole('ADMIN','USER')">
+                        <i class="fas fa-link"></i>
+                        <span>Session</span>
+                    </button>
+                    <button class="action-button danger" id="actionEndSession" style="display: none;">
+                        <i class="fas fa-unlink"></i>
+                        <span>End</span>
+                    </button>
+                    <button class="action-button" id="actionSuperuser" sec:authorize="hasRole('SUPERUSER')">
+                        <i class="fas fa-users"></i>
+                        <span>Users</span>
+                    </button>
+                    <button class="action-button" id="actionThemeToggle">
+                        <i class="fas fa-moon"></i>
+                        <span>Theme</span>
+                    </button>
+                    <button class="action-button" id="actionLogout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+                <!-- Dashboard view (superuser only) -->
+                <div id="dashboardView" style="display: none;">
+                    <div class="dashboard-grid" id="cameraDashboard">
+                        <!-- Camera cells will be added dynamically -->
+                        <div class="dashboard-cell empty-cell">
+                            <span>No active cameras found</span>
+                        </div>
                     </div>
                 </div>
             </div>
+
+
         </div>
-        
+
         <!-- Chat sidebar -->
-        <div class="chat-sidebar" id="chatSidebar">
-            
-             <!-- Notification area -->
-             <div class="notification-container" id="notifications" style="display: none;">
+        <div class="chat-sidebar panel" id="chatSidebar">
+
+            <!-- Notification area -->
+            <div class="notification-container" id="notifications" style="display: none;">
                 <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
                 <span id="notificationText">Notifications will appear here</span>
-                <div style="margin-left: auto; cursor: pointer;" onclick="document.getElementById('notifications').style.display='none';">
+                <div style="margin-left: auto; cursor: pointer;"
+                    onclick="document.getElementById('notifications').style.display='none';">
                     <i class="fas fa-times"></i>
                 </div>
             </div>
@@ -1079,60 +1249,12 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Action Bar (Microsoft Teams style) -->
-        <div class="action-bar" id="actionBar">
-            <button class="action-button" id="actionSidebarToggle">
-                <i class="fas fa-bars"></i>
-                <span>Menu</span>
-            </button>
-            <button class="action-button" id="actionCameraToggle">
-                <i class="fas fa-video"></i>
-                <span>Camera</span>
-            </button>
-            <button class="action-button" id="actionSnapshot">
-                <i class="fas fa-camera"></i>
-                <span>Snapshot</span>
-            </button>
-            <button class="action-button" id="actionSwapViews">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Swap</span>
-            </button>
-            <button class="action-button" id="actionCameraSettings">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
-            </button>
-            <button class="action-button" id="actionChatToggle">
-                <i class="fas fa-comments"></i>
-                <span>Chat</span>
-            </button>
-            <button class="action-button" id="actionSession" sec:authorize="hasAnyRole('ADMIN','USER')">
-                <i class="fas fa-link"></i>
-                <span>Session</span>
-            </button>
-            <button class="action-button danger" id="actionEndSession" style="display: none;">
-                <i class="fas fa-unlink"></i>
-                <span>End</span>
-            </button>
-            <button class="action-button" id="actionSuperuser" sec:authorize="hasRole('SUPERUSER')">
-                <i class="fas fa-users"></i>
-                <span>Users</span>
-            </button>
-            <button class="action-button" id="actionThemeToggle">
-                <i class="fas fa-moon"></i>
-                <span>Theme</span>
-            </button>
-            <button class="action-button" id="actionLogout">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </button>
-        </div>
     </div>
-    
+
     <!-- SockJS and STOMP for WebSocket -->
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stomp-websocket@2.3.4-next/lib/stomp.min.js"></script>
-    
+
     <script th:inline="javascript">
         // Global variables
         let stompClient = null;
@@ -1157,7 +1279,7 @@
         let isReconnecting = false;
         let connectionStatus = 'disconnected'; // 'connected', 'disconnected', 'reconnecting'
         let targetFPS = 60; // Target 60fps
-        
+
         // DOM elements
         const videoFeed = document.getElementById('videoFeed');
         const localVideo = document.getElementById('localVideo');
@@ -1173,13 +1295,13 @@
         const cameraStatus = document.getElementById('cameraStatus');
         const cameraSelect = document.getElementById('cameraSelect');
         const refreshCamerasBtn = document.getElementById('refreshCamerasBtn');
-        
+
         // Chat elements
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendChatBtn = document.getElementById('sendChatBtn');
         const chatStatus = document.getElementById('chatStatus');
-        
+
         // Session elements
         const createSessionBtn = isAdmin ? document.getElementById('createSessionBtn') : null;
         const sessionCodeDisplay = isAdmin ? document.getElementById('sessionCodeDisplay') : null;
@@ -1191,22 +1313,22 @@
         const connectedWith = document.getElementById('connectedWith');
         const sessionStartTime = document.getElementById('sessionStartTime');
         const endSessionBtn = document.getElementById('endSessionBtn');
-        
+
         // Superuser elements
         const refreshActiveUsersBtn = isSuperuser ? document.getElementById('refreshActiveUsersBtn') : null;
         const activeUsersList = isSuperuser ? document.getElementById('activeUsersList') : null;
         const superuserConnectBtn = isSuperuser ? document.getElementById('superuserConnectBtn') : null;
-        
+
         // View toggle elements
         const standardViewBtn = isSuperuser ? document.getElementById('standardViewBtn') : null;
         const dashboardViewBtn = isSuperuser ? document.getElementById('dashboardViewBtn') : null;
         const standardView = document.getElementById('standardView');
         const dashboardView = document.getElementById('dashboardView');
         const cameraDashboard = document.getElementById('cameraDashboard');
-        
+
         // Theme toggle
         const themeToggle = document.getElementById('themeToggle');
-        
+
         // DOM elements for video swapping
         const swapViewsBtn = document.getElementById('swapViewsBtn');
         const minimizeLocalBtn = document.getElementById('minimizeLocalBtn');
@@ -1216,7 +1338,7 @@
         // Function to swap local and remote views
         function swapCameraViews() {
             isLocalViewPrimary = !isLocalViewPrimary;
-            
+
             if (isLocalViewPrimary) {
                 // Make local view primary
                 localVideoCell.style.position = 'static';
@@ -1227,18 +1349,18 @@
                 localVideoCell.style.zIndex = '1';
                 localVideoCell.classList.remove('minimized');
                 isLocalViewMinimized = false;
-                
+
                 remoteVideoCell.style.position = 'absolute';
                 remoteVideoCell.style.width = '33%';
                 remoteVideoCell.style.height = '33%';
                 remoteVideoCell.style.bottom = 'var(--spacing-md)';
                 remoteVideoCell.style.right = 'var(--spacing-md)';
                 remoteVideoCell.style.zIndex = '2';
-                
+
                 // Update labels
                 localVideoCell.querySelector('.video-label').textContent = 'Your Camera (Primary)';
                 remoteVideoCell.querySelector('.video-label').textContent = 'Remote Camera';
-                
+
                 // Update minimize button location
                 minimizeLocalBtn.parentElement.parentElement.removeChild(minimizeLocalBtn.parentElement);
                 remoteVideoCell.querySelector('.video-controls').appendChild(minimizeLocalBtn.parentElement);
@@ -1252,25 +1374,25 @@
                 remoteVideoCell.style.bottom = 'auto';
                 remoteVideoCell.style.right = 'auto';
                 remoteVideoCell.style.zIndex = '1';
-                
+
                 localVideoCell.style.position = 'absolute';
                 localVideoCell.style.width = '33%';
                 localVideoCell.style.height = '33%';
                 localVideoCell.style.bottom = 'var(--spacing-md)';
                 localVideoCell.style.right = 'var(--spacing-md)';
                 localVideoCell.style.zIndex = '2';
-                
+
                 // Update labels
                 remoteVideoCell.querySelector('.video-label').textContent = 'Remote Camera (Primary)';
                 localVideoCell.querySelector('.video-label').textContent = 'Your Camera';
-                
+
                 // Update minimize button location
                 minimizeLocalBtn.parentElement.parentElement.removeChild(minimizeLocalBtn.parentElement);
                 localVideoCell.querySelector('.video-controls').appendChild(minimizeLocalBtn.parentElement);
                 minimizeLocalBtn.title = "Minimize";
                 minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
             }
-            
+
             showNotification(isLocalViewPrimary ? 'Your camera is now primary' : 'Remote camera is now primary');
         }
 
@@ -1301,7 +1423,7 @@
                     minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
                 }
             }
-            
+
             showNotification(isLocalViewMinimized ? 'Small view minimized' : 'Small view expanded');
         }
 
@@ -1312,70 +1434,70 @@
                 clearTimeout(reconnectTimer);
                 reconnectTimer = null;
             }
-            
+
             connectionStatus = 'connecting';
             showNotification('Connecting to server...');
-            
+
             const socket = new SockJS('/ws');
             stompClient = Stomp.over(socket);
-            
+
             // Disable debug logging
             stompClient.debug = null;
-            
+
             // Configure STOMP client for better performance
             stompClient.heartbeat.outgoing = 5000; // 5 seconds
             stompClient.heartbeat.incoming = 5000; // 5 seconds
-            
+
             // Connect with authentication headers
             const headers = {
                 'X-CSRF-TOKEN': getCsrfToken(),
                 'username': currentUsername
             };
-            
-            stompClient.connect(headers, function(frame) {
+
+            stompClient.connect(headers, function (frame) {
                 console.log('Connected to WebSocket: ' + frame);
                 connectionStatus = 'connected';
                 reconnectAttempts = 0; // Reset reconnect attempts on successful connection
                 showNotification('Connected to server');
-                
+
                 // Subscribe to remote camera feed
-                stompClient.subscribe('/topic/camera/' + currentUsername, function(message) {
+                stompClient.subscribe('/topic/camera/' + currentUsername, function (message) {
                     if (message && message.body) {
                         updateRemoteVideoFeed(message.body);
                     }
                 });
-                
+
                 // Subscribe to session events - use username-specific topic
-                stompClient.subscribe('/topic/session/' + currentUsername, function(message) {
+                stompClient.subscribe('/topic/session/' + currentUsername, function (message) {
                     const data = JSON.parse(message.body);
                     console.log('Received session event:', data);
                     handleSessionEvent(data);
                 });
-                
+
                 // Subscribe to chat messages
-                stompClient.subscribe('/topic/chat/' + currentUsername, function(message) {
+                stompClient.subscribe('/topic/chat/' + currentUsername, function (message) {
                     if (message && message.body) {
                         const chatMessage = JSON.parse(message.body);
                         addChatMessage(chatMessage);
                     }
                 });
-                
+
                 // If we were previously in a session, try to reconnect
                 if (connectedPeer && isStreaming) {
                     console.log('Attempting to resume session with', connectedPeer);
                     startSendingFrames();
                 }
-            }, function(error) {
+            }, function (error) {
                 console.error('WebSocket connection error:', error);
                 connectionStatus = 'disconnected';
                 showNotification('Connection error. Attempting to reconnect...', true);
-                
+
                 // Implement exponential backoff for reconnection
                 handleReconnect();
             });
-            
+
             // Add event listeners for connection state
-            socket.onclose = function() {
+            socket.onclose = function () {
                 if (connectionStatus !== 'reconnecting') {
                     connectionStatus = 'disconnected';
                     console.log('WebSocket connection closed');
@@ -1383,26 +1505,26 @@
                 }
             };
         }
-        
+
         // Handle reconnection with exponential backoff
         function handleReconnect() {
             if (isReconnecting) return; // Prevent multiple reconnection attempts
-            
+
             isReconnecting = true;
             reconnectAttempts++;
-            
+
             // Calculate backoff time with jitter
             const baseDelay = Math.min(30000, reconnectInterval * Math.pow(1.5, reconnectAttempts - 1));
             const jitter = Math.random() * 0.5 + 0.75; // Random between 0.75 and 1.25
             const delay = Math.floor(baseDelay * jitter);
-            
+
             console.log(`Reconnection attempt ${reconnectAttempts} in ${delay}ms`);
-            showNotification(`Connection lost. Reconnecting in ${Math.round(delay/1000)} seconds... (${reconnectAttempts}/${maxReconnectAttempts})`, true);
-            
+            showNotification(`Connection lost. Reconnecting in ${Math.round(delay / 1000)} seconds... (${reconnectAttempts}/${maxReconnectAttempts})`, true);
+
             connectionStatus = 'reconnecting';
-            
+
             if (reconnectAttempts <= maxReconnectAttempts) {
-                reconnectTimer = setTimeout(function() {
+                reconnectTimer = setTimeout(function () {
                     isReconnecting = false;
                     connect();
                 }, delay);
@@ -1411,16 +1533,16 @@
                 isReconnecting = false;
             }
         }
-        
+
         // Update remote video feed
         function updateRemoteVideoFeed(imageData) {
             // Create image object for better loading handling
             const img = new Image();
-            img.onload = function() {
+            img.onload = function () {
                 // Update main remote video cell
                 if (remoteVideoCell.querySelector('img')) {
                     remoteVideoCell.querySelector('img').src = img.src;
-                    
+
                     // Remove any "connection lost" overlay if it exists
                     const connectionLostOverlay = remoteVideoCell.querySelector('.connection-lost-overlay');
                     if (connectionLostOverlay) {
@@ -1433,7 +1555,7 @@
                     remoteVideoCell.appendChild(displayImg);
                     remoteVideoCell.appendChild(createVideoLabel('Remote Camera'));
                 }
-                
+
                 // Update dashboard feed if this is the connected peer
                 if (isSuperuser && connectedPeer && dashboardFeeds[connectedPeer]) {
                     // Find the cell for this user
@@ -1447,7 +1569,7 @@
                             dashboardCell.innerHTML = '';
                             dashboardCell.appendChild(dashboardFeeds[connectedPeer]);
                             dashboardFeeds[connectedPeer].src = img.src;
-                            
+
                             // Add the label back
                             const label = document.createElement('div');
                             label.className = 'video-label';
@@ -1457,11 +1579,11 @@
                     }
                 }
             };
-            
+
             // Set image source
             img.src = `data:image/jpeg;base64,${imageData}`;
         }
-        
+
         // Display connection lost overlay on remote video
         function showConnectionLostOverlay() {
             // Only add if it doesn't already exist
@@ -1479,7 +1601,7 @@
                 remoteVideoCell.appendChild(overlay);
             }
         }
-        
+
         // Create video label
         function createVideoLabel(text) {
             const label = document.createElement('div');
@@ -1487,7 +1609,7 @@
             label.textContent = text;
             return label;
         }
-        
+
         // Update status badges
         function updateStatusBadge(element, isActive) {
             if (isActive) {
@@ -1498,16 +1620,16 @@
                 element.querySelector('span').textContent = 'Inactive';
             }
         }
-        
+
         // Show notification
         function showNotification(message, isError = false) {
             const notificationContainer = document.getElementById('notifications');
             const notificationText = document.getElementById('notificationText');
             const notificationIcon = notificationContainer.querySelector('i');
-            
+
             notificationText.textContent = message;
             notificationContainer.style.display = 'flex';
-            
+
             if (isError) {
                 notificationContainer.classList.add('error');
                 notificationIcon.className = 'fas fa-exclamation-triangle';
@@ -1517,35 +1639,35 @@
                 notificationIcon.className = 'fas fa-info-circle';
                 notificationIcon.style.color = 'var(--success)';
             }
-            
+
             // Hide after 5 seconds
             setTimeout(() => {
                 notificationContainer.style.display = 'none';
             }, 5000);
         }
-        
+
         // Get available cameras
         async function getAvailableCameras() {
             return new Promise(async (resolve, reject) => {
                 try {
                     cameraSelect.innerHTML = '<option value="">Select camera...</option>';
-                    
+
                     const devices = await navigator.mediaDevices.enumerateDevices();
                     const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                    
+
                     if (videoDevices.length === 0) {
                         showNotification('No cameras found', true);
                         resolve([]);
                         return;
                     }
-                    
+
                     videoDevices.forEach(device => {
                         const option = document.createElement('option');
                         option.value = device.deviceId;
                         option.text = device.label || `Camera ${cameraSelect.options.length}`;
                         cameraSelect.appendChild(option);
                     });
-                    
+
                     showNotification(`Found ${videoDevices.length} camera(s)`);
                     resolve(videoDevices);
                 } catch (error) {
@@ -1555,22 +1677,22 @@
                 }
             });
         }
-        
+
         // Start camera stream
         async function startCameraStream() {
             try {
                 const deviceId = cameraSelect.value;
-                
+
                 if (!deviceId) {
                     showNotification('Please select a camera', true);
                     return;
                 }
-                
+
                 // Stop any existing stream
                 if (stream) {
                     stopCameraStream();
                 }
-                
+
                 // Get user media with selected camera
                 const constraints = {
                     video: {
@@ -1579,17 +1701,17 @@
                         height: { ideal: 480 }
                     }
                 };
-                
+
                 console.log('Requesting camera access with constraints:', constraints);
-                
+
                 stream = await navigator.mediaDevices.getUserMedia(constraints);
                 localVideo.srcObject = stream;
-                
+
                 console.log('Camera stream started successfully');
-                
+
                 // Hide camera not ready overlay
                 cameraNotReady.style.display = 'none';
-                
+
                 // Update UI
                 startStreamBtn.style.display = 'none';
                 stopStreamBtn.style.display = 'inline-block';
@@ -1597,7 +1719,7 @@
                 updateStatusBadge(streamingStatus, true);
                 cameraStatus.textContent = 'Streaming';
                 isStreaming = true;
-                
+
                 // Start sending frames to connected peer if in a session
                 if (connectedPeer) {
                     console.log('Connected to peer, starting to send frames');
@@ -1605,22 +1727,22 @@
                         startSendingFrames();
                     }, 1000); // Small delay to ensure video is initialized
                 }
-                
+
                 // Start sending heartbeats
                 sendCameraHeartbeat();
                 // Set up heartbeat interval (every 3 seconds)
                 window.heartbeatInterval = setInterval(sendCameraHeartbeat, 3000);
-                
+
                 // Update action bar state
                 updateActionBarState();
-                
+
                 showNotification('Camera started successfully');
             } catch (error) {
                 console.error('Error starting camera:', error);
                 showNotification('Error starting camera: ' + error.message, true);
             }
         }
-        
+
         // Stop camera stream
         function stopCameraStream() {
             if (stream) {
@@ -1628,7 +1750,7 @@
                 stream = null;
                 localVideo.srcObject = null;
             }
-            
+
             // Update UI
             startStreamBtn.style.display = 'inline-block';
             stopStreamBtn.style.display = 'none';
@@ -1637,36 +1759,36 @@
             cameraStatus.textContent = 'Idle';
             cameraNotReady.style.display = 'flex';
             isStreaming = false;
-            
+
             // Clear heartbeat interval
             if (window.heartbeatInterval) {
                 clearInterval(window.heartbeatInterval);
                 window.heartbeatInterval = null;
             }
-            
+
             // Update action bar state
             updateActionBarState();
-            
+
             showNotification('Camera stopped');
         }
-        
+
         // Take snapshot
         function takeSnapshot() {
             if (!stream) {
                 showNotification('Camera not active', true);
                 return;
             }
-            
+
             const canvas = document.createElement('canvas');
             canvas.width = localVideo.videoWidth;
             canvas.height = localVideo.videoHeight;
-            
+
             const ctx = canvas.getContext('2d');
             ctx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
-            
+
             // Convert to base64
             const imageData = canvas.toDataURL('image/jpeg');
-            
+
             // Create a link to download the image
             const link = document.createElement('a');
             link.href = imageData;
@@ -1674,55 +1796,55 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             showNotification('Snapshot saved');
         }
-        
+
         // Start sending frames to connected peer
         function startSendingFrames() {
             if (!stream || !stompClient || !connectedPeer) {
                 console.log("Cannot start sending frames: missing stream, stompClient, or connectedPeer");
                 return;
             }
-            
+
             console.log("Starting to send frames to peer:", connectedPeer);
-            
+
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d', { alpha: false }); // Disable alpha for better performance
-            
+
             // Set canvas size based on video dimensions, but limit max size
             const maxWidth = 640;
             const maxHeight = 480;
             let width = localVideo.videoWidth || maxWidth;
             let height = localVideo.videoHeight || maxHeight;
-            
+
             // Calculate aspect ratio
             const aspectRatio = width / height;
-            
+
             // Resize if too large
             if (width > maxWidth) {
                 width = maxWidth;
                 height = Math.floor(width / aspectRatio);
             }
-            
+
             if (height > maxHeight) {
                 height = maxHeight;
                 width = Math.floor(height * aspectRatio);
             }
-            
+
             canvas.width = width;
             canvas.height = height;
-            
+
             // Set image smoothing for better quality
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            
+
             // Create a second canvas for motion detection and delta encoding
             const prevCanvas = document.createElement('canvas');
             const prevCtx = prevCanvas.getContext('2d', { alpha: false });
             prevCanvas.width = width;
             prevCanvas.height = height;
-            
+
             // Adaptive frame rate based on network conditions
             let frameQuality = 0.85; // Start with higher quality (0-1)
             let consecutiveSlowFrames = 0;
@@ -1738,7 +1860,7 @@
             let networkLatency = 0;
             let lastSendTime = 0;
             let compressionLevel = 'high'; // 'low', 'medium', 'high', 'veryhigh'
-            
+
             // Configure compression levels
             const compressionSettings = {
                 low: {
@@ -1766,82 +1888,82 @@
                     keyFrameInterval: 60
                 }
             };
-            
+
             // Apply compression settings
             function applyCompressionSettings(level) {
                 const settings = compressionSettings[level];
                 frameQuality = settings.quality;
-                
+
                 // Adjust canvas size based on resolution scale
                 const newWidth = Math.floor(width * settings.resolutionScale);
                 const newHeight = Math.floor(height * settings.resolutionScale);
-                
+
                 if (canvas.width !== newWidth || canvas.height !== newHeight) {
                     canvas.width = newWidth;
                     canvas.height = newHeight;
                     prevCanvas.width = newWidth;
                     prevCanvas.height = newHeight;
-                    
+
                     // Reset context after resize
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
                     prevCtx.imageSmoothingEnabled = true;
                     prevCtx.imageSmoothingQuality = 'high';
                 }
-                
+
                 motionThreshold = settings.motionThreshold;
                 keyFrameInterval = settings.keyFrameInterval;
-                
+
                 console.log(`Applied compression level: ${level}, quality: ${frameQuality}, resolution: ${canvas.width}x${canvas.height}`);
             }
-            
+
             // Initial compression settings
             applyCompressionSettings(compressionLevel);
-            
+
             // Detect motion between frames
             function detectMotion(currentImageData, previousImageData) {
                 if (!previousImageData) return true;
-                
+
                 const current = currentImageData.data;
                 const previous = previousImageData.data;
                 let changedPixels = 0;
                 const totalPixels = current.length / 4; // RGBA has 4 values per pixel
-                
+
                 // Sample every 4th pixel for performance (still gives good results)
                 for (let i = 0; i < current.length; i += 16) {
                     // Calculate difference in RGB values
                     const rDiff = Math.abs(current[i] - previous[i]);
                     const gDiff = Math.abs(current[i + 1] - previous[i + 1]);
                     const bDiff = Math.abs(current[i + 2] - previous[i + 2]);
-                    
+
                     // If any channel has changed significantly, count as changed pixel
                     if (rDiff > motionThreshold || gDiff > motionThreshold || bDiff > motionThreshold) {
                         changedPixels++;
                     }
                 }
-                
+
                 // Calculate ratio of changed pixels
                 const ratio = changedPixels / (totalPixels / 4); // Adjust for sampling rate
                 return ratio > motionRatio;
             }
-            
+
             // Send frames using requestAnimationFrame for better performance
             function sendFrame() {
                 if (!isStreaming || !stream || !connectedPeer || connectionStatus !== 'connected') {
                     console.log("Stopping frame sending - conditions no longer met");
                     return;
                 }
-                
+
                 const now = performance.now();
                 const elapsed = now - lastFrameTime;
-                
+
                 // Calculate current FPS every second
                 if (now - lastFpsCalculationTime > 1000) {
                     currentFps = Math.round((framesSent * 1000) / (now - lastFpsCalculationTime));
                     console.log(`Current FPS: ${currentFps}, Quality: ${frameQuality.toFixed(2)}, Latency: ${networkLatency.toFixed(0)}ms, Compression: ${compressionLevel}`);
                     framesSent = 0;
                     lastFpsCalculationTime = now;
-                    
+
                     // Adjust compression level based on network conditions
                     if (networkLatency > 200) {
                         if (compressionLevel !== 'veryhigh') {
@@ -1865,39 +1987,39 @@
                         }
                     }
                 }
-                
+
                 // Only send frame if enough time has passed to maintain target FPS
                 if (elapsed >= frameInterval) {
                     lastFrameTime = now;
-                    
+
                     try {
                         // Draw video frame to canvas with smoothing
                         ctx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
-                        
+
                         // Get current frame data
                         const currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        
+
                         // Check if we should send this frame (based on motion detection or keyframe interval)
                         const isKeyFrame = framesSinceKeyFrame >= keyFrameInterval;
                         const hasMotion = detectMotion(currentImageData, lastImageData);
-                        
+
                         if (isKeyFrame || hasMotion) {
                             // Start timing frame processing
                             const frameStartTime = performance.now();
-                            
+
                             // Convert to JPEG with adaptive quality
                             const imageData = canvas.toDataURL('image/jpeg', frameQuality);
-                            
+
                             // Store current frame for next comparison
                             prevCtx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
                             lastImageData = prevCtx.getImageData(0, 0, canvas.width, canvas.height);
-                            
+
                             // Send to connected peer via WebSocket
                             if (stompClient.connected) {
                                 lastSendTime = performance.now();
                                 stompClient.send("/app/camera/" + connectedPeer, {}, imageData.split(',')[1]);
                                 framesSent++;
-                                
+
                                 // Reset key frame counter if this was a key frame
                                 if (isKeyFrame) {
                                     framesSinceKeyFrame = 0;
@@ -1909,15 +2031,15 @@
                                 handleReconnect();
                                 return;
                             }
-                            
+
                             // Measure frame processing time
                             const frameProcessTime = performance.now() - frameStartTime;
-                            
+
                             // Adaptive quality and frame rate based on processing time
                             if (frameProcessTime > 50) { // Frame took too long (targeting 60fps = ~16ms per frame)
                                 consecutiveSlowFrames++;
                                 consecutiveFastFrames = 0;
-                                
+
                                 if (consecutiveSlowFrames >= 3) {
                                     // Reduce quality or increase interval
                                     if (frameQuality > 0.3) {
@@ -1931,7 +2053,7 @@
                             } else if (frameProcessTime < 10 && currentFps < targetFPS) { // Frame was fast and we're below target FPS
                                 consecutiveFastFrames++;
                                 consecutiveSlowFrames = 0;
-                                
+
                                 if (consecutiveFastFrames >= 10) {
                                     // Increase quality or decrease interval
                                     if (frameInterval > 16) { // Don't go above 60fps (16.6ms)
@@ -1955,18 +2077,18 @@
                         }
                     }
                 }
-                
+
                 // Schedule next frame
                 requestAnimationFrame(sendFrame);
             }
-            
+
             // Start the frame sending loop
             sendFrame();
-            
+
             // Listen for response time to measure network latency
             const originalSubscribe = stompClient.subscribe;
-            stompClient.subscribe = function(destination, callback, headers) {
-                const wrappedCallback = function(message) {
+            stompClient.subscribe = function (destination, callback, headers) {
+                const wrappedCallback = function (message) {
                     // Calculate network latency when receiving a message
                     if (lastSendTime > 0) {
                         const latency = performance.now() - lastSendTime;
@@ -1978,125 +2100,125 @@
                 return originalSubscribe.call(stompClient, destination, wrappedCallback, headers);
             };
         }
-        
+
         // Send camera heartbeat to keep active status
         function sendCameraHeartbeat() {
             if (!stompClient || !isStreaming) return;
-            
+
             stompClient.send("/app/camera/heartbeat", {}, JSON.stringify({
                 username: currentUsername
             }));
-            
+
             console.log("Sent camera heartbeat");
         }
-        
+
         // Create a new session (admin only)
         function createSession() {
             if (!isAdmin) {
                 console.warn("Non-admin tried to create session");
                 return;
             }
-            
+
             // Generate a random 6-digit code
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             sessionCode = code;
-            
+
             console.log('Creating session with code:', code);
-            
+
             // Display the code
             sessionCodeElement.textContent = code;
             sessionCodeDisplay.style.display = 'block';
-            
+
             // Register the session
             stompClient.send("/app/session/create", {}, JSON.stringify({
                 code: code,
                 username: currentUsername
             }));
-            
+
             showNotification('Session created. Share the code with a user.');
-            
+
             // Log session creation for debugging
             console.log('Session creation request sent with code:', code, 'username:', currentUsername);
         }
-        
+
         // Join a session (user only)
         function joinSession() {
             if (isAdmin) {
                 console.warn("Admin tried to join session");
                 return;
             }
-            
+
             const code = joinSessionCode.value.trim();
-            
+
             if (!code || code.length !== 6) {
                 showNotification('Please enter a valid 6-digit session code', true);
                 return;
             }
-            
+
             console.log('Attempting to join session with code:', code);
-            
+
             // Send join request
             stompClient.send("/app/session/join", {}, JSON.stringify({
                 code: code,
                 username: currentUsername
             }));
-            
+
             showNotification('Attempting to join session...');
-            
+
             // Log join attempt for debugging
             console.log('Session join request sent with code:', code, 'username:', currentUsername);
         }
-        
+
         // End current session
         function endSession() {
             if (!connectedPeer) return;
-            
+
             // Send end session request
             stompClient.send("/app/session/end", {}, JSON.stringify({
                 username: currentUsername,
                 peer: connectedPeer
             }));
-            
+
             // Reset session UI
             resetSessionUI();
-            
+
             // Update action bar state
             updateActionBarState();
         }
-        
+
         // Reset session UI
         function resetSessionUI() {
             connectedPeer = null;
-            
+
             if (isAdmin) {
                 sessionCodeDisplay.style.display = 'none';
             } else {
                 joinSessionCode.value = '';
             }
-            
+
             noSessionMessage.style.display = 'block';
             activeSessionInfo.style.display = 'none';
-            
+
             // Clear remote video
             remoteVideoCell.innerHTML = '<span>No remote camera connected</span>';
             remoteVideoCell.appendChild(createVideoLabel('Remote Camera'));
-            
+
             // Reset chat
             chatInput.disabled = true;
             sendChatBtn.disabled = true;
             chatStatus.textContent = 'Not connected';
         }
-        
+
         // Handle session events
         function handleSessionEvent(data) {
             console.log('Handling session event:', data);
-            
+
             switch (data.type) {
                 case 'created':
                     // Session created successfully
                     showNotification(data.message || 'Session created successfully');
                     break;
-                    
+
                 case 'connected':
                     // Session established
                     connectedPeer = data.peer;
@@ -2104,20 +2226,20 @@
                     sessionStartTime.textContent = new Date().toLocaleTimeString();
                     noSessionMessage.style.display = 'none';
                     activeSessionInfo.style.display = 'block';
-                    
+
                     // Enable chat
                     chatInput.disabled = false;
                     sendChatBtn.disabled = false;
                     chatStatus.textContent = `Connected to ${data.peer}`;
-                    
+
                     // Add welcome message
                     addSystemMessage(`Connected to ${data.peer}. You can now chat.`);
-                    
+
                     // Update action bar state
                     updateActionBarState();
-                    
+
                     showNotification(`Connected with ${data.peer}`);
-                    
+
                     // Start sending frames if camera is active
                     if (isStreaming && stream) {
                         console.log('Camera is active, starting to send frames to', data.peer);
@@ -2127,7 +2249,7 @@
                     } else {
                         console.warn('Camera not active, cannot send frames to peer');
                         showNotification('Please start your camera to share video with peer', true);
-                        
+
                         // Auto-start camera if we have permission
                         if (selectedCamera) {
                             console.log('Auto-starting camera with selected device:', selectedCamera);
@@ -2135,21 +2257,21 @@
                         }
                     }
                     break;
-                    
+
                 case 'disconnected':
                     showNotification(`${data.peer} has disconnected`);
-                    
+
                     // Show connection lost overlay
                     showConnectionLostOverlay();
-                    
+
                     // Disable chat
                     chatInput.disabled = true;
                     sendChatBtn.disabled = true;
                     chatStatus.textContent = 'Not connected';
-                    
+
                     // Add disconnection message
                     addSystemMessage(`${data.peer} has disconnected.`);
-                    
+
                     // Try to reconnect if this was due to a network issue
                     if (connectionStatus !== 'connected' && connectedPeer) {
                         setTimeout(() => {
@@ -2169,11 +2291,11 @@
                         updateActionBarState();
                     }
                     break;
-                    
+
                 case 'error':
                     showNotification(data.message || 'An error occurred with the session', true);
                     break;
-                    
+
                 case 'active-users':
                     // Update active users list (superuser only)
                     if (isSuperuser && data.activeUsers) {
@@ -2182,33 +2304,33 @@
                         showNotification('Active users list updated');
                     }
                     break;
-                    
+
                 default:
                     console.warn('Unknown session event type:', data.type);
             }
         }
-        
+
         // Update active users list dropdown
         function updateActiveUsersList() {
             if (!isSuperuser || !activeUsersList) return;
-            
+
             // Clear current options
             activeUsersList.innerHTML = '';
-            
+
             if (activeUsers.length === 0) {
                 const option = document.createElement('option');
                 option.value = '';
                 option.text = 'No active users found';
                 activeUsersList.appendChild(option);
-                
+
                 // Also update dashboard if in dashboard view
                 if (currentView === 'dashboard') {
                     updateDashboardGrid();
                 }
-                
+
                 return;
             }
-            
+
             // Add each active user
             activeUsers.forEach(username => {
                 const option = document.createElement('option');
@@ -2216,22 +2338,22 @@
                 option.text = username;
                 activeUsersList.appendChild(option);
             });
-            
+
             // Update dashboard if in dashboard view
             if (currentView === 'dashboard') {
                 updateDashboardGrid();
             }
-            
+
             showNotification(`Found ${activeUsers.length} active users`);
         }
-        
+
         // Update dashboard grid with active cameras
         function updateDashboardGrid() {
             if (!isSuperuser || !cameraDashboard) return;
-            
+
             // Clear current grid
             cameraDashboard.innerHTML = '';
-            
+
             if (activeUsers.length === 0) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = 'dashboard-cell empty-cell';
@@ -2239,57 +2361,57 @@
                 cameraDashboard.appendChild(emptyCell);
                 return;
             }
-            
+
             // Add a cell for each active user
             activeUsers.forEach(username => {
                 const cell = document.createElement('div');
                 cell.className = 'dashboard-cell';
                 cell.dataset.username = username;
-                
+
                 // Add username label
                 const label = document.createElement('div');
                 label.className = 'video-label';
                 label.textContent = username;
-                
+
                 // Check if we already have a feed for this user
                 if (dashboardFeeds[username]) {
                     cell.appendChild(dashboardFeeds[username]);
                 } else {
                     // Create placeholder
                     cell.innerHTML = '<span>Connecting...</span>';
-                    
+
                     // Create image element for this feed
                     const img = document.createElement('img');
                     img.alt = username;
                     dashboardFeeds[username] = img;
-                    
+
                     // Request connection to this user
                     requestDashboardFeed(username);
                 }
-                
+
                 cell.appendChild(label);
-                
+
                 // Add click handler to connect to this user
                 cell.addEventListener('click', () => {
                     if (isSuperuser) {
                         // Connect to this user
                         superuserConnectToUser(username);
-                        
+
                         // Switch to standard view
                         switchView('standard');
                     }
                 });
-                
+
                 cameraDashboard.appendChild(cell);
             });
         }
-        
+
         // Request dashboard feed from a specific user
         function requestDashboardFeed(username) {
             if (!isSuperuser || !stompClient) return;
-            
+
             console.log(`Requesting dashboard feed from ${username}`);
-            
+
             // For now, we'll use the same superuser connect mechanism
             // In a production app, you might want a separate "peek" function
             // that doesn't disconnect existing sessions
@@ -2298,13 +2420,13 @@
                 peer: username
             }));
         }
-        
+
         // Switch between standard and dashboard views
         function switchView(view) {
             if (!isSuperuser) return;
-            
+
             currentView = view;
-            
+
             if (view === 'standard') {
                 standardView.style.display = 'flex';
                 dashboardView.style.display = 'none';
@@ -2315,16 +2437,16 @@
                 dashboardView.style.display = 'block';
                 standardViewBtn.classList.remove('active');
                 dashboardViewBtn.classList.add('active');
-                
+
                 // Update dashboard grid
                 updateDashboardGrid();
             }
         }
-        
+
         // Toggle theme between light and dark
         function toggleTheme() {
             isDarkTheme = !isDarkTheme;
-            
+
             if (isDarkTheme) {
                 document.body.classList.remove('light-theme');
                 themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
@@ -2332,60 +2454,60 @@
                 document.body.classList.add('light-theme');
                 themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
             }
-            
+
             // Store preference in localStorage
             localStorage.setItem('darkTheme', isDarkTheme.toString());
-            
+
             // Update action bar state
             updateActionBarState();
         }
-        
+
         // Refresh active users list (superuser only)
         function refreshActiveUsers() {
             if (!isSuperuser || !stompClient) return;
-            
+
             stompClient.send("/app/session/superuser/active-users", {}, JSON.stringify({
                 username: currentUsername
             }));
-            
+
             showNotification('Requesting active users list...');
         }
-        
+
         // Connect to a specific user (superuser only)
         function superuserConnect() {
             if (!isSuperuser || !stompClient) return;
-            
+
             const targetUser = activeUsersList.value;
-            
+
             if (!targetUser) {
                 showNotification('Please select a user to connect to', true);
                 return;
             }
-            
+
             superuserConnectToUser(targetUser);
         }
-        
+
         // Helper function to connect to a specific user
         function superuserConnectToUser(targetUser) {
             if (!isSuperuser || !stompClient) return;
-            
+
             console.log('Superuser attempting to connect to:', targetUser);
-            
+
             stompClient.send("/app/session/superuser/connect", {}, JSON.stringify({
                 username: currentUsername,
                 peer: targetUser
             }));
-            
+
             showNotification(`Attempting to connect to ${targetUser}...`);
         }
-        
+
         // Send chat message
         function sendChatMessage() {
             if (!stompClient || !connectedPeer) return;
-            
+
             const content = chatInput.value.trim();
             if (!content) return;
-            
+
             const chatMessage = {
                 sender: currentUsername,
                 recipient: connectedPeer,
@@ -2393,20 +2515,20 @@
                 timestamp: new Date().toISOString(),
                 type: 'TEXT'
             };
-            
+
             stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
-            
+
             // Clear input
             chatInput.value = '';
-            
+
             // Add to UI immediately (optimistic UI)
             addChatMessage(chatMessage);
         }
-        
+
         // Add chat message to UI
         function addChatMessage(message) {
             const messageDiv = document.createElement('div');
-            
+
             if (message.type === 'ALERT') {
                 messageDiv.className = 'message message-alert';
             } else if (message.sender === currentUsername) {
@@ -2414,36 +2536,45 @@
             } else {
                 messageDiv.className = 'message message-received';
             }
-            
+
             messageDiv.textContent = message.content;
-            
+
             // Add timestamp
             const timeDiv = document.createElement('div');
             timeDiv.className = 'message-time';
             const date = new Date(message.timestamp);
             timeDiv.textContent = date.toLocaleTimeString();
             messageDiv.appendChild(timeDiv);
-            
+
             chatMessages.appendChild(messageDiv);
-            
+
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-        
+
         // Add system message to chat
         function addSystemMessage(content) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message message-alert';
             messageDiv.textContent = content;
-            
+
             chatMessages.appendChild(messageDiv);
-            
+
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-        
+
         // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize the dashboard layout
+            const appContainer = document.getElementById('appContainer');
+            // Start with sidebar hidden on mobile
+            if (window.innerWidth <= 768) {
+                appContainer.classList.add('sidebar-hidden');
+            }
+            // Start with chat hidden by default
+            appContainer.classList.add('chat-hidden');
+
             // Add CSS for connection lost overlay
             const style = document.createElement('style');
             style.textContent = `
@@ -2525,41 +2656,30 @@
                 }
             `;
             document.head.appendChild(style);
-            
-            // Mobile sidebar toggle
-            const sidebar = document.getElementById('sidebar');
-            const chatSidebar = document.getElementById('chatSidebar');
-            const openSidebarBtn = document.getElementById('openSidebar');
+
+            // Set up close sidebar button
             const closeSidebarBtn = document.getElementById('closeSidebar');
-            
-            // Create chat toggle button for responsive design
-            const chatToggle = document.createElement('div');
-            chatToggle.className = 'chat-toggle';
-            chatToggle.innerHTML = '<i class="fas fa-comments"></i>';
-            document.body.appendChild(chatToggle);
-            
-            chatToggle.addEventListener('click', function() {
-                chatSidebar.classList.toggle('open');
-                if (chatSidebar.classList.contains('open')) {
-                    showNotification('Chat sidebar opened');
-                }
-            });
-            
-            if (openSidebarBtn) {
-                openSidebarBtn.addEventListener('click', function() {
-                    sidebar.classList.add('open');
-                });
-            }
-            
             if (closeSidebarBtn) {
-                closeSidebarBtn.addEventListener('click', function() {
-                    sidebar.classList.remove('open');
+                closeSidebarBtn.addEventListener('click', function () {
+                    const appContainer = document.getElementById('appContainer');
+                    appContainer.classList.add('sidebar-hidden');
+                    updateActionBarState();
                 });
             }
-            
+
+            // Handle window resize
+            window.addEventListener('resize', function () {
+                const appContainer = document.getElementById('appContainer');
+                if (window.innerWidth <= 768) {
+                    // Auto-hide sidebar on small screens
+                    appContainer.classList.add('sidebar-hidden');
+                }
+                updateActionBarState();
+            });
+
             // Connect to WebSocket
             connect();
-            
+
             // Request camera permissions to show labels
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(tempStream => {
@@ -2570,66 +2690,66 @@
                     console.error('Error requesting initial permissions:', error);
                     showNotification('Please grant camera permissions', true);
                 });
-            
+
             // Button event listeners
             startStreamBtn.addEventListener('click', startCameraStream);
             stopStreamBtn.addEventListener('click', stopCameraStream);
             startCameraBtn.addEventListener('click', startCameraStream);
             takeSnapshotBtn.addEventListener('click', takeSnapshot);
             refreshCamerasBtn.addEventListener('click', getAvailableCameras);
-            
+
             // Chat event listeners
             sendChatBtn.addEventListener('click', sendChatMessage);
-            chatInput.addEventListener('keypress', function(e) {
+            chatInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     sendChatMessage();
                 }
             });
-            
+
             // Camera select change
-            cameraSelect.addEventListener('change', function() {
+            cameraSelect.addEventListener('change', function () {
                 selectedCamera = cameraSelect.value;
             });
-            
+
             // Session management
             if (isAdmin && createSessionBtn) {
                 createSessionBtn.addEventListener('click', createSession);
             }
-            
+
             if (!isAdmin && joinSessionBtn) {
                 joinSessionBtn.addEventListener('click', joinSession);
             }
-            
+
             // Superuser controls
             if (isSuperuser) {
                 if (refreshActiveUsersBtn) {
                     refreshActiveUsersBtn.addEventListener('click', refreshActiveUsers);
                 }
-                
+
                 if (superuserConnectBtn) {
                     superuserConnectBtn.addEventListener('click', superuserConnect);
                 }
-                
+
                 // View toggle buttons
                 if (standardViewBtn) {
                     standardViewBtn.addEventListener('click', () => switchView('standard'));
                 }
-                
+
                 if (dashboardViewBtn) {
                     dashboardViewBtn.addEventListener('click', () => switchView('dashboard'));
                 }
-                
+
                 // Initial load of active users
                 setTimeout(refreshActiveUsers, 2000);
-                
+
                 // Set up interval to refresh active users list every 5 seconds
                 window.activeUsersInterval = setInterval(refreshActiveUsers, 5000);
             }
-            
+
             // Theme toggle
             if (themeToggle) {
                 themeToggle.addEventListener('click', toggleTheme);
-                
+
                 // Load theme preference from localStorage
                 const savedTheme = localStorage.getItem('darkTheme');
                 if (savedTheme !== null) {
@@ -2640,16 +2760,16 @@
                     }
                 }
             }
-            
+
             endSessionBtn.addEventListener('click', endSession);
-            
+
             // Add event listeners for video swapping
             if (swapViewsBtn) {
                 swapViewsBtn.addEventListener('click', swapCameraViews);
             }
-            
+
             // Also allow clicking on the small view to swap
-            localVideoCell.addEventListener('click', function(e) {
+            localVideoCell.addEventListener('click', function (e) {
                 // Only trigger if clicking on the video cell itself, not on buttons inside it
                 if (e.target === localVideoCell || e.target === localVideo || e.target.classList.contains('video-label')) {
                     if (!isLocalViewPrimary) {
@@ -2657,8 +2777,8 @@
                     }
                 }
             });
-            
-            remoteVideoCell.addEventListener('click', function(e) {
+
+            remoteVideoCell.addEventListener('click', function (e) {
                 // Only trigger if clicking on the video cell itself, not on buttons inside it
                 if (e.target === remoteVideoCell || e.target.tagName === 'IMG' || e.target.classList.contains('video-label')) {
                     if (isLocalViewPrimary) {
@@ -2666,12 +2786,12 @@
                     }
                 }
             });
-            
+
             // Add event listener for minimize button
             if (minimizeLocalBtn) {
                 minimizeLocalBtn.addEventListener('click', toggleMinimizeView);
             }
-            
+
             // Action Bar Event Handlers
             const actionSidebarToggle = document.getElementById('actionSidebarToggle');
             const actionCameraToggle = document.getElementById('actionCameraToggle');
@@ -2684,9 +2804,9 @@
             const actionSuperuser = isSuperuser ? document.getElementById('actionSuperuser') : null;
             const actionThemeToggle = document.getElementById('actionThemeToggle');
             const actionLogout = document.getElementById('actionLogout');
-            
+
             // Camera toggle action
-            actionCameraToggle.addEventListener('click', function() {
+            actionCameraToggle.addEventListener('click', function () {
                 if (isStreaming) {
                     stopCameraStream();
                     actionCameraToggle.classList.remove('active');
@@ -2695,35 +2815,37 @@
                     actionCameraToggle.classList.add('active');
                 }
             });
-            
+
             // Snapshot action
-            actionSnapshot.addEventListener('click', function() {
+            actionSnapshot.addEventListener('click', function () {
                 if (isStreaming) {
                     takeSnapshot();
                 } else {
                     showNotification('Start camera first to take snapshot', true);
                 }
             });
-            
+
             // Swap views action
-            actionSwapViews.addEventListener('click', function() {
+            actionSwapViews.addEventListener('click', function () {
                 swapCameraViews();
             });
-            
+
             // Chat toggle action
-            actionChatToggle.addEventListener('click', function() {
-                const chatSidebar = document.getElementById('chatSidebar');
-                chatSidebar.classList.toggle('open');
-                if (chatSidebar.classList.contains('open')) {
-                    actionChatToggle.classList.add('active');
-                } else {
+            actionChatToggle.addEventListener('click', function () {
+                const appContainer = document.getElementById('appContainer');
+                appContainer.classList.toggle('chat-hidden');
+                if (appContainer.classList.contains('chat-hidden')) {
                     actionChatToggle.classList.remove('active');
+                } else {
+                    actionChatToggle.classList.add('active');
                 }
+                // Trigger a resize event to adjust any components that depend on window size
+                window.dispatchEvent(new Event('resize'));
             });
-            
+
             // Session action
             if (actionSession) {
-                actionSession.addEventListener('click', function() {
+                actionSession.addEventListener('click', function () {
                     if (isAdmin) {
                         // Admin creates session
                         if (!sessionCode) {
@@ -2747,40 +2869,42 @@
                             </div>
                         `;
                         document.body.appendChild(modal);
-                        
-                        document.getElementById('modalJoinBtn').addEventListener('click', function() {
+
+                        document.getElementById('modalJoinBtn').addEventListener('click', function () {
                             const code = document.getElementById('modalSessionCode').value.trim();
                             if (code) {
                                 joinSession(code);
                                 document.body.removeChild(modal);
                             }
                         });
-                        
-                        document.getElementById('modalCancelBtn').addEventListener('click', function() {
+
+                        document.getElementById('modalCancelBtn').addEventListener('click', function () {
                             document.body.removeChild(modal);
                         });
                     }
                 });
             }
-            
+
             // End session action
-            actionEndSession.addEventListener('click', function() {
+            actionEndSession.addEventListener('click', function () {
                 endSession();
             });
-            
+
             // Sidebar toggle action
-            actionSidebarToggle.addEventListener('click', function() {
-                const sidebar = document.getElementById('sidebar');
-                sidebar.classList.toggle('open');
-                if (sidebar.classList.contains('open')) {
-                    actionSidebarToggle.classList.add('active');
-                } else {
+            actionSidebarToggle.addEventListener('click', function () {
+                const appContainer = document.getElementById('appContainer');
+                appContainer.classList.toggle('sidebar-hidden');
+                if (appContainer.classList.contains('sidebar-hidden')) {
                     actionSidebarToggle.classList.remove('active');
+                } else {
+                    actionSidebarToggle.classList.add('active');
                 }
+                // Trigger a resize event to adjust any components that depend on window size
+                window.dispatchEvent(new Event('resize'));
             });
-            
+
             // Camera settings action
-            actionCameraSettings.addEventListener('click', function() {
+            actionCameraSettings.addEventListener('click', function () {
                 // Create a modal for camera settings
                 const modal = document.createElement('div');
                 modal.className = 'modal';
@@ -2790,9 +2914,9 @@
                         <div class="settings-row">
                             <label for="modalCameraSelect">Select Camera:</label>
                             <select id="modalCameraSelect">
-                                ${Array.from(cameraSelect.options).map(opt => 
-                                    `<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.text}</option>`
-                                ).join('')}
+                                ${Array.from(cameraSelect.options).map(opt =>
+                    `<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.text}</option>`
+                ).join('')}
                             </select>
                         </div>
                         <div class="modal-buttons">
@@ -2803,9 +2927,9 @@
                     </div>
                 `;
                 document.body.appendChild(modal);
-                
+
                 // Set up event handlers
-                document.getElementById('modalRefreshBtn').addEventListener('click', function() {
+                document.getElementById('modalRefreshBtn').addEventListener('click', function () {
                     getAvailableCameras().then(() => {
                         // Update the modal select with new cameras
                         const modalSelect = document.getElementById('modalCameraSelect');
@@ -2819,23 +2943,23 @@
                         });
                     });
                 });
-                
-                document.getElementById('modalSaveBtn').addEventListener('click', function() {
+
+                document.getElementById('modalSaveBtn').addEventListener('click', function () {
                     const modalSelect = document.getElementById('modalCameraSelect');
                     selectedCamera = modalSelect.value;
                     cameraSelect.value = selectedCamera;
                     document.body.removeChild(modal);
                     showNotification('Camera settings saved');
                 });
-                
-                document.getElementById('modalCancelBtn').addEventListener('click', function() {
+
+                document.getElementById('modalCancelBtn').addEventListener('click', function () {
                     document.body.removeChild(modal);
                 });
             });
-            
+
             // Superuser action
             if (actionSuperuser) {
-                actionSuperuser.addEventListener('click', function() {
+                actionSuperuser.addEventListener('click', function () {
                     // Create a modal for superuser actions
                     const modal = document.createElement('div');
                     modal.className = 'modal';
@@ -2845,9 +2969,9 @@
                             <div class="settings-row">
                                 <label for="modalActiveUsersList">Users with Active Cameras:</label>
                                 <select id="modalActiveUsersList">
-                                    ${Array.from(activeUsersList ? activeUsersList.options : []).map(opt => 
-                                        `<option value="${opt.value}">${opt.text}</option>`
-                                    ).join('') || '<option value="">No active users found</option>'}
+                                    ${Array.from(activeUsersList ? activeUsersList.options : []).map(opt =>
+                        `<option value="${opt.value}">${opt.text}</option>`
+                    ).join('') || '<option value="">No active users found</option>'}
                                 </select>
                             </div>
                             <div class="modal-buttons">
@@ -2858,9 +2982,9 @@
                         </div>
                     `;
                     document.body.appendChild(modal);
-                    
+
                     // Set up event handlers
-                    document.getElementById('modalRefreshUsersBtn').addEventListener('click', function() {
+                    document.getElementById('modalRefreshUsersBtn').addEventListener('click', function () {
                         refreshActiveUsers();
                         setTimeout(() => {
                             // Update the modal select with new users
@@ -2881,8 +3005,8 @@
                             }
                         }, 1000);
                     });
-                    
-                    document.getElementById('modalConnectBtn').addEventListener('click', function() {
+
+                    document.getElementById('modalConnectBtn').addEventListener('click', function () {
                         const modalSelect = document.getElementById('modalActiveUsersList');
                         const targetUser = modalSelect.value;
                         if (targetUser) {
@@ -2892,33 +3016,33 @@
                             showNotification('Please select a user to connect to', true);
                         }
                     });
-                    
-                    document.getElementById('modalCancelUsersBtn').addEventListener('click', function() {
+
+                    document.getElementById('modalCancelUsersBtn').addEventListener('click', function () {
                         document.body.removeChild(modal);
                     });
                 });
             }
-            
+
             // Logout action
-            actionLogout.addEventListener('click', function() {
+            actionLogout.addEventListener('click', function () {
                 // Create a hidden form and submit it to logout
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '/logout';
-                
+
                 // Add CSRF token
                 const csrfToken = document.createElement('input');
                 csrfToken.type = 'hidden';
                 csrfToken.name = '_csrf';
                 csrfToken.value = getCsrfToken();
                 form.appendChild(csrfToken);
-                
+
                 document.body.appendChild(form);
                 form.submit();
             });
-            
+
             // Theme toggle action
-            actionThemeToggle.addEventListener('click', function() {
+            actionThemeToggle.addEventListener('click', function () {
                 toggleTheme();
                 if (isDarkTheme) {
                     actionThemeToggle.innerHTML = '<i class="fas fa-moon"></i><span>Dark</span>';
@@ -2926,7 +3050,7 @@
                     actionThemeToggle.innerHTML = '<i class="fas fa-sun"></i><span>Light</span>';
                 }
             });
-            
+
             // Update action bar state based on initial conditions
             updateActionBarState();
         });
@@ -2936,17 +3060,17 @@
             const token = document.querySelector('meta[name="_csrf"]');
             return token ? token.content : '';
         }
-        
+
         // Function to update action bar state based on current application state
         function updateActionBarState() {
             // Sidebar toggle button
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar.classList.contains('open')) {
+            const appContainer = document.getElementById('appContainer');
+            if (!appContainer.classList.contains('sidebar-hidden')) {
                 actionSidebarToggle.classList.add('active');
             } else {
                 actionSidebarToggle.classList.remove('active');
             }
-            
+
             // Camera toggle button
             if (isStreaming) {
                 actionCameraToggle.classList.add('active');
@@ -2957,15 +3081,14 @@
                 actionCameraToggle.innerHTML = '<i class="fas fa-video"></i><span>Camera</span>';
                 actionSnapshot.disabled = true;
             }
-            
+
             // Chat toggle button
-            const chatSidebar = document.getElementById('chatSidebar');
-            if (chatSidebar.classList.contains('open')) {
+            if (!appContainer.classList.contains('chat-hidden')) {
                 actionChatToggle.classList.add('active');
             } else {
                 actionChatToggle.classList.remove('active');
             }
-            
+
             // Session buttons
             if (connectedPeer) {
                 actionEndSession.style.display = 'flex';
@@ -2974,7 +3097,7 @@
                 actionEndSession.style.display = 'none';
                 if (actionSession) actionSession.style.display = 'flex';
             }
-            
+
             // Theme button
             if (isDarkTheme) {
                 actionThemeToggle.innerHTML = '<i class="fas fa-moon"></i><span>Dark</span>';
@@ -2984,4 +3107,5 @@
         }
     </script>
 </body>
-</html> 
+
+</html>
