@@ -117,6 +117,7 @@
             align-items: stretch; /* Stretch items to fill container height */
             width: 100%;
             height: 100vh; /* Full viewport height */
+            min-height: 100vh; /* Ensure minimum height */
             overflow: hidden;
             background-color: var(--background);
             box-sizing: border-box;
@@ -163,6 +164,7 @@
             position: relative;
             min-width: 30vw;
             max-width: calc(80%);
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
             transition: all 0.3s ease;
         }
         
@@ -170,16 +172,19 @@
         .app-container.sidebar-hidden.chat-hidden .main-view-container {
             max-width: 100%;
             width: 100%;
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
         }
         
         /* When only the main sidebar is hidden */
         .app-container.sidebar-hidden:not(.chat-hidden) .main-view-container {
             max-width: calc(100% - var(--chat-sidebar-width));
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
         }
         
         /* When only the chat sidebar is hidden */
         .app-container.chat-hidden:not(.sidebar-hidden) .main-view-container {
             max-width: calc(100% - var(--sidebar-width));
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
         }
         
         .chat-sidebar {
@@ -215,6 +220,8 @@
             display: flex;
             flex-direction: column;
             width: 100%; /* Ensure it takes full width of its container */
+            height: 100%; /* Ensure it takes full height of its container */
+            flex: 1; /* Allow it to grow to fill available space */
         }
 
         /* Removed duplicate .main-view-container declaration */
@@ -322,6 +329,8 @@
             margin-bottom: var(--spacing-md);
             flex-grow: 1;
             position: relative;
+            height: 100%;
+            min-height: 60vh; /* Ensure a minimum height */
         }
         
         .video-grid {
@@ -329,6 +338,21 @@
             width: 100%;
             height: 100%;
             position: relative;
+            flex: 1; /* Allow it to grow to fill available space */
+            min-height: 50vh; /* Ensure a minimum height */
+        }
+        
+        #standardView {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            flex: 1;
+        }
+        
+        #dashboardView {
+            display: none;
+            height: 100%;
+            flex: 1;
         }
         
         .video-cell {
@@ -2605,13 +2629,28 @@
             // Function to check panel state and adjust main content accordingly
             function checkPanelState() {
                 const mainViewContainer = document.querySelector('.main-view-container');
+                const mainContent = document.querySelector('.main-content');
+                
                 if (appContainer.classList.contains('sidebar-hidden') && 
                     appContainer.classList.contains('chat-hidden')) {
                     mainViewContainer.style.maxWidth = '100%';
                     mainViewContainer.style.width = '100%';
+                } else if (appContainer.classList.contains('sidebar-hidden')) {
+                    mainViewContainer.style.maxWidth = `calc(100% - var(--chat-sidebar-width))`;
+                    mainViewContainer.style.width = '';
+                } else if (appContainer.classList.contains('chat-hidden')) {
+                    mainViewContainer.style.maxWidth = `calc(100% - var(--sidebar-width))`;
+                    mainViewContainer.style.width = '';
                 } else {
                     mainViewContainer.style.maxWidth = '80%';
                     mainViewContainer.style.width = '';
+                }
+                
+                // Update height
+                if (mainContent) {
+                    const height = mainContent.offsetHeight;
+                    document.documentElement.style.setProperty('--main-content-height', height + 'px');
+                    mainViewContainer.style.height = `var(--main-content-height, calc(100vh - 2 * var(--spacing-md)))`;
                 }
             }
             
@@ -2725,6 +2764,7 @@
             // Function to update main content height CSS variable
             function updateMainContentHeight() {
                 const mainContent = document.querySelector('.main-content');
+                const mainViewContainer = document.querySelector('.main-view-container');
                 const appContainer = document.getElementById('appContainer');
                 
                 if (mainContent) {
@@ -2732,12 +2772,20 @@
                     document.documentElement.style.setProperty('--main-content-height', height + 'px');
                     console.log('Updated main content height to: ' + height + 'px');
                     
+                    // Apply height to main-view-container
+                    mainViewContainer.style.height = `var(--main-content-height, calc(100vh - 2 * var(--spacing-md)))`;
+                    
                     // Check if both sidebar and chat are hidden, and adjust main content width
-                    const mainViewContainer = document.querySelector('.main-view-container');
                     if (appContainer.classList.contains('sidebar-hidden') && 
                         appContainer.classList.contains('chat-hidden')) {
                         mainViewContainer.style.maxWidth = '100%';
                         mainViewContainer.style.width = '100%';
+                    } else if (appContainer.classList.contains('sidebar-hidden')) {
+                        mainViewContainer.style.maxWidth = `calc(100% - var(--chat-sidebar-width))`;
+                        mainViewContainer.style.width = '';
+                    } else if (appContainer.classList.contains('chat-hidden')) {
+                        mainViewContainer.style.maxWidth = `calc(100% - var(--sidebar-width))`;
+                        mainViewContainer.style.width = '';
                     } else {
                         mainViewContainer.style.maxWidth = '80%';
                         mainViewContainer.style.width = '';
@@ -2748,22 +2796,39 @@
             // Set up MutationObserver to watch for changes in the main content
             function setupMainContentObserver() {
                 const mainContent = document.querySelector('.main-content');
-                if (mainContent) {
-                    const observer = new MutationObserver(function(mutations) {
+                if (!mainContent) return;
+                
+                // Create a ResizeObserver to monitor size changes
+                const resizeObserver = new ResizeObserver(entries => {
+                    for (let entry of entries) {
                         updateMainContentHeight();
-                    });
-                    
-                    observer.observe(mainContent, { 
-                        childList: true, 
-                        subtree: true,
-                        attributes: true,
-                        attributeFilter: ['style', 'class']
-                    });
+                    }
+                });
+                
+                // Start observing the main content
+                resizeObserver.observe(mainContent);
+                
+                // Also observe the main view container
+                const mainViewContainer = document.querySelector('.main-view-container');
+                if (mainViewContainer) {
+                    resizeObserver.observe(mainViewContainer);
                 }
+                
+                // Also observe the app container for class changes
+                const observer = new MutationObserver(mutations => {
+                    mutations.forEach(mutation => {
+                        if (mutation.attributeName === 'class') {
+                            setTimeout(checkPanelState, 10);
+                            setTimeout(updateMainContentHeight, 20);
+                        }
+                    });
+                });
+                
+                observer.observe(appContainer, { attributes: true });
             }
             
             // Call the setup function
-            setTimeout(setupMainContentObserver, 500);
+            setupMainContentObserver();
             
             // Connect to WebSocket
             connect();
