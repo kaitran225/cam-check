@@ -53,6 +53,9 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
     
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    
     @ConfigurationProperties(prefix = "camcheck.security")
     @Configuration
     public static class SecurityUsers {
@@ -197,7 +200,7 @@ public class SecurityConfig {
         for (SecurityUsers.UserConfig userConfig : securityUsers.getUsers()) {
             UserDetails user = User.builder()
                 .username(userConfig.getUsername())
-                .password(passwordEncoder().encode(userConfig.getPassword()))
+                .password(passwordEncoder.encode(userConfig.getPassword()))
                 .roles(userConfig.getRole())
                 .build();
             userDetailsList.add(user);
@@ -206,7 +209,7 @@ public class SecurityConfig {
         // Add legacy user for backward compatibility
         UserDetails legacyUser = User.builder()
             .username(legacyUsername)
-            .password(passwordEncoder().encode(legacyPassword))
+            .password(passwordEncoder.encode(legacyPassword))
             .roles("USER", "ADMIN")
             .build();
         userDetailsList.add(legacyUser);
@@ -214,7 +217,7 @@ public class SecurityConfig {
         // Add superuser with highest privileges
         UserDetails superuser = User.builder()
             .username(superuserUsername)
-            .password(passwordEncoder().encode(superuserPassword))
+            .password(passwordEncoder.encode(superuserPassword))
             .roles("USER", "ADMIN", "SUPERUSER")
             .build();
         userDetailsList.add(superuser);
@@ -229,10 +232,5 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
-    }
-    
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 } 
