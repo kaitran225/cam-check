@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'config/theme.dart';
 import 'screens/auth/login_screen.dart';
@@ -21,15 +20,12 @@ void main() async {
   }
   
   runApp(
-    // Use ProviderScope for Riverpod state management
-    ProviderScope(
-      child: MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => AuthService()),
-          ChangeNotifierProvider(create: (_) => SessionService()),
-        ],
-        child: const MyApp(),
-      ),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => SessionService()),
+      ],
+      child: const MyApp(),
     ),
   );
 }

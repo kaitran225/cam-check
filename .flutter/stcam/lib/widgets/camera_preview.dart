@@ -3,13 +3,13 @@ import 'package:camera/camera.dart';
 import '../config/theme.dart';
 
 /// Custom camera preview widget with additional features
-class CameraPreview extends StatelessWidget {
+class CustomCameraPreview extends StatelessWidget {
   final CameraController controller;
   final bool showOverlay;
   final bool showFocusCircle;
   final Offset? focusPoint;
   
-  const CameraPreview(
+  const CustomCameraPreview(
     this.controller, {
     super.key,
     this.showOverlay = true,
@@ -34,7 +34,7 @@ class CameraPreview extends StatelessWidget {
         // Camera preview
         AspectRatio(
           aspectRatio: controller.value.aspectRatio,
-          child: camera.CameraPreview(controller),
+          child: CameraPreview(controller),
         ),
         
         // Optional overlay

@@ -247,7 +247,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
             child: _isCameraInitialized
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(AppConfig.defaultBorderRadius),
-                    child: CameraPreview(_cameraController!),
+                    child: CustomCameraPreview(_cameraController!),
                   )
                 : const Center(
                     child: CircularProgressIndicator(),

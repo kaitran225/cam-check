@@ -23,56 +23,56 @@ class AppTheme {
     fontSize: 24,
     fontWeight: FontWeight.bold,
     letterSpacing: 0.5,
-    fontFamily: 'Roboto',
+    fontFamily: 'BebasNeue',
   );
   
   static const TextStyle headingMedium = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
     letterSpacing: 0.5,
-    fontFamily: 'Roboto',
+    fontFamily: 'BebasNeue',
   );
   
   static const TextStyle headingSmall = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.bold,
     letterSpacing: 0.5,
-    fontFamily: 'Roboto',
+    fontFamily: 'BebasNeue',
   );
   
   static const TextStyle bodyLarge = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.normal,
     letterSpacing: 0.5,
-    fontFamily: 'Roboto',
+    fontFamily: 'BebasNeue',
   );
   
   static const TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.normal,
     letterSpacing: 0.5,
-    fontFamily: 'Roboto',
+    fontFamily: 'BebasNeue',
   );
   
   static const TextStyle bodySmall = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.normal,
     letterSpacing: 0.5,
-    fontFamily: 'Roboto',
+    fontFamily: 'BebasNeue',
   );
   
   static const TextStyle caption = TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.normal,
     letterSpacing: 0.5,
-    fontFamily: 'Roboto',
+    fontFamily: 'BebasNeue',
   );
   
   static const TextStyle buttonText = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w500, // Medium
     letterSpacing: 0.5,
-    fontFamily: 'Roboto',
+    fontFamily: 'BebasNeue',
   );
   
   // Dark Theme (Default)
@@ -103,6 +103,7 @@ class AppTheme {
       labelMedium: bodyMedium,
       labelSmall: caption,
     ),
+    fontFamily: 'BebasNeue',
     appBarTheme: const AppBarTheme(
       backgroundColor: brandBlack,
       foregroundColor: brandWhite,
@@ -162,7 +163,7 @@ class AppTheme {
       hintStyle: bodyMedium.copyWith(color: lightGray),
       labelStyle: bodyMedium.copyWith(color: brandWhite),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: brandGray,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -231,7 +232,7 @@ class AppTheme {
         borderRadius: BorderRadius.all(Radius.circular(4)),
       ),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: brandGray,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(4),
@@ -248,7 +249,7 @@ class AppTheme {
         ),
       ),
     ),
-    tabBarTheme: const TabBarTheme(
+    tabBarTheme: const TabBarThemeData(
       labelColor: actionBlue,
       unselectedLabelColor: lightGray,
       indicatorSize: TabBarIndicatorSize.tab,
@@ -268,6 +269,7 @@ class AppTheme {
     brightness: Brightness.light,
     primaryColor: brandWhite,
     scaffoldBackgroundColor: lightBackground,
+    fontFamily: 'BebasNeue',
     colorScheme: const ColorScheme.light(
       primary: actionBlue,
       secondary: brandBlack,
