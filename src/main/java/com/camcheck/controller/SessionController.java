@@ -301,7 +301,7 @@ public class SessionController {
             sendError(username, "No active session found");
             return;
         }
-        
+        @SuppressWarnings("unused")
         // Get current capabilities
         Map<String, Boolean> capabilities = sessionCapabilities.getOrDefault(username, 
                 Map.of("video", true, "audio", false));

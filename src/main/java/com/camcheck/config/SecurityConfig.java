@@ -1,16 +1,22 @@
 package com.camcheck.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -43,6 +49,9 @@ public class SecurityConfig {
     
     @Value("${camcheck.security.superuser.password}")
     private String superuserPassword;
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
     
     @ConfigurationProperties(prefix = "camcheck.security")
     @Configuration
@@ -117,6 +126,9 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/api-docs"), 
                                 new AntPathRequestMatcher("/api-docs/**"), 
                                 new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
+                // JWT authentication endpoints
+                .requestMatchers(new AntPathRequestMatcher("/api/v2/auth/login"),
+                                new AntPathRequestMatcher("/api/v2/auth/refresh")).permitAll()
                 // Allow receiver endpoint without authentication
                 .requestMatchers(new AntPathRequestMatcher("/receiver"), 
                                 new AntPathRequestMatcher("/receiver/**")).permitAll()
@@ -129,6 +141,8 @@ public class SecurityConfig {
                 .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
                 // Allow access from trusted IPs without authentication
                 .requestMatchers(request -> trustedIpMatcher.matches(request)).permitAll()
+                // Mobile API requires authentication
+                .requestMatchers(new AntPathRequestMatcher("/api/v2/**")).authenticated()
                 // Superuser pages require SUPERUSER role
                 .requestMatchers(new AntPathRequestMatcher("/superuser/**")).hasRole("SUPERUSER")
                 // Admin pages require ADMIN or SUPERUSER role
@@ -136,6 +150,7 @@ public class SecurityConfig {
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
+            // Form login for web interface
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/")
@@ -144,10 +159,12 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .permitAll()
             )
+            // CSRF configuration
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers(
                     new AntPathRequestMatcher("/api/**"), 
                     new AntPathRequestMatcher("/api/v1/**"), 
+                    new AntPathRequestMatcher("/api/v2/**"),
                     new AntPathRequestMatcher("/ws/**"), 
                     new AntPathRequestMatcher("/api-docs/**"), 
                     new AntPathRequestMatcher("/swagger-ui/**"), 
@@ -161,6 +178,12 @@ public class SecurityConfig {
             )
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.sameOrigin()) // Required for H2 Console
+            )
+            // Add JWT authentication filter for API requests
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // Use stateless session for API requests but maintain session for web interface
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             );
         
         return http.build();
@@ -197,7 +220,16 @@ public class SecurityConfig {
         userDetailsList.add(superuser);
         
         return new InMemoryUserDetailsManager(userDetailsList);
-    }   
+    }
+    
+    /**
+     * Authentication manager bean for JWT authentication
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
     
     @Bean
     public PasswordEncoder passwordEncoder() {

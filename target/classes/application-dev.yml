@@ -38,12 +38,62 @@ spring:
 
 # Custom CamCheck settings
 camcheck:
+  # API versioning settings
+  api:
+    latest-version: "v2"
+    supported-versions: ["v1", "v2"]
+    deprecation-warning: true
+  
+  # JWT settings for mobile authentication
+  jwt:
+    # Secret key for JWT signature (should be environment variable in production)
+    secret-key: ${JWT_SECRET_KEY:6u9h4HzKqBXbpnhLXktYoVm7sR2jDfGc}
+    # JWT expiration time in milliseconds (1 hour by default)
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+    # Refresh token expiration in milliseconds (7 days by default)
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+    # Issuer name in JWT claims
+    issuer: ${JWT_ISSUER:camcheck}
+    # Token prefix in Authorization header
+    token-prefix: "Bearer "
+    # Header name for Authorization
+    header: "Authorization"
+    
+  # Mobile app settings
+  mobile:
+    # Android package name for push notifications
+    android-package-name: ${MOBILE_ANDROID_PACKAGE:com.camcheck.app}
+    # iOS bundle ID for push notifications
+    ios-bundle-id: ${MOBILE_IOS_BUNDLE:com.camcheck.app}
+    # Default quality level for new mobile installations (low, medium, high)
+    default-quality: ${MOBILE_DEFAULT_QUALITY:medium}
+    # Max concurrent sessions per mobile device
+    max-sessions: ${MOBILE_MAX_SESSIONS:1}
+    # Enable background mode for continuous camera access
+    background-mode-enabled: ${MOBILE_BACKGROUND_MODE:false}
+    # Push notification settings
+    push-notifications:
+      # Enable push notifications
+      enabled: ${MOBILE_PUSH_ENABLED:true}
+      # Firebase project ID for push notifications
+      firebase-project-id: ${MOBILE_FIREBASE_PROJECT_ID:camcheck-mobile}
+      # Firebase credentials file path (JSON)
+      firebase-credentials-file: ${MOBILE_FIREBASE_CREDENTIALS:}
+      # Maximum daily notification limit per user
+      daily-limit: ${MOBILE_PUSH_DAILY_LIMIT:50}
+      # Quiet hours settings
+      quiet-hours:
+        enabled: ${MOBILE_QUIET_HOURS_ENABLED:false}
+        start: ${MOBILE_QUIET_HOURS_START:22:00}
+        end: ${MOBILE_QUIET_HOURS_END:07:00}
+        timezone: ${MOBILE_QUIET_HOURS_TIMEZONE:UTC}
+
   # Security settings
   security:
     # User accounts
     users:
       - username: ${SECURITY_USERNAME_LUXUBOO:dev_user}
-        password: ${SECURITY_PASSWORD_LUXUBOO:}
+        password: ${SECURITY_PASSWORD_LUXUBOO:dev_password}
         role: USER
       - username: ${SECURITY_USERNAME_KAITRAN:dev_admin}
         password: ${SECURITY_PASSWORD_KAITRAN:dev_admin_password}

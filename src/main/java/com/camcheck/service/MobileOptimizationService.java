@@ -65,7 +65,7 @@ public class MobileOptimizationService {
             + "|up\\.link|webos|wos).*", Pattern.CASE_INSENSITIVE);
     
     private static final Pattern TABLET_PATTERN = Pattern.compile(
-            ".*(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch)"
+            ".*(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))"
             + "|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP)))).*", 
             Pattern.CASE_INSENSITIVE);
     

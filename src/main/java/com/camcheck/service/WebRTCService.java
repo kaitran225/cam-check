@@ -59,12 +59,25 @@ public class WebRTCService {
      * @return Connection configuration
      */
     public Map<String, Object> initializeConnection(String connectionId, String initiator, String receiver) {
+        return initializeConnection(connectionId, initiator, receiver, new HashMap<>());
+    }
+    
+    /**
+     * Initialize a new WebRTC connection between two users with options
+     * @param connectionId Connection identifier
+     * @param initiator User who initiated the connection
+     * @param receiver User who receives the connection
+     * @param options Additional options for the connection
+     * @return Connection configuration
+     */
+    public Map<String, Object> initializeConnection(String connectionId, String initiator, String receiver, Map<String, Object> options) {
         if (!webRtcEnabled) {
             log.warn("WebRTC is disabled, cannot initialize connection");
             return Map.of("error", "WebRTC is disabled");
         }
         
-        log.info("Initializing WebRTC connection: {} between {} and {}", connectionId, initiator, receiver);
+        log.info("Initializing WebRTC connection: {} between {} and {} with options: {}", 
+                connectionId, initiator, receiver, options);
         
         // Create connection object
         WebRTCConnection connection = new WebRTCConnection();
@@ -74,13 +87,159 @@ public class WebRTCService {
         connection.setStatus(ConnectionStatus.INITIALIZING);
         connection.setCreatedAt(System.currentTimeMillis());
         
+        // Store options in metadata
+        connection.getMetadata().putAll(options);
+        
         // Store connection
         connections.put(connectionId, connection);
         userConnections.put(initiator, connectionId);
         userConnections.put(receiver, connectionId);
         
-        // Return ICE server configuration
-        return getIceConfiguration();
+        // Get base ICE configuration
+        Map<String, Object> config = getIceConfiguration();
+        
+        // Add any custom ICE transport policy from options
+        if (options.containsKey("iceTransportPolicy")) {
+            config.put("iceTransportPolicy", options.get("iceTransportPolicy"));
+        }
+        
+        // Add media constraints if provided
+        if (options.containsKey("videoConstraints")) {
+            config.put("videoConstraints", options.get("videoConstraints"));
+        }
+        
+        if (options.containsKey("audioConstraints")) {
+            config.put("audioConstraints", options.get("audioConstraints"));
+        }
+        
+        return config;
+    }
+    
+    /**
+     * Send ICE candidates to peer
+     * @param connectionId Connection identifier
+     * @param sender User sending the candidates
+     * @param candidates ICE candidates
+     * @return True if sent successfully, false otherwise
+     */
+    public boolean sendIceCandidates(String connectionId, String sender, Map<String, Object> candidates) {
+        WebRTCConnection connection = connections.get(connectionId);
+        if (connection == null) {
+            log.warn("Cannot send ICE candidates for unknown connection: {}", connectionId);
+            return false;
+        }
+        
+        // Verify the user is part of this connection
+        if (!sender.equals(connection.getInitiator()) && !sender.equals(connection.getReceiver())) {
+            log.warn("User {} not authorized for connection {}", sender, connectionId);
+            return false;
+        }
+        
+        // Get the recipient
+        String recipient = sender.equals(connection.getInitiator()) 
+                ? connection.getReceiver() : connection.getInitiator();
+        
+        // Create WebRTC message
+        WebRTCMessage message = new WebRTCMessage();
+        message.setConnectionId(connectionId);
+        message.setSender(sender);
+        message.setType("ice-candidate");
+        message.setData(candidates);
+        
+        // Send to recipient
+        messagingTemplate.convertAndSendToUser(
+                recipient,
+                "/queue/webrtc",
+                message
+        );
+        
+        log.debug("Sent ICE candidates from {} to {} for connection {}", 
+                sender, recipient, connectionId);
+        
+        // Update connection status
+        if (connection.getStatus() == ConnectionStatus.INITIALIZING) {
+            connection.setStatus(ConnectionStatus.ICE_GATHERING);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Send session description (offer or answer) to peer
+     * @param connectionId Connection identifier
+     * @param sender User sending the session description
+     * @param sdp Session description
+     * @return True if sent successfully, false otherwise
+     */
+    public boolean sendSessionDescription(String connectionId, String sender, Map<String, Object> sdp) {
+        WebRTCConnection connection = connections.get(connectionId);
+        if (connection == null) {
+            log.warn("Cannot send session description for unknown connection: {}", connectionId);
+            return false;
+        }
+        
+        // Verify the user is part of this connection
+        if (!sender.equals(connection.getInitiator()) && !sender.equals(connection.getReceiver())) {
+            log.warn("User {} not authorized for connection {}", sender, connectionId);
+            return false;
+        }
+        
+        // Get the recipient
+        String recipient = sender.equals(connection.getInitiator()) 
+                ? connection.getReceiver() : connection.getInitiator();
+        
+        // Create WebRTC message
+        WebRTCMessage message = new WebRTCMessage();
+        message.setConnectionId(connectionId);
+        message.setSender(sender);
+        
+        // Determine message type based on who is sending (initiator sends offer, receiver sends answer)
+        String type = sender.equals(connection.getInitiator()) ? "offer" : "answer";
+        message.setType(type);
+        message.setData(sdp);
+        
+        // Send to recipient
+        messagingTemplate.convertAndSendToUser(
+                recipient,
+                "/queue/webrtc",
+                message
+        );
+        
+        log.debug("Sent {} from {} to {} for connection {}", 
+                type, sender, recipient, connectionId);
+        
+        // Update connection status
+        if (type.equals("offer")) {
+            connection.setStatus(ConnectionStatus.OFFER_CREATED);
+        } else if (type.equals("answer")) {
+            connection.setStatus(ConnectionStatus.ANSWER_CREATED);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * End a WebRTC connection
+     * @param connectionId Connection identifier
+     * @param username User ending the connection
+     * @return True if ended successfully, false otherwise
+     */
+    public boolean endConnection(String connectionId, String username) {
+        WebRTCConnection connection = connections.get(connectionId);
+        if (connection == null) {
+            log.warn("Cannot end unknown WebRTC connection: {}", connectionId);
+            return false;
+        }
+        
+        // Verify the user is part of this connection
+        if (!username.equals(connection.getInitiator()) && !username.equals(connection.getReceiver())) {
+            log.warn("User {} not authorized to end connection {}", username, connectionId);
+            return false;
+        }
+        
+        // Close the connection
+        closeConnection(connectionId, username);
+        return true;
     }
     
     /**

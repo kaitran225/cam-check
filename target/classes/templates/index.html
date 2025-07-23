@@ -1264,6 +1264,10 @@
                     <option value="">Select camera...</option>
                 </select>
                 <button id="refreshCamerasBtn">Refresh Camera List</button>
+                <div class="settings-row" style="margin-top: 10px;">
+                    <h3>Audio Settings</h3>
+                    <button id="testMicBtn">Test Microphone</button>
+                </div>
             </div>
 
             <div sec:authorize="hasRole('ADMIN')" class="control-group">
@@ -1365,6 +1369,14 @@
                     <button class="action-button" id="actionCameraToggle">
                         <i class="fas fa-video"></i>
                         <span>Camera</span>
+                    </button>
+                    <button class="action-button" id="actionAudioToggle">
+                        <i class="fas fa-microphone-slash"></i>
+                        <span>Muted</span>
+                    </button>
+                    <button class="action-button" id="actionRecordAudio">
+                        <i class="fas fa-circle"></i>
+                        <span>Record</span>
                     </button>
                     <button class="action-button" id="actionSnapshot">
                         <i class="fas fa-camera"></i>
@@ -1475,6 +1487,46 @@
         let isReconnecting = false;
         let connectionStatus = 'disconnected'; // 'connected', 'disconnected', 'reconnecting'
         let targetFPS = 60; // Target 60fps
+
+        // Audio stream variables
+        let audioStream = null;
+        let isAudioEnabled = false;
+        let audioContext = null;
+        let audioSource = null;
+        let audioProcessor = null;
+        let audioRecorder = null;
+        let audioChunks = [];
+        let audioSendInterval = null;
+        let audioSamplingRate = 16000;
+        let audioBufferSize = 4096;
+        let audioChannels = 1;
+        let audioFormat = 'opus';
+        let audioQuality = 0.8;
+        let audioCompress = true;
+        let selectedMicrophone = null;
+        
+        // Audio processing options
+        let noiseSuppressionEnabled = true;
+        let echoCancellationEnabled = true;
+        let autoGainControlEnabled = true;
+        
+        // Push-to-talk feature
+        let pushToTalkEnabled = false;
+        let isPushToTalkActive = false;
+        let pushToTalkKey = ' '; // Spacebar
+        
+        // Audio visualization
+        let audioAnalyser = null;
+        let visualizationActive = false;
+        let visualizationCanvas = null;
+        let visualizationContext = null;
+        let visualizationInterval = null;
+        
+        // Audio recording
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordingStartTime = null;
 
         // DOM elements
         const videoFeed = document.getElementById('videoFeed');
@@ -1675,6 +1727,14 @@
                     if (message && message.body) {
                         const chatMessage = JSON.parse(message.body);
                         addChatMessage(chatMessage);
+                    }
+                });
+                
+                // Subscribe to audio messages
+                stompClient.subscribe('/user/topic/audio', function (message) {
+                    if (message && message.body) {
+                        const audioMessage = JSON.parse(message.body);
+                        processAudioMessage(audioMessage);
                     }
                 });
 
@@ -1895,7 +1955,8 @@
                         deviceId: { exact: deviceId },
                         width: { ideal: 640 },
                         height: { ideal: 480 }
-                    }
+                    },
+                    audio: false // We handle audio separately
                 };
 
                 console.log('Requesting camera access with constraints:', constraints);
@@ -1933,6 +1994,11 @@
                 updateActionBarState();
 
                 showNotification('Camera started successfully');
+                
+                // Initialize audio if audio toggle is enabled
+                if (isAudioEnabled) {
+                    initAudioStream();
+                }
             } catch (error) {
                 console.error('Error starting camera:', error);
                 showNotification('Error starting camera: ' + error.message, true);
@@ -1961,11 +2027,349 @@
                 clearInterval(window.heartbeatInterval);
                 window.heartbeatInterval = null;
             }
+            
+            // Stop audio stream if active
+            stopAudioStream();
 
             // Update action bar state
             updateActionBarState();
 
             showNotification('Camera stopped');
+        }
+        
+        // Create audio toggle button if it doesn't exist
+        function createAudioToggleButton() {
+            // Create audio toggle button and add it to the action bar
+            const actionBar = document.getElementById('actionBar');
+            const audioToggleBtn = document.createElement('button');
+            audioToggleBtn.id = 'actionAudioToggle';
+            audioToggleBtn.className = 'action-button';
+            audioToggleBtn.innerHTML = '<i class="fas fa-microphone-slash"></i><span>Muted</span>';
+            
+            // Insert after camera toggle
+            const cameraToggleBtn = document.getElementById('actionCameraToggle');
+            if (cameraToggleBtn && cameraToggleBtn.nextSibling) {
+                actionBar.insertBefore(audioToggleBtn, cameraToggleBtn.nextSibling);
+            } else {
+                actionBar.appendChild(audioToggleBtn);
+            }
+            
+            // Add event listener
+            audioToggleBtn.addEventListener('click', toggleAudio);
+            
+            return audioToggleBtn;
+        }
+        
+        // Toggle audio streaming
+        function toggleAudio() {
+            if (isAudioEnabled) {
+                stopAudioStream();
+            } else {
+                initAudioStream();
+            }
+        }
+        
+        // Initialize audio streaming
+        async function initAudioStream() {
+            try {
+                if (!isStreaming || !connectedPeer) {
+                    showNotification('Start camera and connect to a peer first', true);
+                    return;
+                }
+                
+                // Request audio permissions with advanced constraints
+                const audioConstraints = {
+                    audio: {
+                        deviceId: selectedMicrophone ? { exact: selectedMicrophone } : undefined,
+                        echoCancellation: echoCancellationEnabled,
+                        noiseSuppression: noiseSuppressionEnabled,
+                        autoGainControl: autoGainControlEnabled
+                    }
+                };
+                
+                console.log('Audio constraints:', audioConstraints);
+                audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                
+                // Set up Web Audio API for processing
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: audioSamplingRate
+                });
+                
+                audioSource = audioContext.createMediaStreamSource(audioStream);
+                
+                // Create analyzer for visualization
+                audioAnalyser = audioContext.createAnalyser();
+                audioAnalyser.fftSize = 256;
+                audioSource.connect(audioAnalyser);
+                
+                // Create script processor node for audio processing
+                audioProcessor = audioContext.createScriptProcessor(audioBufferSize, audioChannels, audioChannels);
+                
+                audioChunks = [];
+                
+                // Process audio data
+                audioProcessor.onaudioprocess = function(e) {
+                    if (!isAudioEnabled || !connectedPeer) return;
+                    
+                    // Skip processing if push-to-talk is enabled but not active
+                    if (pushToTalkEnabled && !isPushToTalkActive) return;
+                    
+                    // Get audio data from the input channel
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    audioChunks.push(new Float32Array(inputData));
+                    
+                    // If we've collected enough chunks, send the audio
+                    if (audioChunks.length >= 10) { // Adjust for your latency/quality needs
+                        sendAudioData();
+                    }
+                };
+                
+                // Connect the audio nodes
+                audioSource.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
+                
+                // Set up interval to send audio periodically
+                if (audioSendInterval) clearInterval(audioSendInterval);
+                audioSendInterval = setInterval(sendAudioData, 1000); // Send audio every second
+                
+                // Update UI
+                isAudioEnabled = true;
+                actionAudioToggle.innerHTML = '<i class="fas fa-microphone"></i><span>Unmuted</span>';
+                actionAudioToggle.classList.add('active');
+                
+                // If push-to-talk is enabled, initially mute the microphone
+                if (pushToTalkEnabled) {
+                    setMicrophoneMuted(true);
+                    
+                    // Show the push-to-talk indicator
+                    const pttIndicator = document.getElementById('pushToTalkIndicator');
+                    if (pttIndicator) {
+                        pttIndicator.style.display = 'flex';
+                    }
+                }
+                
+                // Start audio visualization in local video cell
+                setupAudioVisualization('localVideoCell');
+                
+                showNotification('Microphone activated');
+                
+            } catch (error) {
+                console.error('Error starting audio:', error);
+                showNotification('Error starting audio: ' + error.message, true);
+                isAudioEnabled = false;
+            }
+        }
+        
+        // Stop audio streaming
+        function stopAudioStream() {
+            // Stop recording if active
+            if (isRecording && mediaRecorder) {
+                stopAudioRecording().then(recordingInfo => {
+                    console.log('Recording stopped with audio stream:', recordingInfo);
+                });
+            }
+            
+            // Stop audio visualization
+            stopAudioVisualization();
+            
+            // Stop and clean up audio stream
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+            
+            // Clean up audio processing nodes
+            if (audioProcessor) {
+                audioProcessor.disconnect();
+                audioProcessor = null;
+            }
+            
+            if (audioSource) {
+                audioSource.disconnect();
+                audioSource = null;
+            }
+            
+            if (audioAnalyser) {
+                audioAnalyser.disconnect();
+                audioAnalyser = null;
+            }
+            
+            // Close audio context
+            if (audioContext && audioContext.state !== 'closed') {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            // Clear send interval
+            if (audioSendInterval) {
+                clearInterval(audioSendInterval);
+                audioSendInterval = null;
+            }
+            
+            // Clear data
+            audioChunks = [];
+            isAudioEnabled = false;
+            
+            // Hide push-to-talk indicator if visible
+            const pttIndicator = document.getElementById('pushToTalkIndicator');
+            if (pttIndicator) {
+                pttIndicator.style.display = 'none';
+            }
+            
+            // Update UI
+            actionAudioToggle.innerHTML = '<i class="fas fa-microphone-slash"></i><span>Muted</span>';
+            actionAudioToggle.classList.remove('active');
+            
+            showNotification('Microphone deactivated');
+            
+            // Remove any audio visualizer elements
+            const visualizers = document.querySelectorAll('.audio-visualizer');
+            visualizers.forEach(visualizer => {
+                visualizer.parentNode.removeChild(visualizer);
+            });
+        }
+        
+        // Send collected audio data
+        async function sendAudioData() {
+            if (!isAudioEnabled || !connectedPeer || audioChunks.length === 0) return;
+            
+            try {
+                // Convert audio chunks to a single buffer
+                let length = 0;
+                audioChunks.forEach(chunk => {
+                    length += chunk.length;
+                });
+                
+                const mergedBuffer = new Float32Array(length);
+                let offset = 0;
+                
+                audioChunks.forEach(chunk => {
+                    mergedBuffer.set(chunk, offset);
+                    offset += chunk.length;
+                });
+                
+                // Clear chunks after processing
+                audioChunks = [];
+                
+                // Convert to WAV format (16-bit PCM)
+                const audioBlob = await float32ArrayToWav(mergedBuffer, audioSamplingRate, audioChannels);
+                
+                // Convert to base64
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                
+                reader.onloadend = function() {
+                    const base64data = reader.result.split(',')[1]; // Remove data URL prefix
+                    
+                    // Send to server
+                    sendAudioToServer(base64data);
+                };
+            } catch (error) {
+                console.error('Error processing audio data:', error);
+            }
+        }
+        
+        // Send audio data to server
+        function sendAudioToServer(audioBase64) {
+            if (!connectedPeer || !isAudioEnabled) return;
+            
+            const payload = {
+                audio: audioBase64,
+                sender: currentUsername,
+                recipient: connectedPeer,
+                format: audioFormat,
+                compress: audioCompress,
+                quality: audioQuality,
+                timestamp: Date.now()
+            };
+            
+            // Send via REST API
+            fetch('/api/client-camera/audio', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.warn('Error sending audio:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending audio:', error);
+            });
+        }
+        
+        // Convert Float32Array to WAV blob
+        function float32ArrayToWav(samples, sampleRate, numChannels) {
+            return new Promise(resolve => {
+                const buffer = new ArrayBuffer(44 + samples.length * 2);
+                const view = new DataView(buffer);
+                
+                // RIFF identifier
+                writeString(view, 0, 'RIFF');
+                // RIFF chunk length
+                view.setUint32(4, 36 + samples.length * 2, true);
+                // RIFF type
+                writeString(view, 8, 'WAVE');
+                // format chunk identifier
+                writeString(view, 12, 'fmt ');
+                // format chunk length
+                view.setUint32(16, 16, true);
+                // sample format (raw)
+                view.setUint16(20, 1, true);
+                // channel count
+                view.setUint16(22, numChannels, true);
+                // sample rate
+                view.setUint32(24, sampleRate, true);
+                // byte rate (sample rate * block align)
+                view.setUint32(28, sampleRate * 4, true);
+                // block align (channel count * bytes per sample)
+                view.setUint16(32, numChannels * 2, true);
+                // bits per sample
+                view.setUint16(34, 16, true);
+                // data chunk identifier
+                writeString(view, 36, 'data');
+                // data chunk length
+                view.setUint32(40, samples.length * 2, true);
+                
+                // Write the PCM samples
+                let index = 44;
+                for (let i = 0; i < samples.length; i++) {
+                    // Convert float audio to 16-bit PCM
+                    let s = Math.max(-1, Math.min(1, samples[i]));
+                    s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                    view.setInt16(index, s, true);
+                    index += 2;
+                }
+                
+                // Create blob
+                const blob = new Blob([view], { type: 'audio/wav' });
+                resolve(blob);
+            });
+        }
+        
+        // Helper function to write a string to a DataView
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+        
+        // Process incoming audio data
+        function processAudioMessage(message) {
+            if (!message || !message.audio) return;
+            
+            // Create audio element
+            const audio = new Audio(`data:audio/wav;base64,${message.audio}`);
+            
+            // Play the audio
+            audio.play().catch(error => {
+                console.error('Error playing audio:', error);
+            });
         }
 
         // Take snapshot
@@ -2770,6 +3174,9 @@
             }
             // Start with chat hidden by default
             appContainer.classList.add('chat-hidden');
+            
+            // Request microphone permission early
+            requestMicrophonePermission();
 
             // Initialize main content height
             setTimeout(updateMainContentHeight, 100); // Short delay to ensure content is rendered
@@ -2878,6 +3285,118 @@
                 .chat-toggle:hover {
                     transform: scale(1.1);
                 }
+                
+                .mic-level-meter {
+                    width: 100%;
+                    height: 20px;
+                    background-color: rgba(0, 0, 0, 0.1);
+                    border-radius: 3px;
+                    overflow: hidden;
+                    margin: 15px 0;
+                }
+                
+                #micLevelBar {
+                    height: 100%;
+                    background-color: var(--accent);
+                    transition: width 0.1s ease, background-color 0.3s ease;
+                }
+                
+                                 #micTestStatus {
+                     margin-top: 5px;
+                     font-size: 14px;
+                     text-align: center;
+                 }
+                 
+                 .settings-tabs {
+                     margin-bottom: 15px;
+                 }
+                 
+                 .tab-buttons {
+                     display: flex;
+                     margin-bottom: 10px;
+                     border-bottom: 1px solid var(--border);
+                 }
+                 
+                 .tab-btn {
+                     background: none;
+                     border: none;
+                     padding: 8px 12px;
+                     margin: 0;
+                     cursor: pointer;
+                     color: var(--text-secondary);
+                     border-bottom: 2px solid transparent;
+                     transition: all 0.2s ease;
+                 }
+                 
+                 .tab-btn.active {
+                     color: var(--text-primary);
+                     border-bottom: 2px solid var(--accent);
+                 }
+                 
+                 .tab-content {
+                     display: none;
+                     padding: 10px 0;
+                 }
+                 
+                 .tab-content.active {
+                     display: block;
+                 }
+                 
+                 .checkbox-container {
+                     margin-bottom: 10px;
+                     display: flex;
+                     align-items: center;
+                 }
+                 
+                 .checkbox-container input[type="checkbox"] {
+                     margin-right: 8px;
+                 }
+                 
+                 /* Audio visualization styles */
+                 .audio-visualizer {
+                     width: 100%;
+                     height: 60px;
+                     background-color: rgba(0, 0, 0, 0.2);
+                     margin: 10px 0;
+                     border-radius: 3px;
+                     overflow: hidden;
+                     position: relative;
+                 }
+                 
+                 .visualizer-canvas {
+                     width: 100%;
+                     height: 100%;
+                 }
+                 
+                 /* Push-to-talk indicator */
+                 .push-to-talk-indicator {
+                     position: fixed;
+                     bottom: 80px;
+                     left: 50%;
+                     transform: translateX(-50%);
+                     background-color: rgba(0, 0, 0, 0.7);
+                     color: white;
+                     padding: 5px 15px;
+                     border-radius: 20px;
+                     font-size: 12px;
+                     z-index: 1000;
+                     display: none;
+                     align-items: center;
+                     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+                 }
+                 
+                 .push-to-talk-indicator .indicator-dot {
+                     width: 8px;
+                     height: 8px;
+                     background-color: #e74c3c;
+                     border-radius: 50%;
+                     margin-right: 8px;
+                     animation: pulse 1.5s infinite;
+                 }
+                 
+                 .push-to-talk-indicator.active .indicator-dot {
+                     background-color: #2ecc71;
+                 }
                 
                 @media (max-width: 1280px) {
                     .chat-toggle {
@@ -3006,6 +3525,7 @@
             startCameraBtn.addEventListener('click', startCameraStream);
             takeSnapshotBtn.addEventListener('click', takeSnapshot);
             refreshCamerasBtn.addEventListener('click', getAvailableCameras);
+            document.getElementById('testMicBtn').addEventListener('click', testMicrophoneLoopback);
 
             // Chat event listeners
             sendChatBtn.addEventListener('click', sendChatMessage);
@@ -3113,6 +3633,100 @@
             const actionSuperuser = isSuperuser ? document.getElementById('actionSuperuser') : null;
             const actionThemeToggle = document.getElementById('actionThemeToggle');
             const actionLogout = document.getElementById('actionLogout');
+
+            // Add audio toggle button
+            const actionAudioToggle = document.getElementById('actionAudioToggle') || createAudioToggleButton();
+            const actionRecordAudio = document.getElementById('actionRecordAudio');
+
+            // Add recording functionality
+            let recordingData = null;
+            actionRecordAudio.addEventListener('click', function() {
+                if (!isAudioEnabled) {
+                    showNotification('Enable microphone first to record audio', true);
+                    return;
+                }
+                
+                if (!isRecording) {
+                    // Start recording
+                    startAudioRecording();
+                    
+                    // Update UI
+                    actionRecordAudio.innerHTML = '<i class="fas fa-stop-circle"></i><span>Stop</span>';
+                    actionRecordAudio.classList.add('active');
+                    actionRecordAudio.style.color = '#e74c3c';
+                } else {
+                    // Stop recording
+                    stopAudioRecording().then(recordingInfo => {
+                        recordingData = recordingInfo;
+                        
+                        // Create recording playback UI
+                        const modal = document.createElement('div');
+                        modal.className = 'modal';
+                        modal.innerHTML = `
+                            <div class="modal-content">
+                                <h3>Recording Complete</h3>
+                                <p>Recording duration: ${Math.round(recordingInfo.duration)} seconds</p>
+                                <div class="settings-row">
+                                    <audio controls src="${recordingInfo.url}" style="width: 100%"></audio>
+                                </div>
+                                <div class="modal-buttons">
+                                    <button id="downloadRecordingBtn">Download</button>
+                                    <button id="shareRecordingBtn">Share with Peer</button>
+                                    <button id="closeRecordingBtn">Close</button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+                        
+                        // Event listeners for recording modal
+                        document.getElementById('downloadRecordingBtn').addEventListener('click', function() {
+                            downloadRecordedAudio(recordingInfo.url, `recording-${new Date().toISOString().replace(/:/g, '-')}.webm`);
+                        });
+                        
+                        document.getElementById('shareRecordingBtn').addEventListener('click', function() {
+                            if (connectedPeer) {
+                                // Convert blob to base64 for sharing
+                                const reader = new FileReader();
+                                reader.onloadend = function() {
+                                    const base64data = reader.result.split(',')[1];
+                                    
+                                    // Create chat message with audio attachment
+                                    const audioMessage = {
+                                        sender: currentUsername,
+                                        recipient: connectedPeer,
+                                        content: '[Audio Recording]',
+                                        timestamp: new Date().toISOString(),
+                                        type: 'AUDIO',
+                                        audioData: base64data
+                                    };
+                                    
+                                    // Send as a chat message
+                                    stompClient.send("/app/chat.send", {}, JSON.stringify(audioMessage));
+                                    addChatMessage(audioMessage);
+                                    
+                                    showNotification('Recording shared with peer');
+                                    document.body.removeChild(modal);
+                                };
+                                reader.readAsDataURL(recordingInfo.blob);
+                            } else {
+                                showNotification('No peer connected to share with', true);
+                            }
+                        });
+                        
+                        document.getElementById('closeRecordingBtn').addEventListener('click', function() {
+                            document.body.removeChild(modal);
+                        });
+                    });
+                    
+                    // Update UI
+                    actionRecordAudio.innerHTML = '<i class="fas fa-circle"></i><span>Record</span>';
+                    actionRecordAudio.classList.remove('active');
+                    actionRecordAudio.style.color = '';
+                }
+                
+                // Toggle recording state
+                isRecording = !isRecording;
+            });
 
             // Camera toggle action
             actionCameraToggle.addEventListener('click', function () {
@@ -3244,18 +3858,108 @@
                 const modal = document.createElement('div');
                 modal.className = 'modal';
                 modal.innerHTML = `
-                    <div class="modal-content">
-                        <h3>Camera Settings</h3>
-                        <div class="settings-row">
-                            <label for="modalCameraSelect">Select Camera:</label>
-                            <select id="modalCameraSelect">
-                                ${Array.from(cameraSelect.options).map(opt =>
-                    `<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.text}</option>`
-                ).join('')}
-                            </select>
+                    <div class="modal-content" style="width: 450px;">
+                        <h3>Settings</h3>
+                        <div class="settings-tabs">
+                            <div class="tab-buttons">
+                                <button id="cameraTabBtn" class="tab-btn active">Camera</button>
+                                <button id="audioTabBtn" class="tab-btn">Audio</button>
+                            </div>
+                            
+                            <div id="cameraTab" class="tab-content active">
+                                <div class="settings-row">
+                                    <label for="modalCameraSelect">Select Camera:</label>
+                                    <select id="modalCameraSelect">
+                                        ${Array.from(cameraSelect.options).map(opt =>
+                        `<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.text}</option>`
+                    ).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="videoQualitySelect">Video Quality:</label>
+                                    <select id="videoQualitySelect">
+                                        <option value="low">Low (480p)</option>
+                                        <option value="medium" selected>Medium (720p)</option>
+                                        <option value="high">High (1080p)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="videoFpsSelect">Frame Rate:</label>
+                                    <select id="videoFpsSelect">
+                                        <option value="15">15 FPS</option>
+                                        <option value="30" selected>30 FPS</option>
+                                        <option value="60">60 FPS</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="audioTab" class="tab-content">
+                                <div class="settings-row">
+                                    <label for="modalMicSelect">Select Microphone:</label>
+                                    <select id="modalMicSelect">
+                                        <option value="">Loading microphones...</option>
+                                    </select>
+                                    <button id="modalMicRefreshBtn" style="margin-top: 5px;">Refresh List</button>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="audioQualitySelect">Audio Quality:</label>
+                                    <select id="audioQualitySelect">
+                                        <option value="0.6">Low (Compressed)</option>
+                                        <option value="0.8" selected>Medium</option>
+                                        <option value="0.9">High</option>
+                                        <option value="1.0">Maximum</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="audioFormatSelect">Audio Format:</label>
+                                    <select id="audioFormatSelect">
+                                        <option value="opus" selected>Opus (Recommended)</option>
+                                        <option value="wav">WAV (Uncompressed)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="audioBitrateSelect">Bitrate:</label>
+                                    <select id="audioBitrateSelect">
+                                        <option value="16000">16 kbps (Low)</option>
+                                        <option value="32000">32 kbps</option>
+                                        <option value="64000" selected>64 kbps (Recommended)</option>
+                                        <option value="96000">96 kbps</option>
+                                        <option value="128000">128 kbps (High)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <button id="testMicBtnModal" style="width: 100%;">Test Microphone</button>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" id="noiseSuppressionCheckbox" checked>
+                                        <label for="noiseSuppressionCheckbox">Enable Noise Suppression</label>
+                                    </div>
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" id="echoCancellationCheckbox" checked>
+                                        <label for="echoCancellationCheckbox">Enable Echo Cancellation</label>
+                                    </div>
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" id="autoGainControlCheckbox" checked>
+                                        <label for="autoGainControlCheckbox">Enable Auto Gain Control</label>
+                                    </div>
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" id="pushToTalkCheckbox">
+                                        <label for="pushToTalkCheckbox">Enable Push-to-Talk (Spacebar)</label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        
                         <div class="modal-buttons">
-                            <button id="modalRefreshBtn">Refresh List</button>
+                            <button id="modalRefreshBtn">Refresh Devices</button>
                             <button id="modalSaveBtn">Save</button>
                             <button id="modalCancelBtn">Cancel</button>
                         </div>
@@ -3263,8 +3967,49 @@
                 `;
                 document.body.appendChild(modal);
 
+                // Load microphone options
+                loadAvailableMicrophones();
+
+                // Tab switching functionality
+                const cameraTabBtn = document.getElementById('cameraTabBtn');
+                const audioTabBtn = document.getElementById('audioTabBtn');
+                const cameraTab = document.getElementById('cameraTab');
+                const audioTab = document.getElementById('audioTab');
+
+                cameraTabBtn.addEventListener('click', () => {
+                    cameraTabBtn.classList.add('active');
+                    audioTabBtn.classList.remove('active');
+                    cameraTab.classList.add('active');
+                    audioTab.classList.remove('active');
+                });
+
+                audioTabBtn.addEventListener('click', () => {
+                    audioTabBtn.classList.add('active');
+                    cameraTabBtn.classList.remove('active');
+                    audioTab.classList.add('active');
+                    cameraTab.classList.remove('active');
+                });
+
+                // Load current audio settings
+                document.getElementById('audioQualitySelect').value = audioQuality.toString();
+                document.getElementById('audioFormatSelect').value = audioFormat;
+                document.getElementById('audioBitrateSelect').value = audioSamplingRate.toString();
+                document.getElementById('noiseSuppressionCheckbox').checked = noiseSuppressionEnabled;
+                document.getElementById('echoCancellationCheckbox').checked = echoCancellationEnabled;
+                document.getElementById('autoGainControlCheckbox').checked = autoGainControlEnabled;
+                document.getElementById('pushToTalkCheckbox').checked = pushToTalkEnabled;
+
+                // Mic test event listener
+                document.getElementById('testMicBtnModal').addEventListener('click', testMicrophoneLoopback);
+                
+                // Mic refresh button
+                document.getElementById('modalMicRefreshBtn').addEventListener('click', () => {
+                    loadAvailableMicrophones();
+                });
+
                 // Set up event handlers
                 document.getElementById('modalRefreshBtn').addEventListener('click', function () {
+                    // Refresh camera list
                     getAvailableCameras().then(() => {
                         // Update the modal select with new cameras
                         const modalSelect = document.getElementById('modalCameraSelect');
@@ -3277,14 +4022,47 @@
                             modalSelect.appendChild(newOpt);
                         });
                     });
+                    
+                    // Refresh microphone list
+                    loadAvailableMicrophones();
                 });
 
                 document.getElementById('modalSaveBtn').addEventListener('click', function () {
-                    const modalSelect = document.getElementById('modalCameraSelect');
-                    selectedCamera = modalSelect.value;
+                    // Save camera settings
+                    const modalCameraSelect = document.getElementById('modalCameraSelect');
+                    selectedCamera = modalCameraSelect.value;
                     cameraSelect.value = selectedCamera;
+                    
+                    // Save video settings (for future implementation)
+                    const videoQuality = document.getElementById('videoQualitySelect').value;
+                    const videoFps = document.getElementById('videoFpsSelect').value;
+                    
+                    // Save audio settings
+                    const modalMicSelect = document.getElementById('modalMicSelect');
+                    if (modalMicSelect.value) {
+                        selectedMicrophone = modalMicSelect.value;
+                    }
+                    
+                    audioQuality = parseFloat(document.getElementById('audioQualitySelect').value);
+                    audioFormat = document.getElementById('audioFormatSelect').value;
+                    audioSamplingRate = parseInt(document.getElementById('audioBitrateSelect').value);
+                    
+                    noiseSuppressionEnabled = document.getElementById('noiseSuppressionCheckbox').checked;
+                    echoCancellationEnabled = document.getElementById('echoCancellationCheckbox').checked;
+                    autoGainControlEnabled = document.getElementById('autoGainControlCheckbox').checked;
+                    pushToTalkEnabled = document.getElementById('pushToTalkCheckbox').checked;
+                    
+                    // If audio is currently active, restart it with new settings
+                    if (isAudioEnabled) {
+                        stopAudioStream();
+                        setTimeout(initAudioStream, 500);
+                    }
+                    
+                    // Apply push-to-talk changes
+                    setupPushToTalk(pushToTalkEnabled);
+                    
                     document.body.removeChild(modal);
-                    showNotification('Camera settings saved');
+                    showNotification('Settings saved');
                 });
 
                 document.getElementById('modalCancelBtn').addEventListener('click', function () {
@@ -3411,10 +4189,36 @@
                 actionCameraToggle.classList.add('active');
                 actionCameraToggle.innerHTML = '<i class="fas fa-video-slash"></i><span>Stop</span>';
                 actionSnapshot.disabled = false;
+                
+                // Enable audio button when streaming
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = false;
+                }
             } else {
                 actionCameraToggle.classList.remove('active');
                 actionCameraToggle.innerHTML = '<i class="fas fa-video"></i><span>Camera</span>';
                 actionSnapshot.disabled = true;
+                
+                // Disable audio button when not streaming
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = true;
+                    actionAudioToggle.classList.remove('active');
+                    actionAudioToggle.innerHTML = '<i class="fas fa-microphone-slash"></i><span>Muted</span>';
+                }
+            }
+
+            // Audio toggle button
+            if (actionAudioToggle) {
+                if (isAudioEnabled) {
+                    actionAudioToggle.classList.add('active');
+                    actionAudioToggle.innerHTML = '<i class="fas fa-microphone"></i><span>Unmuted</span>';
+                } else {
+                    actionAudioToggle.classList.remove('active');
+                    actionAudioToggle.innerHTML = '<i class="fas fa-microphone-slash"></i><span>Muted</span>';
+                }
+                
+                // Only enable if streaming and have peer
+                actionAudioToggle.disabled = !(isStreaming && connectedPeer);
             }
 
             // Chat toggle button
@@ -3428,9 +4232,20 @@
             if (connectedPeer) {
                 actionEndSession.style.display = 'flex';
                 if (actionSession) actionSession.style.display = 'none';
+                
+                // Enable audio toggle when connected to peer
+                if (actionAudioToggle && isStreaming) {
+                    actionAudioToggle.disabled = false;
+                }
             } else {
                 actionEndSession.style.display = 'none';
                 if (actionSession) actionSession.style.display = 'flex';
+                
+                // Disable audio toggle when not connected
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = true;
+                    stopAudioStream();
+                }
             }
 
             // Theme button
@@ -3440,6 +4255,538 @@
                 actionThemeToggle.innerHTML = '<i class="fas fa-sun"></i><span>Light</span>';
             }
         }
+
+        // Process incoming audio data
+        function processAudioMessage(message) {
+            if (!message || !message.audio) return;
+            
+            // Create audio element
+            const audio = new Audio(`data:audio/wav;base64,${message.audio}`);
+            
+            // Play the audio
+            audio.play().catch(error => {
+                console.error('Error playing audio:', error);
+            });
+        }
+        
+        // Load available microphones
+        async function loadAvailableMicrophones() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const micDevices = devices.filter(device => device.kind === 'audioinput');
+                
+                // Get the select element (works for both modal and main view)
+                const micSelect = document.getElementById('modalMicSelect');
+                if (!micSelect) return;
+                
+                // Clear existing options
+                micSelect.innerHTML = '';
+                
+                if (micDevices.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.text = 'No microphones found';
+                    micSelect.appendChild(option);
+                    return;
+                }
+                
+                // Add each microphone device
+                micDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Microphone ${micSelect.options.length}`;
+                    
+                    // Select the current microphone if one is set
+                    if (selectedMicrophone && device.deviceId === selectedMicrophone) {
+                        option.selected = true;
+                    }
+                    
+                    micSelect.appendChild(option);
+                });
+                
+                // If no microphone is selected yet, select the first one
+                if (!selectedMicrophone && micDevices.length > 0) {
+                    selectedMicrophone = micDevices[0].deviceId;
+                    if (micSelect.options.length > 0) {
+                        micSelect.options[0].selected = true;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading microphones:', error);
+                showNotification('Error accessing microphones. Please check permissions.', true);
+            }
+        }
+        
+        // Set up push-to-talk functionality
+        function setupPushToTalk(enabled) {
+            // Remove existing listeners first
+            document.removeEventListener('keydown', handlePushToTalkKeyDown);
+            document.removeEventListener('keyup', handlePushToTalkKeyUp);
+            
+            // Create or get the push-to-talk indicator
+            let pttIndicator = document.getElementById('pushToTalkIndicator');
+            if (!pttIndicator) {
+                pttIndicator = document.createElement('div');
+                pttIndicator.id = 'pushToTalkIndicator';
+                pttIndicator.className = 'push-to-talk-indicator';
+                pttIndicator.innerHTML = `
+                    <div class="indicator-dot"></div>
+                    <span>Press Spacebar to Talk</span>
+                `;
+                document.body.appendChild(pttIndicator);
+            }
+            
+            if (enabled) {
+                // Add keydown/keyup listeners
+                document.addEventListener('keydown', handlePushToTalkKeyDown);
+                document.addEventListener('keyup', handlePushToTalkKeyUp);
+                
+                // Show indicator if audio is enabled
+                if (isAudioEnabled) {
+                    pttIndicator.style.display = 'flex';
+                }
+                
+                // Mute the microphone initially
+                setMicrophoneMuted(true);
+            } else {
+                // Hide the indicator
+                pttIndicator.style.display = 'none';
+                
+                // Unmute the microphone if audio is enabled
+                if (isAudioEnabled) {
+                    setMicrophoneMuted(false);
+                }
+            }
+            
+            pushToTalkEnabled = enabled;
+        }
+        
+        // Handle push-to-talk key down
+        function handlePushToTalkKeyDown(event) {
+            if (event.key === pushToTalkKey && isAudioEnabled && !isPushToTalkActive) {
+                isPushToTalkActive = true;
+                setMicrophoneMuted(false);
+                
+                // Update the indicator
+                const pttIndicator = document.getElementById('pushToTalkIndicator');
+                if (pttIndicator) {
+                    pttIndicator.classList.add('active');
+                    pttIndicator.querySelector('span').textContent = 'Talking...';
+                }
+            }
+        }
+        
+        // Handle push-to-talk key up
+        function handlePushToTalkKeyUp(event) {
+            if (event.key === pushToTalkKey && isAudioEnabled && isPushToTalkActive) {
+                isPushToTalkActive = false;
+                setMicrophoneMuted(true);
+                
+                // Update the indicator
+                const pttIndicator = document.getElementById('pushToTalkIndicator');
+                if (pttIndicator) {
+                    pttIndicator.classList.remove('active');
+                    pttIndicator.querySelector('span').textContent = 'Press Spacebar to Talk';
+                }
+            }
+        }
+        
+        // Set microphone muted state
+        function setMicrophoneMuted(muted) {
+            if (!audioStream) return;
+            
+            // Get audio tracks and set enabled state
+            const audioTracks = audioStream.getAudioTracks();
+            audioTracks.forEach(track => {
+                track.enabled = !muted;
+            });
+        }
+        
+        // Setup audio visualization
+        function setupAudioVisualization(containerId) {
+            // Stop any existing visualization
+            if (visualizationInterval) {
+                clearInterval(visualizationInterval);
+                visualizationInterval = null;
+            }
+            
+            if (!audioContext || !audioStream) {
+                console.warn('Cannot setup visualization: missing audio context or stream');
+                return;
+            }
+            
+            // Get or create container
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Create a visualizer if it doesn't exist
+            let visualizer = container.querySelector('.audio-visualizer');
+            if (!visualizer) {
+                visualizer = document.createElement('div');
+                visualizer.className = 'audio-visualizer';
+                container.appendChild(visualizer);
+            }
+            
+            // Create canvas if it doesn't exist
+            visualizationCanvas = visualizer.querySelector('canvas');
+            if (!visualizationCanvas) {
+                visualizationCanvas = document.createElement('canvas');
+                visualizationCanvas.className = 'visualizer-canvas';
+                visualizer.appendChild(visualizationCanvas);
+            }
+            
+            // Set canvas dimensions
+            visualizationCanvas.width = visualizer.clientWidth;
+            visualizationCanvas.height = visualizer.clientHeight;
+            
+            // Get canvas context
+            visualizationContext = visualizationCanvas.getContext('2d');
+            
+            // Create analyzer if it doesn't exist
+            if (!audioAnalyser) {
+                audioAnalyser = audioContext.createAnalyser();
+                audioAnalyser.fftSize = 256;
+                
+                // Connect the audio source to the analyzer
+                if (audioSource) {
+                    audioSource.connect(audioAnalyser);
+                }
+            }
+            
+            // Start visualization
+            visualizationActive = true;
+            drawAudioVisualization();
+        }
+        
+        // Draw audio visualization
+        function drawAudioVisualization() {
+            if (!visualizationActive || !audioAnalyser || !visualizationCanvas || !visualizationContext) {
+                return;
+            }
+            
+            // Set up animation frame
+            visualizationInterval = requestAnimationFrame(drawAudioVisualization);
+            
+            // Get frequency data
+            const bufferLength = audioAnalyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            audioAnalyser.getByteFrequencyData(dataArray);
+            
+            // Clear the canvas
+            visualizationContext.clearRect(0, 0, visualizationCanvas.width, visualizationCanvas.height);
+            
+            // Set up drawing
+            const width = visualizationCanvas.width;
+            const height = visualizationCanvas.height;
+            const barWidth = (width / bufferLength) * 2.5;
+            let x = 0;
+            
+            // Draw bars for each frequency
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * height;
+                
+                // Gradient based on frequency
+                const hue = i / bufferLength * 360;
+                visualizationContext.fillStyle = `hsl(${hue}, 90%, 50%)`;
+                
+                visualizationContext.fillRect(x, height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+        
+        // Stop audio visualization
+        function stopAudioVisualization() {
+            visualizationActive = false;
+            if (visualizationInterval) {
+                cancelAnimationFrame(visualizationInterval);
+                visualizationInterval = null;
+            }
+            
+            // Clear canvas if it exists
+            if (visualizationContext && visualizationCanvas) {
+                visualizationContext.clearRect(0, 0, visualizationCanvas.width, visualizationCanvas.height);
+            }
+        }
+        
+        // Start audio recording
+        function startAudioRecording() {
+            if (!audioStream || isRecording) return;
+            
+            try {
+                // Create media recorder
+                mediaRecorder = new MediaRecorder(audioStream, {
+                    mimeType: 'audio/webm'
+                });
+                
+                // Clear previous recording
+                recordedChunks = [];
+                
+                // Set up data handling
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                // Start recording
+                mediaRecorder.start(100); // Collect data in 100ms chunks
+                recordingStartTime = Date.now();
+                isRecording = true;
+                
+                showNotification('Recording started');
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                showNotification('Error starting recording', true);
+                isRecording = false;
+            }
+        }
+        
+        // Stop audio recording
+        function stopAudioRecording() {
+            if (!mediaRecorder || !isRecording) return;
+            
+            return new Promise((resolve) => {
+                mediaRecorder.onstop = () => {
+                    // Create a blob from the recorded chunks
+                    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    
+                    // Create a URL for the blob
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Calculate recording duration
+                    const duration = (Date.now() - recordingStartTime) / 1000;
+                    
+                    // Reset recording state
+                    isRecording = false;
+                    recordingStartTime = null;
+                    
+                    showNotification('Recording stopped');
+                    
+                    // Resolve with the recording info
+                    resolve({
+                        url: url,
+                        blob: blob,
+                        duration: duration,
+                        timestamp: new Date().toISOString()
+                    });
+                };
+                
+                // Stop the recorder
+                mediaRecorder.stop();
+            });
+        }
+        
+        // Play back recorded audio
+        function playRecordedAudio(url) {
+            const audio = new Audio(url);
+            audio.play().catch(error => {
+                console.error('Error playing recorded audio:', error);
+                showNotification('Error playing recording', true);
+            });
+        }
+        
+        // Download recorded audio
+        function downloadRecordedAudio(url, filename) {
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename || `recording-${new Date().toISOString()}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        // Request microphone permission early
+        async function requestMicrophonePermission() {
+            try {
+                console.log('Requesting microphone permission...');
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('Microphone permission granted!');
+                
+                // Stop the test stream immediately
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Update UI to show mic is available
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = false;
+                }
+                
+                showNotification('Microphone access granted');
+            } catch (error) {
+                console.error('Microphone permission denied:', error);
+                showNotification('Microphone access denied. Audio features will not be available.', true);
+                
+                // Update UI to show mic is not available
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = true;
+                    actionAudioToggle.title = 'Microphone access denied';
+                }
+            }
+        }
+        
+        // Test microphone with loopback
+        function testMicrophoneLoopback() {
+            if (isAudioEnabled) {
+                // If audio is already enabled, stop it first
+                stopAudioStream();
+                showNotification('Please wait, testing microphone...');
+            }
+            
+            // Create a modal for the microphone test
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="width: 400px;">
+                    <h3>Microphone Test</h3>
+                    <p>Speak into your microphone to test audio.</p>
+                    <div class="mic-test-container">
+                        <div class="mic-level-meter">
+                            <div id="micLevelBar" style="width: 0%; height: 20px; background-color: var(--accent); transition: width 0.1s;"></div>
+                        </div>
+                        <div id="micTestStatus">Listening...</div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <label>
+                            <input type="checkbox" id="micLoopbackCheckbox" checked> 
+                            Enable loopback (hear yourself)
+                        </label>
+                    </div>
+                    <div class="modal-buttons" style="margin-top: 20px;">
+                        <button id="stopMicTestBtn" class="danger">Stop Test</button>
+                        <button id="closeMicTestBtn">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            let audioCtx, analyser, microphone, loopbackEnabled = true;
+            let testStream = null;
+            
+            // Set up audio context and analyzer
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    testStream = stream;
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioCtx.createAnalyser();
+                    microphone = audioCtx.createMediaStreamSource(stream);
+                    
+                    // Configure analyser
+                    analyser.fftSize = 256;
+                    analyser.smoothingTimeConstant = 0.8;
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    
+                    // Connect microphone to analyser
+                    microphone.connect(analyser);
+                    
+                    // For loopback (hearing yourself)
+                    const loopbackCheckbox = document.getElementById('micLoopbackCheckbox');
+                    loopbackCheckbox.addEventListener('change', function() {
+                        loopbackEnabled = this.checked;
+                        if (loopbackEnabled) {
+                            analyser.connect(audioCtx.destination);
+                        } else {
+                            analyser.disconnect(audioCtx.destination);
+                        }
+                    });
+                    
+                    // Enable loopback initially if checkbox is checked
+                    if (loopbackEnabled) {
+                        analyser.connect(audioCtx.destination);
+                    }
+                    
+                    // Update the level meter
+                    function updateMeter() {
+                        // Get audio data
+                        analyser.getByteFrequencyData(dataArray);
+                        
+                        // Calculate volume level (0-100)
+                        let sum = 0;
+                        for (let i = 0; i < bufferLength; i++) {
+                            sum += dataArray[i];
+                        }
+                        const average = sum / bufferLength;
+                        const level = Math.min(100, Math.max(0, average * 1.5)); // Scale it up a bit
+                        
+                        // Update meter
+                        const levelBar = document.getElementById('micLevelBar');
+                        const statusText = document.getElementById('micTestStatus');
+                        
+                        if (levelBar) {
+                            levelBar.style.width = level + '%';
+                            
+                            // Change color based on level
+                            if (level > 75) {
+                                levelBar.style.backgroundColor = '#e74c3c'; // Red for loud
+                            } else if (level > 30) {
+                                levelBar.style.backgroundColor = '#2ecc71'; // Green for good
+                            } else {
+                                levelBar.style.backgroundColor = '#3498db'; // Blue for quiet
+                            }
+                            
+                            // Update status text
+                            if (level < 5) {
+                                statusText.textContent = 'No sound detected. Please speak.';
+                            } else if (level < 30) {
+                                statusText.textContent = 'Sound detected (quiet).';
+                            } else if (level < 75) {
+                                statusText.textContent = 'Sound level good.';
+                            } else {
+                                statusText.textContent = 'Sound level high!';
+                            }
+                        }
+                        
+                        // Continue updating if the modal is still open
+                        if (document.body.contains(modal)) {
+                            requestAnimationFrame(updateMeter);
+                        }
+                    }
+                    
+                    // Start updating the meter
+                    updateMeter();
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone for test:', error);
+                    const statusText = document.getElementById('micTestStatus');
+                    if (statusText) {
+                        statusText.textContent = 'Error accessing microphone: ' + error.message;
+                        statusText.style.color = 'red';
+                    }
+                });
+                
+            // Event listeners for buttons
+            document.getElementById('stopMicTestBtn').addEventListener('click', function() {
+                if (testStream) {
+                    testStream.getTracks().forEach(track => track.stop());
+                }
+                
+                if (audioCtx) {
+                    audioCtx.close();
+                }
+                
+                const statusText = document.getElementById('micTestStatus');
+                if (statusText) {
+                    statusText.textContent = 'Test stopped.';
+                }
+            });
+            
+            document.getElementById('closeMicTestBtn').addEventListener('click', function() {
+                if (testStream) {
+                    testStream.getTracks().forEach(track => track.stop());
+                }
+                
+                if (audioCtx) {
+                    audioCtx.close();
+                }
+                
+                document.body.removeChild(modal);
+            });
+        }
+
+        // Take snapshot
     </script>
 </body>
 
