@@ -4,6 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Service for camera operations
  * This version only handles client camera streams, no server-side camera usage
@@ -54,5 +57,21 @@ public class CameraService {
     public String takeSnapshot() {
         log.info("Server-side camera snapshots are disabled, use client cameras only");
         return null;
+    }
+
+    /**
+     * Get camera statistics
+     * @return Map of statistics
+     */
+    public Map<String, Object> getStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Camera status
+        stats.put("camera_streaming", isStreaming());
+        stats.put("camera_using_fallback", isUsingFallback());
+        stats.put("server_camera_enabled", false);
+        stats.put("client_camera_mode", true);
+        
+        return stats;
     }
 }

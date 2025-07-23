@@ -86,38 +86,126 @@
             border-left: 4px solid #ffd600;
             margin: 20px 0;
         }
+        .deprecated {
+            background-color: #ffebee;
+            padding: 5px 10px;
+            border-radius: 3px;
+            color: #d32f2f;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background-color: #e8f4fd;
+            color: #0277bd;
+            font-size: 0.8em;
+            margin-right: 5px;
+        }
+        .section-nav {
+            background-color: #f8f9fa;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .section-nav ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .section-nav li {
+            margin-bottom: 5px;
+        }
+        .param-required {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        .param-optional {
+            color: #7f8c8d;
+        }
+        .response-success {
+            border-left: 4px solid #2ecc71;
+        }
+        .response-error {
+            border-left: 4px solid #e74c3c;
+        }
     </style>
 </head>
 <body>
-    <h1>CamCheck API Guide</h1>
+    <h1>CamCheck API Guide v1.0</h1>
     
-    <p>This guide provides information on how to use the CamCheck API. For a complete and interactive API documentation, visit the <a href="/swagger-ui.html">Swagger UI</a>.</p>
+    <p>This guide provides comprehensive information on how to use the CamCheck API. For an interactive API documentation experience, visit the <a href="/swagger-ui.html">Swagger UI</a>.</p>
     
     <div class="note">
-        <strong>Note:</strong> All API endpoints require authentication unless otherwise specified.
+        <strong>Note:</strong> All API endpoints require authentication unless otherwise specified. API version v1 is the current stable release.
+    </div>
+    
+    <div class="section-nav">
+        <h3>Quick Navigation</h3>
+        <ul>
+            <li><a href="#authentication">Authentication</a></li>
+            <li><a href="#camera-endpoints">Camera Endpoints</a></li>
+            <li><a href="#session-endpoints">Session Endpoints</a></li>
+            <li><a href="#user-endpoints">User Endpoints</a></li>
+            <li><a href="#system-endpoints">System Endpoints</a></li>
+            <li><a href="#error-handling">Error Handling</a></li>
+            <li><a href="#rate-limiting">Rate Limiting</a></li>
+            <li><a href="#examples">Example Usage</a></li>
+        </ul>
     </div>
     
     <h2>Base URL</h2>
     <p>The base URL for all API endpoints is:</p>
     <pre><code>https://your-domain.com/api/v1</code></pre>
     
-    <h2>Authentication</h2>
-    <p>The API uses Basic Authentication. Include your username and password with each request.</p>
+    <h2 id="authentication">Authentication</h2>
+    <p>The API supports two authentication methods:</p>
     
-    <h2>Endpoints</h2>
+    <h3>Basic Authentication</h3>
+    <p>Include your username and password with each request using HTTP Basic Authentication.</p>
+    <pre><code>Authorization: Basic base64(username:password)</code></pre>
+    
+    <h3>Token Authentication</h3>
+    <p>For better security in production environments, use token-based authentication:</p>
+    <ol>
+        <li>Obtain a token using the <code>/api/v1/auth/token</code> endpoint</li>
+        <li>Include the token in the Authorization header of subsequent requests:</li>
+    </ol>
+    <pre><code>Authorization: Bearer your_token_here</code></pre>
+    
+    <h2 id="camera-endpoints">Camera Endpoints</h2>
     
     <div class="endpoint">
         <h3><span class="method get">GET</span> <span class="path">/status</span></h3>
         <p>Get the current status of the camera system.</p>
         
+        <h4>Query Parameters</h4>
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Required</th>
+            </tr>
+            <tr>
+                <td>details</td>
+                <td>boolean</td>
+                <td>Include detailed status information</td>
+                <td class="param-optional">Optional</td>
+            </tr>
+        </table>
+        
         <h4>Response</h4>
-        <pre><code>{
+        <pre class="response-success"><code>{
   "status": "success",
   "message": null,
   "data": {
     "streaming": true,
-    "motionDetection": true,
-    "recording": false
+    "motionDetection": false,
+    "recording": false,
+    "clientCameraOnly": true,
+    "activeConnections": 2,
+    "systemUptime": "2d 5h 30m"
   }
 }</code></pre>
     </div>
@@ -126,12 +214,48 @@
         <h3><span class="method post">POST</span> <span class="path">/camera/stream/start</span></h3>
         <p>Start camera streaming.</p>
         
-        <h4>Response</h4>
+        <h4>Request Body</h4>
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Required</th>
+            </tr>
+            <tr>
+                <td>deviceId</td>
+                <td>string</td>
+                <td>Camera device ID to use</td>
+                <td class="param-optional">Optional</td>
+            </tr>
+            <tr>
+                <td>resolution</td>
+                <td>object</td>
+                <td>Desired resolution (width, height)</td>
+                <td class="param-optional">Optional</td>
+            </tr>
+        </table>
+        
+        <h4>Example Request</h4>
         <pre><code>{
+  "deviceId": "camera1",
+  "resolution": {
+    "width": 640,
+    "height": 480
+  }
+}</code></pre>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
   "status": "success",
-  "message": null,
+  "message": "Camera streaming started",
   "data": {
-    "streaming": true
+    "streaming": true,
+    "deviceId": "camera1",
+    "resolution": {
+      "width": 640,
+      "height": 480
+    }
   }
 }</code></pre>
     </div>
@@ -141,9 +265,9 @@
         <p>Stop camera streaming.</p>
         
         <h4>Response</h4>
-        <pre><code>{
+        <pre class="response-success"><code>{
   "status": "success",
-  "message": null,
+  "message": "Camera streaming stopped",
   "data": {
     "streaming": false
   }
@@ -154,12 +278,36 @@
         <h3><span class="method get">GET</span> <span class="path">/camera/snapshot</span></h3>
         <p>Take a snapshot from the camera.</p>
         
+        <h4>Query Parameters</h4>
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Required</th>
+            </tr>
+            <tr>
+                <td>quality</td>
+                <td>integer</td>
+                <td>JPEG quality (1-100)</td>
+                <td class="param-optional">Optional (default: 85)</td>
+            </tr>
+            <tr>
+                <td>format</td>
+                <td>string</td>
+                <td>Image format (jpeg, png)</td>
+                <td class="param-optional">Optional (default: jpeg)</td>
+            </tr>
+        </table>
+        
         <h4>Response</h4>
-        <pre><code>{
+        <pre class="response-success"><code>{
   "status": "success",
-  "message": null,
+  "message": "Snapshot taken successfully",
   "data": {
-    "image": "base64_encoded_image_data..."
+    "image": "base64_encoded_image_data...",
+    "timestamp": "2023-06-15T14:32:10.123Z",
+    "format": "jpeg"
   }
 }</code></pre>
     </div>
@@ -174,66 +322,424 @@
                 <th>Parameter</th>
                 <th>Type</th>
                 <th>Description</th>
+                <th>Required</th>
             </tr>
             <tr>
                 <td>enabled</td>
                 <td>boolean</td>
                 <td>Set to <code>true</code> to enable, <code>false</code> to disable</td>
+                <td class="param-required">Required</td>
+            </tr>
+        </table>
+        
+        <h4>Request Body</h4>
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Required</th>
+            </tr>
+            <tr>
+                <td>sensitivity</td>
+                <td>integer</td>
+                <td>Motion detection sensitivity (1-100)</td>
+                <td class="param-optional">Optional</td>
+            </tr>
+            <tr>
+                <td>cooldownPeriod</td>
+                <td>integer</td>
+                <td>Cooldown period in milliseconds</td>
+                <td class="param-optional">Optional</td>
+            </tr>
+        </table>
+        
+        <h4>Example Request</h4>
+        <pre><code>{
+  "sensitivity": 75,
+  "cooldownPeriod": 5000
+}</code></pre>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
+  "status": "success",
+  "message": "Motion detection settings updated",
+  "data": {
+    "motionDetection": true,
+    "sensitivity": 75,
+    "cooldownPeriod": 5000
+  }
+}</code></pre>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> <span class="path">/cameras</span></h3>
+        <p>Get list of available cameras.</p>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
+  "status": "success",
+  "message": null,
+  "data": {
+    "cameras": [
+      {
+        "id": "camera1",
+        "name": "Built-in Webcam",
+        "capabilities": {
+          "maxResolution": {
+            "width": 1280,
+            "height": 720
+          },
+          "supportedFormats": ["jpeg", "png"]
+        }
+      }
+    ],
+    "count": 1
+  }
+}</code></pre>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> <span class="path">/cameras/detect</span></h3>
+        <p>Detect available cameras on the system.</p>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
+  "status": "success",
+  "message": "Camera detection completed",
+  "data": {
+    "cameras": [
+      {
+        "id": "camera1",
+        "name": "Built-in Webcam",
+        "capabilities": {
+          "maxResolution": {
+            "width": 1280,
+            "height": 720
+          }
+        }
+      }
+    ],
+    "count": 1
+  }
+}</code></pre>
+    </div>
+    
+    <h2 id="session-endpoints">Session Endpoints</h2>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> <span class="path">/session/create</span> <span class="tag">Admin</span></h3>
+        <p>Create a new camera viewing session.</p>
+        
+        <h4>Request Body</h4>
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Required</th>
+            </tr>
+            <tr>
+                <td>expirationMinutes</td>
+                <td>integer</td>
+                <td>Session expiration time in minutes</td>
+                <td class="param-optional">Optional (default: 10)</td>
             </tr>
         </table>
         
         <h4>Response</h4>
-        <pre><code>{
+        <pre class="response-success"><code>{
   "status": "success",
-  "message": null,
+  "message": "Session created successfully",
   "data": {
-    "motionDetection": true
+    "sessionCode": "123456",
+    "expiresAt": "2023-06-15T15:30:00.000Z"
   }
 }</code></pre>
     </div>
     
     <div class="endpoint">
-        <h3><span class="method post">POST</span> <span class="path">/recording/start</span></h3>
-        <p>Start recording video.</p>
+        <h3><span class="method post">POST</span> <span class="path">/session/join</span> <span class="tag">User</span></h3>
+        <p>Join an existing camera viewing session.</p>
+        
+        <h4>Request Body</h4>
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Required</th>
+            </tr>
+            <tr>
+                <td>sessionCode</td>
+                <td>string</td>
+                <td>Session code provided by admin</td>
+                <td class="param-required">Required</td>
+            </tr>
+        </table>
         
         <h4>Response</h4>
-        <pre><code>{
+        <pre class="response-success"><code>{
   "status": "success",
-  "message": null,
+  "message": "Session joined successfully",
   "data": {
-    "recording": true
+    "connectedTo": "admin_username",
+    "sessionStarted": "2023-06-15T14:30:00.000Z"
   }
 }</code></pre>
     </div>
     
     <div class="endpoint">
-        <h3><span class="method post">POST</span> <span class="path">/recording/stop</span></h3>
-        <p>Stop recording video.</p>
+        <h3><span class="method post">POST</span> <span class="path">/session/end</span></h3>
+        <p>End an active camera viewing session.</p>
         
         <h4>Response</h4>
-        <pre><code>{
+        <pre class="response-success"><code>{
   "status": "success",
-  "message": null,
+  "message": "Session ended successfully",
   "data": {
-    "recording": false
+    "sessionDuration": "00:15:30"
   }
 }</code></pre>
     </div>
     
-    <h2>Error Handling</h2>
-    <p>In case of an error, the API returns a response with status "error" and an error message:</p>
-    <pre><code>{
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> <span class="path">/session/active</span> <span class="tag">Superuser</span></h3>
+        <p>Get list of all active sessions in the system.</p>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
+  "status": "success",
+  "message": null,
+  "data": {
+    "activeSessions": [
+      {
+        "sessionId": "sess_123456",
+        "admin": "admin_user",
+        "user": "regular_user",
+        "startedAt": "2023-06-15T14:30:00.000Z",
+        "duration": "00:05:30"
+      }
+    ],
+    "count": 1
+  }
+}</code></pre>
+    </div>
+    
+    <h2 id="user-endpoints">User Endpoints</h2>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> <span class="path">/users/active</span> <span class="tag">Superuser</span></h3>
+        <p>Get list of users with active cameras.</p>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
+  "status": "success",
+  "message": null,
+  "data": {
+    "activeUsers": [
+      {
+        "username": "user1",
+        "lastActive": "2023-06-15T14:32:10.123Z",
+        "cameraActive": true
+      }
+    ],
+    "count": 1
+  }
+}</code></pre>
+    </div>
+    
+    <h2 id="system-endpoints">System Endpoints</h2>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> <span class="path">/settings</span></h3>
+        <p>Get current system settings.</p>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
+  "status": "success",
+  "message": null,
+  "data": {
+    "settings": {
+      "frameRate": 30,
+      "forceFallback": false,
+      "sensitivity": 75,
+      "ipCameraUrl": "http://example.com/camera",
+      "clientCameraOnly": true,
+      "storageSettings": {
+        "recordOnMotion": false,
+        "maxSizeMb": 1000,
+        "deleteOldest": true
+      }
+    }
+  }
+}</code></pre>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> <span class="path">/settings</span> <span class="tag">Admin</span></h3>
+        <p>Update system settings.</p>
+        
+        <h4>Request Body</h4>
+        <pre><code>{
+  "frameRate": 30,
+  "sensitivity": 80,
+  "storageSettings": {
+    "recordOnMotion": true,
+    "maxSizeMb": 2000
+  }
+}</code></pre>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
+  "status": "success",
+  "message": "Settings updated successfully",
+  "data": {
+    "updatedSettings": {
+      "frameRate": 30,
+      "sensitivity": 80,
+      "storageSettings": {
+        "recordOnMotion": true,
+        "maxSizeMb": 2000
+      }
+    }
+  }
+}</code></pre>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> <span class="path">/system/restart</span> <span class="tag">Admin</span></h3>
+        <p>Restart the system.</p>
+        
+        <h4>Response</h4>
+        <pre class="response-success"><code>{
+  "status": "success",
+  "message": "System restart initiated",
+  "data": {
+    "estimatedDowntime": "30 seconds"
+  }
+}</code></pre>
+    </div>
+    
+    <h2 id="error-handling">Error Handling</h2>
+    <p>In case of an error, the API returns a response with status "error" and a standardized error code:</p>
+    <pre class="response-error"><code>{
   "status": "error",
-  "message": "Error description",
+  "message": "Detailed error description",
+  "error": {
+    "code": "CAMERA_NOT_AVAILABLE",
+    "details": "The requested camera device is not available or access is denied",
+    "timestamp": "2023-06-15T14:32:10.123Z",
+    "requestId": "req_abc123"
+  },
   "data": null
 }</code></pre>
+
+    <h3>Common Error Codes</h3>
+    <table>
+        <tr>
+            <th>Error Code</th>
+            <th>Description</th>
+            <th>HTTP Status</th>
+        </tr>
+        <tr>
+            <td>AUTHENTICATION_FAILED</td>
+            <td>Invalid credentials provided</td>
+            <td>401</td>
+        </tr>
+        <tr>
+            <td>PERMISSION_DENIED</td>
+            <td>User does not have permission for this operation</td>
+            <td>403</td>
+        </tr>
+        <tr>
+            <td>RESOURCE_NOT_FOUND</td>
+            <td>The requested resource does not exist</td>
+            <td>404</td>
+        </tr>
+        <tr>
+            <td>CAMERA_NOT_AVAILABLE</td>
+            <td>Camera is not available or access is denied</td>
+            <td>400</td>
+        </tr>
+        <tr>
+            <td>SESSION_EXPIRED</td>
+            <td>The session has expired</td>
+            <td>400</td>
+        </tr>
+        <tr>
+            <td>INVALID_REQUEST</td>
+            <td>The request is invalid or malformed</td>
+            <td>400</td>
+        </tr>
+        <tr>
+            <td>INTERNAL_ERROR</td>
+            <td>An internal server error occurred</td>
+            <td>500</td>
+        </tr>
+    </table>
     
-    <h2>Example Usage</h2>
-    <p>Example using curl to get camera status:</p>
-    <pre><code>curl -X GET "https://your-domain.com/api/v1/status" -u username:password -H "accept: application/json"</code></pre>
+    <h2 id="rate-limiting">Rate Limiting</h2>
+    <p>To protect the API from abuse, rate limiting is applied to all endpoints. The current limits are:</p>
+    <ul>
+        <li>Standard endpoints: 60 requests per minute</li>
+        <li>Camera streaming endpoints: 120 requests per minute</li>
+        <li>Authentication endpoints: 10 requests per minute</li>
+    </ul>
+    
+    <p>When rate limits are exceeded, the API will respond with a 429 Too Many Requests status code and the following response:</p>
+    <pre class="response-error"><code>{
+  "status": "error",
+  "message": "Rate limit exceeded",
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "details": "You have exceeded the rate limit for this endpoint",
+    "retryAfter": 30
+  },
+  "data": null
+}</code></pre>
+
+    <p>The <code>retryAfter</code> field indicates the number of seconds to wait before making another request.</p>
+    
+    <h2 id="examples">Example Usage</h2>
+    
+    <h3>Example 1: Get System Status</h3>
+    <pre><code>curl -X GET "https://your-domain.com/api/v1/status" \
+  -u username:password \
+  -H "accept: application/json"</code></pre>
+    
+    <h3>Example 2: Create a Session (Admin)</h3>
+    <pre><code>curl -X POST "https://your-domain.com/api/v1/session/create" \
+  -u admin:password \
+  -H "Content-Type: application/json" \
+  -d '{"expirationMinutes": 15}'</code></pre>
+    
+    <h3>Example 3: Join a Session (User)</h3>
+    <pre><code>curl -X POST "https://your-domain.com/api/v1/session/join" \
+  -u user:password \
+  -H "Content-Type: application/json" \
+  -d '{"sessionCode": "123456"}'</code></pre>
+    
+    <h3>Example 4: Update System Settings (Admin)</h3>
+    <pre><code>curl -X POST "https://your-domain.com/api/v1/settings" \
+  -u admin:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "frameRate": 30,
+    "sensitivity": 80,
+    "storageSettings": {
+      "recordOnMotion": true,
+      "maxSizeMb": 2000
+    }
+  }'</code></pre>
     
     <div class="note">
         <p>For a complete and interactive API documentation with all available endpoints, request/response schemas, and testing capabilities, visit the <a href="/swagger-ui.html">Swagger UI</a>.</p>
     </div>
+    
+    <footer style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.8em; color: #7f8c8d;">
+        <p>CamCheck API Documentation v1.0 | Last Updated: June 2023</p>
+        <p>For technical support, contact <a href="mailto:support@camcheck.example.com">support@camcheck.example.com</a></p>
+    </footer>
 </body>
 </html> 

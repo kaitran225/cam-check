@@ -20,30 +20,45 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.beans.factory.annotation.Value;
 
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * WebSocket configuration for streaming camera footage
+ * WebSocket configuration for streaming camera footage and audio
  */
 @Configuration
 @EnableWebSocketMessageBroker
 @Slf4j
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    // Increased buffer sizes for high-quality video streaming
-    private static final int MESSAGE_SIZE_LIMIT = 1024 * 1024; // 1MB
-    private static final int SEND_BUFFER_SIZE_LIMIT = 1024 * 1024; // 1MB
-    private static final int SEND_TIME_LIMIT = 20 * 1000; // 20 seconds
+    // Configuration values from application properties
+    @Value("${camcheck.media.websocket.max-message-size:1048576}")
+    private int messageSize;
+    
+    @Value("${camcheck.media.websocket.buffer-size:1048576}")
+    private int bufferSize;
+    
+    @Value("${camcheck.media.websocket.send-timeout:20000}")
+    private int sendTimeout;
+    
+    @Value("${camcheck.media.websocket.heartbeat-interval:5000}")
+    private long heartbeatInterval;
+    
+    @Value("${camcheck.media.audio.enabled:true}")
+    private boolean audioEnabled;
     
     // WebSocket container configuration for larger frames
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
-        container.setMaxTextMessageBufferSize(MESSAGE_SIZE_LIMIT);
-        container.setMaxBinaryMessageBufferSize(MESSAGE_SIZE_LIMIT);
+        container.setMaxTextMessageBufferSize(messageSize);
+        container.setMaxBinaryMessageBufferSize(messageSize);
         container.setMaxSessionIdleTimeout(60000L); // 60 seconds
-        container.setAsyncSendTimeout(5000L); // 5 seconds
+        container.setAsyncSendTimeout((long) sendTimeout); // Convert int to Long
+        
+        log.info("WebSocket container configured with message size: {}, binary size: {}", 
+                messageSize, messageSize);
         return container;
     }
     
@@ -62,11 +77,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(@NonNull MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic", "/queue", "/user")
-              .setHeartbeatValue(new long[] {5000, 5000}) // Client and server heartbeat
+              .setHeartbeatValue(new long[] {heartbeatInterval, heartbeatInterval})
               .setTaskScheduler(webSocketHeartbeatTaskScheduler());
         config.setApplicationDestinationPrefixes("/app");
         config.setUserDestinationPrefix("/user");
         config.setPreservePublishOrder(true); // Maintain message order
+        
+        log.info("Message broker configured with heartbeat interval: {}ms", heartbeatInterval);
     }
 
     @Override
@@ -75,15 +92,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns("*")
                 .withSockJS()
                 .setDisconnectDelay(5000) // 5 seconds
-                .setHeartbeatTime(5000) // 5 seconds
+                .setHeartbeatTime(heartbeatInterval) // Use configured heartbeat interval
                 .setClientLibraryUrl("https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js");
+        
+        log.info("STOMP endpoints registered with disconnect delay: 5000ms, heartbeat time: {}ms", 
+                heartbeatInterval);
     }
     
     @Override
     public void configureWebSocketTransport(@NonNull WebSocketTransportRegistration registration) {
-        registration.setMessageSizeLimit(MESSAGE_SIZE_LIMIT); // Max message size
-        registration.setSendBufferSizeLimit(SEND_BUFFER_SIZE_LIMIT); // Buffer size
-        registration.setSendTimeLimit(SEND_TIME_LIMIT); // Time limit for sending a message
+        registration.setMessageSizeLimit(messageSize);      // Max message size
+        registration.setSendBufferSizeLimit(bufferSize);    // Buffer size
+        registration.setSendTimeLimit(sendTimeout);         // Time limit for sending a message
+        
+        log.info("WebSocket transport configured with message size: {}, buffer size: {}, send timeout: {}ms", 
+                messageSize, bufferSize, sendTimeout);
     }
     
     @Override
@@ -103,5 +126,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 return message;
             }
         });
+        
+        // Configure larger buffer sizes for inbound channel to handle audio data
+        registration.taskExecutor().corePoolSize(4);
+        registration.taskExecutor().maxPoolSize(10);
+        registration.taskExecutor().queueCapacity(100);
+    }
+    
+    @Override
+    public void configureClientOutboundChannel(@NonNull ChannelRegistration registration) {
+        // Configure larger buffer sizes for outbound channel to handle audio data
+        registration.taskExecutor().corePoolSize(4);
+        registration.taskExecutor().maxPoolSize(10);
+        registration.taskExecutor().queueCapacity(100);
     }
 } 
