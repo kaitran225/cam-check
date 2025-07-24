@@ -1,7 +1,6 @@
 package com.camcheck.controller.v1;
 
 import com.camcheck.model.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import java.util.Map;

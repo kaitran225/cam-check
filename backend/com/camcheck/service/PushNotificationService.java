@@ -99,6 +99,7 @@ public class PushNotificationService {
      * @param data Additional data
      * @return True if notification was sent
      */
+    @SuppressWarnings("unused")
     @Async
     public boolean sendNotification(String userId, String title, String body, Map<String, String> data) {
         if (!pushNotificationsEnabled) {

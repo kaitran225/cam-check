@@ -97,7 +97,7 @@ public class JwtTokenService {
         return (List<String>) claims.get("roles");
     }
 
-    @SuppressWarnings("unchecked")
+    
     public List<String> getRolesFromRefreshToken(String token) {
         // For refresh tokens, we'll need to load roles from a user service
         // For now, return an empty list

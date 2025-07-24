@@ -60,6 +60,7 @@ public class CameraController extends BaseController {
      * @param authentication Authentication object
      * @return API response
      */
+    @SuppressWarnings("unchecked")
     @PostMapping("/snapshot")
     @Operation(summary = "Save camera snapshot", description = "Save a camera snapshot with optional compression")
     @ApiResponses(value = {

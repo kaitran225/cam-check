@@ -122,6 +122,7 @@ public class CameraService {
      * @param settings Settings to validate
      * @throws IllegalArgumentException if settings are invalid
      */
+    @SuppressWarnings("unchecked")
     private void validateSettings(Map<String, Object> settings) {
         if (settings.containsKey("video")) {
             Map<String, Object> video = (Map<String, Object>) settings.get("video");

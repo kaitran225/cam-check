@@ -171,6 +171,7 @@ public class WebRTCService {
      * WebRTC connection information
      */
     private static class WebRTCConnection {
+        @SuppressWarnings("unused")
         final String connectionId;
         final String initiatorId;
         final String receiverId;

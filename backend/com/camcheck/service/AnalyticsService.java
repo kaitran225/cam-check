@@ -38,6 +38,7 @@ public class AnalyticsService {
     
     private final WebRTCService webRTCService;
     private final CameraService cameraService;
+    @SuppressWarnings("unused")
     private final RecordingService recordingService;
     
     // System metrics
@@ -461,7 +462,7 @@ public class AnalyticsService {
             // In a production environment, you might want to use a more sophisticated approach
             com.sun.management.OperatingSystemMXBean osBean = 
                     (com.sun.management.OperatingSystemMXBean) java.lang.management.ManagementFactory.getOperatingSystemMXBean();
-            return osBean.getSystemCpuLoad() * 100;
+            return osBean.getCpuLoad() * 100;
         } catch (Exception e) {
             log.error("Error getting CPU usage", e);
             return 0;
@@ -478,8 +479,8 @@ public class AnalyticsService {
             // In a production environment, you might want to use a more sophisticated approach
             com.sun.management.OperatingSystemMXBean osBean = 
                     (com.sun.management.OperatingSystemMXBean) java.lang.management.ManagementFactory.getOperatingSystemMXBean();
-            long totalMemory = osBean.getTotalPhysicalMemorySize();
-            long freeMemory = osBean.getFreePhysicalMemorySize();
+            long totalMemory = osBean.getTotalMemorySize();
+            long freeMemory = osBean.getFreeMemorySize();
             return (double) (totalMemory - freeMemory) / totalMemory * 100;
         } catch (Exception e) {
             log.error("Error getting memory usage", e);
