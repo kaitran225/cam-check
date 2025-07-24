@@ -73,13 +73,13 @@ public class DynamicMemoryOptimizer {
      * Wait for VM capacity measurement to complete
      */
     private void waitForCapacityMeasurement() {
-        int maxAttempts = 10;
+        int maxAttempts = 25;
         int attempts = 0;
         
         while (!vmCapacityService.isMeasurementComplete() && attempts < maxAttempts) {
             try {
                 log.info("Waiting for VM capacity measurement to complete...");
-                Thread.sleep(1000);
+                Thread.sleep(2000);
                 attempts++;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

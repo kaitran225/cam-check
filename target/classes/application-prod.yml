@@ -1,0 +1,210 @@
+# CamCheck Application Configuration
+
+# Server settings
+server:
+  port: ${SERVER_PORT}
+  address: ${SERVER_ADDRESS}
+  servlet:
+    context-path: /
+  ssl:
+    enabled: false
+  undertow:
+    worker-threads: ${UNDERTOW_WORKER_THREADS}
+    buffer-size: ${UNDERTOW_BUFFER_SIZE}
+    direct-buffers: ${UNDERTOW_DIRECT_BUFFERS}
+    max-http-post-size: ${UNDERTOW_MAX_HTTP_POST_SIZE}
+    io-threads: ${UNDERTOW_IO_THREADS}
+    accesslog:
+      enabled: ${UNDERTOW_ACCESSLOG_ENABLED}
+      pattern: ${UNDERTOW_ACCESSLOG_PATTERN}
+    options:
+      server:
+        ALWAYS_SET_DATE: ${UNDERTOW_ALWAYS_SET_DATE}
+        MAX_ENTITY_SIZE: ${UNDERTOW_MAX_ENTITY_SIZE}
+      socket:
+        TCP_NODELAY: ${UNDERTOW_TCP_NODELAY}
+        REUSE_ADDRESSES: ${UNDERTOW_REUSE_ADDRESSES}
+    idle-timeout: ${UNDERTOW_IDLE_TIMEOUT}
+    low-resource-mode: ${UNDERTOW_LOW_RESOURCE_MODE}
+    max-connections: ${UNDERTOW_MAX_CONNECTIONS}
+
+# Spring settings
+spring:
+  application:
+    name: cam-check
+  thymeleaf:
+    cache: ${THYMELEAF_CACHE}
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE}
+      max-request-size: ${MAX_REQUEST_SIZE}
+  task:
+    execution:
+      pool:
+        core-size: ${TASK_EXECUTION_CORE_SIZE}
+        max-size: ${TASK_EXECUTION_MAX_SIZE}
+        queue-capacity: ${TASK_EXECUTION_QUEUE_CAPACITY}
+    scheduling:
+      pool:
+        size: ${TASK_SCHEDULING_POOL_SIZE}
+  
+# Custom CamCheck settings
+camcheck:
+  # Security settings
+  security:
+    # User accounts
+    users:
+      - username: ${SECURITY_USERNAME_LUXUBOO}
+        password: ${SECURITY_PASSWORD_LUXUBOO}
+        role: USER
+      - username: ${SECURITY_USERNAME_KAITRAN}
+        password: ${SECURITY_PASSWORD_KAITRAN}
+        role: ADMIN
+    # Legacy credentials (kept for backward compatibility)
+    username: ${LEGACY_USERNAME}
+    password: ${LEGACY_PASSWORD}
+    # List of trusted IPs that can access the system without authentication
+    trusted-ips: ${SECURITY_TRUSTED_IPS}
+    # Superuser credentials
+    superuser:
+      username: ${SUPERUSER_USERNAME}
+      password: ${SUPERUSER_PASSWORD}
+    
+  # Camera settings
+  camera:
+    # Options: webcam (USB camera) or ip (IP camera)
+    type: ${CAMERA_TYPE}
+    
+    # Frame rate (frames per second)
+    frame-rate: ${CAMERA_FRAME_RATE}
+    
+    # Resolution
+    width: ${CAMERA_WIDTH}
+    height: ${CAMERA_HEIGHT}
+    
+    # Camera device index (usually 0 for the first camera)
+    device-index: ${CAMERA_DEVICE_INDEX}
+    
+    # Force fallback mode (use this if you don't have a camera or want to test without one)
+    force-fallback: ${CAMERA_FORCE_FALLBACK}
+    
+    # IP camera settings (if type is set to 'ip')
+    ip-url: ${CAMERA_IP_URL}
+    
+  # Motion detection settings
+  motion-detection:
+    enabled: ${MOTION_DETECTION_ENABLED}
+    sensitivity: ${MOTION_DETECTION_SENSITIVITY}
+    cooldown-period: ${MOTION_DETECTION_COOLDOWN}
+    
+  # Storage settings
+  storage:
+    # Save recordings when motion is detected
+    record-on-motion: ${STORAGE_RECORD_ON_MOTION}
+    
+    # Recording length in seconds
+    recording-length: ${STORAGE_RECORDING_LENGTH}
+    
+    # Maximum storage space for recordings (MB)
+    max-size-mb: ${STORAGE_MAX_SIZE_MB}
+    
+    # Delete oldest recordings when storage limit is reached
+    delete-oldest: ${STORAGE_DELETE_OLDEST}
+    
+    # Path for recordings (relative to application)
+    recordings-path: ${STORAGE_RECORDINGS_PATH}
+
+# VM capacity measurement settings
+vm:
+  capacity:
+    measure: ${VM_CAPACITY_MEASURE}
+    stress-test: ${VM_CAPACITY_STRESS_TEST}
+    is-render: ${VM_CAPACITY_IS_RENDER}
+    timeout-ms: ${VM_CAPACITY_TIMEOUT_MS}
+
+# Dynamic memory optimization
+dynamic:
+  memory:
+    enabled: ${DYNAMIC_MEMORY_ENABLED}
+    target:
+      percent: ${DYNAMIC_MEMORY_TARGET_PERCENT}
+    check:
+      interval: ${DYNAMIC_MEMORY_CHECK_INTERVAL}
+
+# Memory-efficient frame processor settings
+frame:
+  processor:
+    cache:
+      size: ${FRAME_PROCESSOR_CACHE_SIZE}
+      expire-ms: ${FRAME_PROCESSOR_CACHE_EXPIRE_MS}
+    max-concurrent: ${FRAME_PROCESSOR_MAX_CONCURRENT}
+
+# Memory usage monitor settings
+memory:
+  monitor:
+    enabled: ${MEMORY_MONITOR_ENABLED}
+    interval-ms: ${MEMORY_MONITOR_INTERVAL_MS}
+    history-size: ${MEMORY_MONITOR_HISTORY_SIZE}
+  high-threshold: ${MEMORY_HIGH_THRESHOLD}
+  critical-threshold: ${MEMORY_CRITICAL_THRESHOLD}
+  recovery-threshold: ${MEMORY_RECOVERY_THRESHOLD}
+
+# JVM optimization settings
+jvm:
+  aggressive-gc: ${JVM_AGGRESSIVE_GC}
+  gc-interval-ms: ${JVM_GC_INTERVAL_MS}
+  memory:
+    high-threshold: ${JVM_MEMORY_HIGH_THRESHOLD}
+    critical-threshold: ${JVM_MEMORY_CRITICAL_THRESHOLD}
+    recovery-threshold: ${JVM_MEMORY_RECOVERY_THRESHOLD}
+
+# Image processing settings
+image:
+  denoise:
+    default-method: ${IMAGE_DENOISE_DEFAULT_METHOD}
+    strength: ${IMAGE_DENOISE_STRENGTH}
+    optimize-performance: ${IMAGE_DENOISE_OPTIMIZE_PERFORMANCE}
+  pool:
+    max-size: ${MEDIA_POOL_MAX_SIZE}
+    max-age-ms: ${MEDIA_POOL_MAX_AGE_MS}
+
+# Request throttling settings
+throttle:
+  enabled: ${THROTTLE_ENABLED}
+  max-concurrent-requests: ${THROTTLE_MAX_CONCURRENT_REQUESTS}
+  timeout-ms: ${THROTTLE_TIMEOUT_MS}
+  cpu-threshold: ${THROTTLE_CPU_THRESHOLD}
+
+# Low resource mode
+low-resource-mode: ${LOW_RESOURCE_MODE}
+
+# Swagger/OpenAPI configuration
+springdoc:
+  api-docs:
+    path: ${SPRINGDOC_API_DOCS_PATH}
+  swagger-ui:
+    path: ${SPRINGDOC_SWAGGER_UI_PATH}
+    operationsSorter: ${SPRINGDOC_OPERATIONS_SORTER}
+    tagsSorter: ${SPRINGDOC_TAGS_SORTER}
+    disable-swagger-default-url: ${SPRINGDOC_DISABLE_DEFAULT_URL}
+  show-actuator: ${SPRINGDOC_SHOW_ACTUATOR}
+  
+# Logging configuration - super short format
+logging:
+  pattern:
+    console: ${LOGGING_PATTERN_CONSOLE}
+    file: ${LOGGING_PATTERN_FILE}
+  level:
+    root: ${LOGGING_LEVEL_ROOT}
+    com.camcheck: ${LOGGING_LEVEL_CAMCHECK}
+    org.springframework.web: ${LOGGING_LEVEL_SPRING_WEB}
+    org.springframework.security: ${LOGGING_LEVEL_SPRING_SECURITY}
+    org.springframework.messaging: ${LOGGING_LEVEL_SPRING_MESSAGING}
+    org.springframework.web.socket: ${LOGGING_LEVEL_SPRING_WEBSOCKET}
+    io.undertow: ${LOGGING_LEVEL_UNDERTOW}
+
+# Analytics settings
+analytics:
+  enabled: ${ANALYTICS_ENABLED}
+  check-interval-ms: ${ANALYTICS_CHECK_INTERVAL_MS}
+  log-details: ${ANALYTICS_LOG_DETAILS} 

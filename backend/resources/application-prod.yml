@@ -15,7 +15,7 @@ server:
     max-http-post-size: ${UNDERTOW_MAX_HTTP_POST_SIZE}
     io-threads: ${UNDERTOW_IO_THREADS}
     accesslog:
-      enabled: false #${UNDERTOW_ACCESSLOG_ENABLED}
+      enabled: ${UNDERTOW_ACCESSLOG_ENABLED}
       pattern: ${UNDERTOW_ACCESSLOG_PATTERN}
     options:
       server:
@@ -24,6 +24,9 @@ server:
       socket:
         TCP_NODELAY: ${UNDERTOW_TCP_NODELAY}
         REUSE_ADDRESSES: ${UNDERTOW_REUSE_ADDRESSES}
+    idle-timeout: ${UNDERTOW_IDLE_TIMEOUT}
+    low-resource-mode: ${UNDERTOW_LOW_RESOURCE_MODE}
+    max-connections: ${UNDERTOW_MAX_CONNECTIONS}
 
 # Spring settings
 spring:
@@ -35,6 +38,15 @@ spring:
     multipart:
       max-file-size: ${MAX_FILE_SIZE}
       max-request-size: ${MAX_REQUEST_SIZE}
+  task:
+    execution:
+      pool:
+        core-size: ${TASK_EXECUTION_CORE_SIZE}
+        max-size: ${TASK_EXECUTION_MAX_SIZE}
+        queue-capacity: ${TASK_EXECUTION_QUEUE_CAPACITY}
+    scheduling:
+      pool:
+        size: ${TASK_SCHEDULING_POOL_SIZE}
   
 # Custom CamCheck settings
 camcheck:
@@ -102,6 +114,70 @@ camcheck:
     # Path for recordings (relative to application)
     recordings-path: ${STORAGE_RECORDINGS_PATH}
 
+# VM capacity measurement settings
+vm:
+  capacity:
+    measure: ${VM_CAPACITY_MEASURE}
+    stress-test: ${VM_CAPACITY_STRESS_TEST}
+    is-render: ${VM_CAPACITY_IS_RENDER}
+    timeout-ms: ${VM_CAPACITY_TIMEOUT_MS}
+
+# Dynamic memory optimization
+dynamic:
+  memory:
+    enabled: ${DYNAMIC_MEMORY_ENABLED}
+    target:
+      percent: ${DYNAMIC_MEMORY_TARGET_PERCENT}
+    check:
+      interval: ${DYNAMIC_MEMORY_CHECK_INTERVAL}
+
+# Memory-efficient frame processor settings
+frame:
+  processor:
+    cache:
+      size: ${FRAME_PROCESSOR_CACHE_SIZE}
+      expire-ms: ${FRAME_PROCESSOR_CACHE_EXPIRE_MS}
+    max-concurrent: ${FRAME_PROCESSOR_MAX_CONCURRENT}
+
+# Memory usage monitor settings
+memory:
+  monitor:
+    enabled: ${MEMORY_MONITOR_ENABLED}
+    interval-ms: ${MEMORY_MONITOR_INTERVAL_MS}
+    history-size: ${MEMORY_MONITOR_HISTORY_SIZE}
+  high-threshold: ${MEMORY_HIGH_THRESHOLD}
+  critical-threshold: ${MEMORY_CRITICAL_THRESHOLD}
+  recovery-threshold: ${MEMORY_RECOVERY_THRESHOLD}
+
+# JVM optimization settings
+jvm:
+  aggressive-gc: ${JVM_AGGRESSIVE_GC}
+  gc-interval-ms: ${JVM_GC_INTERVAL_MS}
+  memory:
+    high-threshold: ${JVM_MEMORY_HIGH_THRESHOLD}
+    critical-threshold: ${JVM_MEMORY_CRITICAL_THRESHOLD}
+    recovery-threshold: ${JVM_MEMORY_RECOVERY_THRESHOLD}
+
+# Image processing settings
+image:
+  denoise:
+    default-method: ${IMAGE_DENOISE_DEFAULT_METHOD}
+    strength: ${IMAGE_DENOISE_STRENGTH}
+    optimize-performance: ${IMAGE_DENOISE_OPTIMIZE_PERFORMANCE}
+  pool:
+    max-size: ${MEDIA_POOL_MAX_SIZE}
+    max-age-ms: ${MEDIA_POOL_MAX_AGE_MS}
+
+# Request throttling settings
+throttle:
+  enabled: ${THROTTLE_ENABLED}
+  max-concurrent-requests: ${THROTTLE_MAX_CONCURRENT_REQUESTS}
+  timeout-ms: ${THROTTLE_TIMEOUT_MS}
+  cpu-threshold: ${THROTTLE_CPU_THRESHOLD}
+
+# Low resource mode
+low-resource-mode: ${LOW_RESOURCE_MODE}
+
 # Swagger/OpenAPI configuration
 springdoc:
   api-docs:
@@ -125,4 +201,10 @@ logging:
     org.springframework.security: ${LOGGING_LEVEL_SPRING_SECURITY}
     org.springframework.messaging: ${LOGGING_LEVEL_SPRING_MESSAGING}
     org.springframework.web.socket: ${LOGGING_LEVEL_SPRING_WEBSOCKET}
-    io.undertow: ${LOGGING_LEVEL_UNDERTOW} 
+    io.undertow: ${LOGGING_LEVEL_UNDERTOW}
+
+# Analytics settings
+analytics:
+  enabled: ${ANALYTICS_ENABLED}
+  check-interval-ms: ${ANALYTICS_CHECK_INTERVAL_MS}
+  log-details: ${ANALYTICS_LOG_DETAILS} 
