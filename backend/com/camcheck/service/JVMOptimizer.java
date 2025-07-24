@@ -62,7 +62,6 @@ public class JVMOptimizer {
     // Lazy-injected dependencies to prevent circular dependencies
     private final ImageObjectPool imageObjectPool;
     private final FrameCacheService frameCacheService;
-    private final RequestThrottleService requestThrottleService;
     
     // Startup time
     private final LocalDateTime startupTime = LocalDateTime.now();
@@ -74,7 +73,6 @@ public class JVMOptimizer {
             @Lazy RequestThrottleService requestThrottleService) {
         this.imageObjectPool = imageObjectPool;
         this.frameCacheService = frameCacheService;
-        this.requestThrottleService = requestThrottleService;
         this.memoryMXBean = ManagementFactory.getMemoryMXBean();
         
         // Log JVM memory settings

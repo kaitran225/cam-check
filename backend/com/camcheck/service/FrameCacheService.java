@@ -198,6 +198,7 @@ public class FrameCacheService {
     /**
      * Clean up expired cache entries
      */
+    @SuppressWarnings("unchecked")
     @Scheduled(fixedRate = 60000) // Every minute
     public void cleanUpCache() {
         if (!cacheEnabled) {

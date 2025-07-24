@@ -106,7 +106,6 @@ public class MemoryUsageMonitor {
         // Non-heap memory
         MemoryUsage nonHeapUsage = memoryMXBean.getNonHeapMemoryUsage();
         snapshot.nonHeapUsed = nonHeapUsage.getUsed() / (1024 * 1024);
-        snapshot.nonHeapCommitted = nonHeapUsage.getCommitted() / (1024 * 1024);
         
         // Memory pools
         snapshot.pools = new HashMap<>();
@@ -269,7 +268,6 @@ public class MemoryUsageMonitor {
         long heapCommitted;
         long heapMax;
         long nonHeapUsed;
-        long nonHeapCommitted;
         Map<String, Map<String, Object>> pools;
         long gcCount;
         long gcTimeMs;

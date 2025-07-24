@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
@@ -49,7 +50,7 @@ public class PerformanceConfig implements WebMvcConfigurer {
      * Configure async support for MVC
      */
     @Override
-    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+    public void configureAsyncSupport(@NonNull AsyncSupportConfigurer configurer) {
         configurer.setDefaultTimeout(30000); // 30 seconds
         configurer.setTaskExecutor(asyncTaskExecutor());
     }
@@ -95,8 +96,9 @@ public class PerformanceConfig implements WebMvcConfigurer {
     @ConditionalOnProperty(name = "performance.cache.enabled", havingValue = "true", matchIfMissing = true)
     public CacheManager cacheManager() {
         ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager() {
+            @SuppressWarnings("null")
             @Override
-            protected ConcurrentMapCache createConcurrentMapCache(String name) {
+            protected ConcurrentMapCache createConcurrentMapCache(@NonNull String name) {
                 return new ConcurrentMapCache(name, 
                     // Use a ConcurrentHashMap with initial capacity and load factor
                     new java.util.concurrent.ConcurrentHashMap<>(256, 0.75f, 16), 

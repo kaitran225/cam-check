@@ -1,6 +1,5 @@
 package com.camcheck.config;
 
-import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.servlet.api.DeploymentInfo;
@@ -13,8 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.xnio.Options;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Custom configuration for Undertow web server
