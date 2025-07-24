@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Filter for JWT token validation and authentication
@@ -24,11 +26,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenService jwtTokenService;
     private final JwtConfig jwtConfig;
+    
+    // Paths that should be excluded from JWT authentication
+    private final List<String> excludedPaths = Arrays.asList(
+        "/login", 
+        "/logout", 
+        "/static", 
+        "/css", 
+        "/js", 
+        "/images", 
+        "/webjars", 
+        "/error"
+    );
 
     @Autowired
     public JwtAuthenticationFilter(JwtTokenService jwtTokenService, JwtConfig jwtConfig) {
         this.jwtTokenService = jwtTokenService;
         this.jwtConfig = jwtConfig;
+    }
+    
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        
+        // Skip JWT filter for web UI paths
+        return excludedPaths.stream().anyMatch(path::startsWith) || 
+               path.equals("/") || 
+               path.equals("/index.html") || 
+               path.equals("/dashboard") ||
+               path.equals("/favicon.ico");
     }
 
     @Override

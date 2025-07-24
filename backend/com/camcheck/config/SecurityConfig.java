@@ -116,7 +116,29 @@ public class SecurityConfig {
         };
         
         http
+            // Disable CSRF for API endpoints and login
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers(
+                    new AntPathRequestMatcher("/api/**"), 
+                    new AntPathRequestMatcher("/api/v1/**"), 
+                    new AntPathRequestMatcher("/api/v2/**"),
+                    new AntPathRequestMatcher("/ws/**"), 
+                    new AntPathRequestMatcher("/api-docs/**"), 
+                    new AntPathRequestMatcher("/swagger-ui/**"), 
+                    new AntPathRequestMatcher("/v3/api-docs/**"), 
+                    new AntPathRequestMatcher("/receiver/**"), 
+                    new AntPathRequestMatcher("/client-camera/**"),
+                    new AntPathRequestMatcher("/login"),
+                    new AntPathRequestMatcher("/logout"),
+                    new AntPathRequestMatcher("/h2-console/**")
+                )
+            )
             .authorizeHttpRequests(authorize -> authorize
+                // Login page and static resources must be accessible to all
+                .requestMatchers(new AntPathRequestMatcher("/login")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/login/**")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
+                
                 // Static resources
                 .requestMatchers(new AntPathRequestMatcher("/resources/**"), 
                                 new AntPathRequestMatcher("/static/**"), 
@@ -131,7 +153,9 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/api-docs/**"), 
                                 new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
                 // JWT authentication endpoints
-                .requestMatchers(new AntPathRequestMatcher("/api/v2/auth/login"),
+                .requestMatchers(new AntPathRequestMatcher("/api/v1/auth/login"),
+                                new AntPathRequestMatcher("/api/v1/auth/refresh"),
+                                new AntPathRequestMatcher("/api/v2/auth/login"),
                                 new AntPathRequestMatcher("/api/v2/auth/refresh")).permitAll()
                 // Allow receiver endpoint without authentication
                 .requestMatchers(new AntPathRequestMatcher("/receiver"), 
@@ -154,41 +178,30 @@ public class SecurityConfig {
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
-            // Form login for web interface
+            // Form login configuration
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/")
+                .loginProcessingUrl("/login")
+                .defaultSuccessUrl("/", true)
+                .failureUrl("/login?error=true")
                 .permitAll()
             )
             .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login?logout=true")
+                .invalidateHttpSession(true)
+                .clearAuthentication(true)
                 .permitAll()
-            )
-            // CSRF configuration
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers(
-                    new AntPathRequestMatcher("/api/**"), 
-                    new AntPathRequestMatcher("/api/v1/**"), 
-                    new AntPathRequestMatcher("/api/v2/**"),
-                    new AntPathRequestMatcher("/ws/**"), 
-                    new AntPathRequestMatcher("/api-docs/**"), 
-                    new AntPathRequestMatcher("/swagger-ui/**"), 
-                    new AntPathRequestMatcher("/v3/api-docs/**"), 
-                    new AntPathRequestMatcher("/receiver/**"), 
-                    new AntPathRequestMatcher("/client-camera/**"),
-                    new AntPathRequestMatcher("/login"),
-                    new AntPathRequestMatcher("/logout"),
-                    new AntPathRequestMatcher("/h2-console/**")
-                )
             )
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.sameOrigin()) // Required for H2 Console
             )
-            // Add JWT authentication filter for API requests
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            // Use stateless session for API requests but maintain session for web interface
+            // Session management - use session for web UI
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            );
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            )
+            // Add JWT authentication filter for API requests
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
     }

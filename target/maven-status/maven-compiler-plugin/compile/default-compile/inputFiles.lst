@@ -19,6 +19,7 @@ E:\cam-check-1\backend\com\camcheck\model\ApiResponse.java
 E:\cam-check-1\backend\com\camcheck\controller\SessionController.java
 E:\cam-check-1\backend\com\camcheck\model\RefreshTokenRequest.java
 E:\cam-check-1\backend\com\camcheck\controller\v1\AuthController.java
+E:\cam-check-1\backend\com\camcheck\controller\CustomErrorController.java
 E:\cam-check-1\backend\com\camcheck\config\SecurityConfig.java
 E:\cam-check-1\backend\com\camcheck\service\CompressionService.java
 E:\cam-check-1\backend\com\camcheck\controller\ConfigController.java
