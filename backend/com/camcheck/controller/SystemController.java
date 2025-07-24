@@ -26,14 +26,12 @@ import java.util.Map;
 public class SystemController {
 
     private final VMCapacityMeasurementService vmCapacityService;
-    private final MemoryMXBean memoryMXBean;
     private final OperatingSystemMXBean osMXBean;
     private final RuntimeMXBean runtimeMXBean;
     
     @Autowired
     public SystemController(VMCapacityMeasurementService vmCapacityService) {
         this.vmCapacityService = vmCapacityService;
-        this.memoryMXBean = ManagementFactory.getMemoryMXBean();
         this.osMXBean = ManagementFactory.getOperatingSystemMXBean();
         this.runtimeMXBean = ManagementFactory.getRuntimeMXBean();
     }

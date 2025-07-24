@@ -10,8 +10,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.context.event.ContextRefreshedEvent;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,8 +31,6 @@ public class DynamicMemoryOptimizer {
     private final VMCapacityMeasurementService vmCapacityService;
     private final ImageObjectPool imageObjectPool;
     private final FrameCacheService frameCacheService;
-    private final ApplicationEventPublisher eventPublisher;
-    private final MemoryMXBean memoryMXBean;
     
     private final AtomicBoolean isHighMemory = new AtomicBoolean(false);
     private final AtomicBoolean isCriticalMemory = new AtomicBoolean(false);
@@ -54,8 +50,6 @@ public class DynamicMemoryOptimizer {
         this.vmCapacityService = vmCapacityService;
         this.imageObjectPool = imageObjectPool;
         this.frameCacheService = frameCacheService;
-        this.eventPublisher = eventPublisher;
-        this.memoryMXBean = ManagementFactory.getMemoryMXBean();
     }
     
     @PostConstruct
@@ -101,6 +95,7 @@ public class DynamicMemoryOptimizer {
     /**
      * Calculate optimal memory settings based on VM capacity
      */
+    @SuppressWarnings("unchecked")
     private void calculateOptimalMemorySettings() {
         if (!vmCapacityService.isMeasurementComplete()) {
             log.info("Using default memory settings: target={}MB, max={}MB", targetMemoryMB, maxMemoryMB);
