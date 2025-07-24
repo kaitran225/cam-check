@@ -3,21 +3,58 @@ services:
     name: camcheck
     env: docker
     dockerfilePath: ./Dockerfile
-    region: oregon # Change to your preferred region
-    plan: standard # Choose appropriate plan
-    healthCheckPath: /
+    region: oregon
+    plan: free
+    healthCheckPath: /api/v1/system/status
+    autoDeploy: false
+    numInstances: 1
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
       - key: SERVER_PORT
-        value: 80
-      - key: CAMCHECK_SECURITY_USERNAME
-        sync: false # This will prompt for a value during deployment
-      - key: CAMCHECK_SECURITY_PASSWORD
-        sync: false # This will prompt for a value during deployment
-      - key: CAMCHECK_CAMERA_FORCE_FALLBACK
-        value: false # No need for fallback mode with client-side camera
+        value: 10000
+      - key: JAVA_OPTS
+        value: "-Xmx40m -Xms20m -XX:MaxMetaspaceSize=64m -XX:CompressedClassSpaceSize=16m -XX:ReservedCodeCacheSize=16m -XX:+UseSerialGC -XX:+UseStringDeduplication -XX:+DisableExplicitGC -XX:SoftRefLRUPolicyMSPerMB=0 -XX:MaxDirectMemorySize=5M -Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom"
+      # VM capacity measurement settings
+      - key: vm_capacity_measure
+        value: "true"
+      - key: vm_capacity_stress_test
+        value: "false"
+      # Dynamic memory optimization settings
+      - key: dynamic_memory_enabled
+        value: "true"
+      - key: dynamic_memory_target_percent
+        value: "75"
+      - key: dynamic_memory_check_interval
+        value: "5000"
+      # Memory optimization settings
+      - key: memory_target_mb
+        value: "30"
+      - key: memory_max_mb
+        value: "40"
+      - key: memory_aggressive_gc
+        value: "true"
+      - key: memory_check_interval_ms
+        value: "5000"
+      # Low resource mode
+      - key: LOW_RESOURCE_MODE
+        value: "true"
+      # Media settings
+      - key: MEDIA_POOL_MAX_SIZE
+        value: "5"
+      - key: MEDIA_CACHE_MAX_SIZE
+        value: "20"
+      - key: THROTTLE_MAX_CONCURRENT_REQUESTS
+        value: "3"
+      # Memory-efficient frame processor settings
+      - key: frame_processor_cache_size
+        value: "5"
+      - key: frame_processor_cache_expire_ms
+        value: "5000"
+      - key: frame_processor_max_concurrent
+        value: "2"
     disk:
       name: recordings
       mountPath: /app/recordings
-      sizeGB: 10 # Adjust based on your needs 
+      sizeGB: 1
+    sleepMode: when-idle 

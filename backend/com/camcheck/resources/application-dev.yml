@@ -215,6 +215,48 @@ camcheck:
     # Maximum audio data size in bytes
     max-audio-size: ${MEDIA_MAX_AUDIO_SIZE:100000}
     
+    # Denoising settings
+    denoise:
+      # Enable denoising
+      enabled: ${MEDIA_DENOISE_ENABLED:true}
+      
+      # Default denoising strength (0.0-1.0)
+      strength: ${MEDIA_DENOISE_STRENGTH:0.5}
+      
+      # Default denoising method (gaussian, median, bilateral, fast-bilateral)
+      method: ${MEDIA_DENOISE_METHOD:fast-bilateral}
+      
+      # Enable adaptive denoising (adjusts strength based on image noise level)
+      adaptive: ${MEDIA_DENOISE_ADAPTIVE:true}
+      
+      # Enable edge preservation
+      preserve-edges: ${MEDIA_DENOISE_PRESERVE_EDGES:true}
+      
+      # Enable denoising optimization for low-end devices
+      optimize-performance: ${MEDIA_DENOISE_OPTIMIZE_PERFORMANCE:true}
+    
+    # Image object pool settings
+    pool:
+      # Enable image object pooling
+      enabled: ${MEDIA_POOL_ENABLED:true}
+      
+      # Maximum number of images to keep in each pool
+      max-size: ${MEDIA_POOL_MAX_SIZE:20}
+      
+      # Maximum age of pooled images in milliseconds
+      max-age-ms: ${MEDIA_POOL_MAX_AGE_MS:60000}
+    
+    # Frame cache settings
+    cache:
+      # Enable frame caching
+      enabled: ${MEDIA_CACHE_ENABLED:true}
+      
+      # Maximum number of frames to cache
+      max-size: ${MEDIA_CACHE_MAX_SIZE:100}
+      
+      # Maximum age of cached frames in milliseconds
+      max-age-ms: ${MEDIA_CACHE_MAX_AGE_MS:30000}
+    
     # Codec settings
     codec:
       # Preferred codec (h264, vp8, vp9, av1, webp, jpeg)
@@ -457,3 +499,67 @@ logging:
     org.springframework.messaging: ${LOGGING_LEVEL_SPRING_MESSAGING:INFO}
     org.springframework.web.socket: ${LOGGING_LEVEL_SPRING_WEBSOCKET:INFO}
     io.undertow: ${LOGGING_LEVEL_UNDERTOW:INFO} 
+
+# Memory monitoring settings
+memory:
+  # High memory threshold (percentage)
+  high-threshold: ${MEMORY_HIGH_THRESHOLD:80}
+  
+  # Critical memory threshold (percentage)
+  critical-threshold: ${MEMORY_CRITICAL_THRESHOLD:90}
+  
+  # Recovery memory threshold (percentage)
+  recovery-threshold: ${MEMORY_RECOVERY_THRESHOLD:70}
+  
+  # Memory check interval in milliseconds
+  check-interval-ms: ${MEMORY_CHECK_INTERVAL_MS:10000}
+
+# Memory optimization settings
+memory:
+  # Target memory usage in MB
+  target:
+    mb: ${memory_target_mb:30}
+  # Maximum memory usage in MB before emergency measures
+  max:
+    mb: ${memory_max_mb:40}
+  # Memory check interval in milliseconds
+  check:
+    interval:
+      ms: ${memory_check_interval_ms:5000}
+  # Enable aggressive garbage collection
+  aggressive:
+    gc: ${memory_aggressive_gc:true}
+
+# Performance settings
+performance:
+  # Async task execution
+  async:
+    core-pool-size: 2
+    max-pool-size: 4
+    queue-capacity: 50
+    thread-name-prefix: async-
+  # Caching
+  cache:
+    enabled: true
+  
+# Undertow settings
+UNDERTOW_WORKER_THREADS: 2
+UNDERTOW_IO_THREADS: 1
+UNDERTOW_BUFFER_SIZE: 1024
+UNDERTOW_DIRECT_BUFFERS: false
+UNDERTOW_MAX_ENTITY_SIZE: 1048576  # 1MB
+UNDERTOW_MAX_CONNECTIONS: 100
+
+# Low resource mode
+LOW_RESOURCE_MODE: true
+
+# Request throttling settings
+throttle:
+  # Enable request throttling
+  enabled: ${THROTTLE_ENABLED:true}
+  
+  # Maximum concurrent requests
+  max-concurrent-requests: ${THROTTLE_MAX_CONCURRENT_REQUESTS:5}
+  
+  # Request timeout in milliseconds
+  timeout-ms: ${THROTTLE_TIMEOUT_MS:5000} 

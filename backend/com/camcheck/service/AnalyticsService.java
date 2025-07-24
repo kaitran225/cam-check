@@ -441,9 +441,39 @@ public class AnalyticsService {
             createAlert("cpu_usage", "CPU usage is high: " + String.format("%.1f", cpuUsage) + "%", AlertLevel.WARNING);
         }
         
-        // Check memory usage
-        if (memoryUsage > alertThresholdMemory) {
-            createAlert("memory_usage", "Memory usage is high: " + String.format("%.1f", memoryUsage) + "%", AlertLevel.WARNING);
+        // Print precise memory usage instead of creating alerts
+        try {
+            com.sun.management.OperatingSystemMXBean osBean = 
+                    (com.sun.management.OperatingSystemMXBean) java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+            long totalMemoryBytes = osBean.getTotalMemorySize();
+            long freeMemoryBytes = osBean.getFreeMemorySize();
+            long usedMemoryBytes = totalMemoryBytes - freeMemoryBytes;
+            
+            // Convert to MB for more readable output
+            double totalMemoryMB = totalMemoryBytes / (1024.0 * 1024.0);
+            double usedMemoryMB = usedMemoryBytes / (1024.0 * 1024.0);
+            double freeMemoryMB = freeMemoryBytes / (1024.0 * 1024.0);
+            
+            log.info("Memory usage: {}/{} MB ({} MB free, {:.2f}%)",
+                    String.format("%.2f", usedMemoryMB),
+                    String.format("%.2f", totalMemoryMB),
+                    String.format("%.2f", freeMemoryMB),
+                    memoryUsage);
+                    
+            // Get JVM-specific memory information
+            Runtime runtime = Runtime.getRuntime();
+            double maxMemoryMB = runtime.maxMemory() / (1024.0 * 1024.0);
+            double allocatedMemoryMB = runtime.totalMemory() / (1024.0 * 1024.0);
+            double freeJvmMemoryMB = runtime.freeMemory() / (1024.0 * 1024.0);
+            double usedJvmMemoryMB = allocatedMemoryMB - freeJvmMemoryMB;
+            
+            log.info("JVM memory usage: {}/{} MB ({} MB free, {:.2f}%)",
+                    String.format("%.2f", usedJvmMemoryMB),
+                    String.format("%.2f", maxMemoryMB),
+                    String.format("%.2f", freeJvmMemoryMB),
+                    (usedJvmMemoryMB / maxMemoryMB) * 100);
+        } catch (Exception e) {
+            log.error("Error getting detailed memory information", e);
         }
         
         // Check disk usage

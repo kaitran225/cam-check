@@ -1,0 +1,29 @@
+# VM capacity measurement settings
+vm:
+  capacity:
+    measure: true
+    stress-test: false
+
+# Dynamic memory optimization
+dynamic:
+  memory:
+    enabled: true
+    target:
+      percent: 75
+    check:
+      interval: 5000 
+
+# Memory-efficient frame processor settings
+frame:
+  processor:
+    cache:
+      size: 10
+      expire-ms: 10000
+    max-concurrent: 3 
+
+# Memory usage monitor settings
+memory:
+  monitor:
+    enabled: true
+    interval-ms: 10000
+    history-size: 60 
