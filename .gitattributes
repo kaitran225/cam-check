@@ -1,0 +1,72 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Java sources
+*.java text diff=java
+*.gradle text diff=java
+*.gradle.kts text diff=java
+
+# These files are text and should be normalized (convert CRLF to LF)
+*.properties text
+*.xml text
+*.yml text
+*.yaml text
+*.json text
+*.txt text
+*.md text
+*.html text
+*.css text
+*.js text
+*.ts text
+*.dart text
+*.sql text
+
+# Declare files that will always have CRLF line endings on checkout
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Declare files that will always have LF line endings on checkout
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Denote all files that are truly binary and should not be modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.mov binary
+*.mp4 binary
+*.mp3 binary
+*.flv binary
+*.fla binary
+*.swf binary
+*.gz binary
+*.zip binary
+*.7z binary
+*.ttf binary
+*.eot binary
+*.woff binary
+*.woff2 binary
+*.pyc binary
+*.pdf binary
+*.jar binary
+*.war binary
+*.class binary
+
+# Treat JAR files as binary for Git LFS
+*.jar filter=lfs diff=lfs merge=lfs -text
+*.war filter=lfs diff=lfs merge=lfs -text
+
+# Treat media files as binary for Git LFS
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.webm filter=lfs diff=lfs merge=lfs -text
+*.mov filter=lfs diff=lfs merge=lfs -text
+*.avi filter=lfs diff=lfs merge=lfs -text
+*.mkv filter=lfs diff=lfs merge=lfs -text
+
+# Treat large compiled files as binary for Git LFS
+target/cam-check-*.jar filter=lfs diff=lfs merge=lfs -text 
