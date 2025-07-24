@@ -45,7 +45,6 @@ public class VMCapacityMeasurementService {
     @Value("${vm.capacity.is-render:false}")
     private boolean isRenderEnvironment;
     
-    private final ApplicationEventPublisher eventPublisher;
     private final MemoryMXBean memoryMXBean;
     private final OperatingSystemMXBean osMXBean;
     private final RuntimeMXBean runtimeMXBean;
@@ -58,7 +57,6 @@ public class VMCapacityMeasurementService {
     
     @Autowired
     public VMCapacityMeasurementService(ApplicationEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
         this.memoryMXBean = ManagementFactory.getMemoryMXBean();
         this.osMXBean = ManagementFactory.getOperatingSystemMXBean();
         this.runtimeMXBean = ManagementFactory.getRuntimeMXBean();
@@ -282,6 +280,7 @@ public class VMCapacityMeasurementService {
     /**
      * Calculate recommended settings based on measurements
      */
+    @SuppressWarnings("unchecked")
     private void calculateRecommendedSettings() {
         Map<String, Object> recommendations = new HashMap<>();
         
@@ -289,13 +288,6 @@ public class VMCapacityMeasurementService {
         Map<String, Object> memoryStats = (Map<String, Object>) vmCapacity.get("memory");
         if (memoryStats != null) {
             long maxHeapMB = (long) memoryStats.get("heapMaxMB");
-            long totalPhysicalMemoryMB = 0;
-            
-            // Get CPU stats for physical memory
-            Map<String, Object> cpuStats = (Map<String, Object>) vmCapacity.get("cpu");
-            if (cpuStats != null && cpuStats.containsKey("totalPhysicalMemoryMB")) {
-                totalPhysicalMemoryMB = (long) cpuStats.get("totalPhysicalMemoryMB");
-            }
             
             // Calculate recommended settings
             int availableProcessors = Runtime.getRuntime().availableProcessors();
@@ -497,6 +489,7 @@ public class VMCapacityMeasurementService {
     /**
      * Log capacity information
      */
+    @SuppressWarnings("unchecked")
     private void logCapacityInfo() {
         log.info("VM Capacity Information:");
         
