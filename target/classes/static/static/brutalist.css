@@ -1,0 +1,358 @@
+/* Brutalist UI Style for CamCheck */
+
+:root {
+    --black: #000000;
+    --white: #ffffff;
+    --gray: #333333;
+    --light-gray: #999999;
+}
+
+body {
+    font-family: monospace;
+    margin: 0;
+    padding: 0;
+    background-color: var(--black);
+    color: var(--white);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--white);
+}
+
+h1 {
+    margin: 0;
+    color: var(--white);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 24px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.user-info span {
+    margin-right: 15px;
+    color: var(--white);
+}
+
+.main-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.video-container {
+    flex: 1;
+    min-width: 640px;
+    background-color: var(--black);
+    border: 1px solid var(--white);
+    overflow: hidden;
+    position: relative;
+}
+
+.video-feed {
+    width: 100%;
+    height: 480px;
+    background-color: var(--black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    position: relative;
+}
+
+.video-feed img {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.fallback-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: var(--white);
+    color: var(--black);
+    padding: 5px 10px;
+    font-size: 12px;
+    z-index: 10;
+}
+
+.camera-not-ready {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: var(--white);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+.camera-not-ready i {
+    font-size: 64px;
+    color: var(--white);
+    margin-bottom: 20px;
+}
+
+.controls {
+    flex: 1;
+    min-width: 300px;
+    background-color: var(--black);
+    border: 1px solid var(--white);
+    padding: 20px;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--white);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--white);
+    text-transform: uppercase;
+    font-size: 16px;
+}
+
+.status-badge {
+    font-size: 12px;
+    padding: 3px 8px;
+    border: 1px solid var(--white);
+    color: var(--white);
+}
+
+.status-active {
+    background-color: var(--white);
+    color: var(--black);
+}
+
+button {
+    padding: 10px 15px;
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--white);
+    cursor: pointer;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+    font-weight: bold;
+    font-family: monospace;
+    text-transform: uppercase;
+}
+
+button:hover {
+    background-color: var(--white);
+    color: var(--black);
+}
+
+button.danger {
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--white);
+}
+
+button.danger:hover {
+    background-color: var(--white);
+    color: var(--black);
+}
+
+button:disabled {
+    background-color: var(--black);
+    cursor: not-allowed;
+    color: var(--light-gray);
+    border: 1px solid var(--light-gray);
+}
+
+button:disabled:hover {
+    background-color: var(--black);
+    color: var(--light-gray);
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--black);
+    border: 1px solid var(--white);
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 3px;
+    background-color: var(--white);
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--black);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 0;
+}
+
+.slider.round:before {
+    border-radius: 0;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--white);
+    margin-right: 5px;
+}
+
+.status-on {
+    background-color: var(--white);
+}
+
+.status-off {
+    background-color: var(--black);
+}
+
+.stats-container {
+    margin-top: 20px;
+    border: 1px solid var(--white);
+    padding: 10px;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-family: monospace;
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    background-color: var(--white);
+    color: var(--black);
+    border: none;
+    z-index: 1000;
+    display: none;
+    font-family: monospace;
+}
+
+.notification.error {
+    background-color: var(--white);
+    color: var(--black);
+}
+
+select, input[type="text"], input[type="number"] {
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--white);
+    padding: 8px;
+    width: 100%;
+    margin-bottom: 10px;
+    font-family: monospace;
+}
+
+select:focus, input:focus {
+    outline: none;
+    border-color: var(--white);
+}
+
+.settings-row {
+    margin-bottom: 15px;
+}
+
+.settings-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-family: monospace;
+}
+
+a {
+    color: var(--white);
+    text-decoration: none;
+    border-bottom: 1px solid var(--white);
+}
+
+a:hover {
+    border-bottom: none;
+}
+
+.logout-btn {
+    background: none;
+    border: none;
+    color: var(--white);
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    font-family: monospace;
+}
+
+.logout-btn:hover {
+    text-decoration: none;
+}
+
+footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--white);
+    text-align: center;
+    font-size: 12px;
+    color: var(--white);
+    font-family: monospace;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    .video-container, .controls {
+        min-width: 100%;
+    }
+} 

@@ -1,0 +1,4793 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>CamCheck - Security Camera</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Zenless Zone Zero inspired theme (matte black material) */
+            --background: #0a0a0a;
+            --foreground: #ffffff;
+            --surface: #151515;
+            --border: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #999999;
+            --accent: #e74c3c;
+            --accent-secondary: #3498db;
+            --error: #e74c3c;
+            --success: #2ecc71;
+            --button-bg: #1e1e1e;
+            --button-hover: #2a2a2a;
+            --button-text: #ffffff;
+            --button-danger-bg: #2a1a1a;
+            --button-danger-hover: #3a2a2a;
+            --button-disabled-bg: #1a1a1a;
+            --button-disabled-text: #666666;
+            --input-bg: #1a1a1a;
+            --input-border: #2a2a2a;
+            --input-text: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.5);
+            --sidebar-width: 20vw;
+            --chat-sidebar-width: 22vw;
+            --header-height: 5vh;
+            --notification-height: 5vh;
+            --font-size-base: 0.75rem;
+            --font-size-small: 0.7rem;
+            --font-size-heading: 0.875rem;
+            --spacing-xs: 0.5vh;
+            --spacing-sm: 1vh;
+            --spacing-md: 1.5vh;
+            --spacing-lg: 2vh;
+            --action-bar-height: 7vh;
+            --panel-radius: 0.375rem;
+        }
+
+        body.light-theme {
+            /* Light theme */
+            --background: #f5f5f5;
+            --foreground: #000000;
+            --surface: #ffffff;
+            --border: #dddddd;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --accent: #1a73e8;
+            --error: #b00020;
+            --success: #00796b;
+            --button-bg: #e0e0e0;
+            --button-hover: #cccccc;
+            --button-text: #000000;
+            --button-danger-bg: #f5f5f5;
+            --button-danger-hover: #ffcdd2;
+            --button-disabled-bg: #f5f5f5;
+            --button-disabled-text: #9e9e9e;
+            --input-bg: #ffffff;
+            --input-border: #dddddd;
+            --input-text: #000000;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: var(--background);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+            font-size: var(--font-size-base);
+            line-height: 1.4;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            margin-top: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h1 {
+            font-size: var(--font-size-heading);
+            font-weight: 700;
+        }
+
+        h3 {
+            font-size: var(--font-size-base);
+            font-weight: 700;
+        }
+
+        p {
+            margin: var(--spacing-xs) 0;
+        }
+
+        /* Removed duplicate app-container declaration */
+
+        /* Removed duplicate sidebar declaration */
+
+        .app-container {
+            display: flex;
+            justify-content: flex-start;
+            /* Align content to the start */
+            align-items: stretch;
+            /* Stretch items to fill container height */
+            width: 100%;
+            height: 100vh;
+            /* Full viewport height */
+            min-height: 100vh;
+            /* Ensure minimum height */
+            overflow: hidden;
+            background-color: var(--background);
+            box-sizing: border-box;
+            padding: var(--spacing-sm);
+            gap: var(--spacing-sm);
+        }
+
+        .panel {
+            padding: 0 var(--spacing-md);
+            border-radius: var(--panel-radius);
+            box-shadow: 0 0.25vh 1.25vh rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100%;
+            background-color: var(--surface);
+            border: 0.0625rem solid var(--border);
+            padding: var(--spacing-sm);
+            z-index: 100;
+            flex-shrink: 0;
+            /* Prevent sidebar from shrinking */
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-container.sidebar-hidden .sidebar {
+            height: 0;
+            width: 0;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .main-view-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-width: 30vw;
+            max-width: calc(80%);
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* When both sidebars are hidden */
+        .app-container.sidebar-hidden.chat-hidden .main-view-container {
+            max-width: 100%;
+            width: 100%;
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
+        }
+
+        /* When only the main sidebar is hidden */
+        .app-container.sidebar-hidden:not(.chat-hidden) .main-view-container {
+            max-width: calc(100% - var(--chat-sidebar-width));
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
+        }
+
+        /* When only the chat sidebar is hidden */
+        .app-container.chat-hidden:not(.sidebar-hidden) .main-view-container {
+            max-width: calc(100% - var(--sidebar-width));
+            height: var(--main-content-height, calc(100vh - 2 * var(--spacing-md)));
+        }
+
+        .chat-sidebar {
+            width: var(--chat-sidebar-width);
+            flex-shrink: 0;
+            /* Prevent chat sidebar from shrinking */
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+        }
+
+        .app-container.chat-hidden .chat-sidebar {
+            width: 0;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            transform: translateX(20px);
+        }
+
+        .chat-sidebar {
+            background-color: var(--surface);
+            border: 0.0625rem solid var(--border);
+            padding: 0;
+            overflow-y: hidden;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Add animations to buttons */
+        button, .action-button, .video-control-btn, .sidebar-toggle {
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        button:hover, .action-button:hover, .video-control-btn:hover, .sidebar-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active, .action-button:active, .video-control-btn:active, .sidebar-toggle:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Animate panel transitions */
+        .panel {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Smooth transitions for video cells */
+        .video-cell {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .main-content {
+            overflow-y: hidden;
+            background-color: var(--surface);
+            border: 0.0625rem solid var(--border);
+            border-radius: var(--panel-radius);
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            /* Ensure it takes full width of its container */
+            height: 100%;
+            /* Ensure it takes full height of its container */
+            flex: 1;
+            /* Allow it to grow to fill available space */
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Add smooth transitions for all interactive elements */
+        a, input, select, .video-label, .chat-input, .chat-messages, .notification-container {
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Add subtle hover effects to interactive elements */
+        a:hover, input:hover, select:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Add animation for notifications */
+        .notification-container {
+            animation: slideIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Add animation for chat messages */
+        .message {
+            animation: messageIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        @keyframes messageIn {
+            from { transform: translateX(-10px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Removed duplicate .main-view-container declaration */
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 0.0625rem solid var(--border);
+        }
+
+        .sidebar-header h1 {
+            margin: 0;
+            font-size: var(--font-size-heading);
+        }
+
+        .sidebar-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: var(--font-size-heading);
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .open-sidebar-btn {
+            position: fixed;
+            top: var(--spacing-md);
+            left: var(--spacing-md);
+            background-color: var(--button-bg);
+            color: var(--text-primary);
+            border: 0.0625rem solid var(--border);
+            border-radius: 0.1875rem;
+            padding: var(--spacing-xs);
+            cursor: pointer;
+            z-index: 99;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .open-sidebar-btn {
+                display: block;
+            }
+        }
+
+        .main-content {
+            padding: var(--spacing-md);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 1px solid var(--border);
+            height: var(--header-height);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            font-size: var(--font-size-small);
+        }
+
+        .user-info span {
+            margin-right: var(--spacing-sm);
+            color: var(--text-primary);
+        }
+
+        .notification-container {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: var(--spacing-sm);
+            margin: var(--spacing-sm);
+            min-height: var(--notification-height);
+            box-shadow: 0 1px 4px var(--shadow);
+            display: flex;
+            align-items: center;
+            font-size: var(--font-size-small);
+            position: relative;
+            z-index: 100;
+        }
+
+        .notification-container.error {
+            border-left: 3px solid var(--error);
+        }
+
+        .notification-container.success {
+            border-left: 3px solid var(--success);
+        }
+
+        .video-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            flex-grow: 1;
+            position: relative;
+            height: 100%;
+            min-height: 60vh;
+            /* Ensure a minimum height */
+        }
+
+        .video-grid {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            flex: 1;
+            /* Allow it to grow to fill available space */
+            min-height: 50vh;
+            /* Ensure a minimum height */
+        }
+
+        #standardView {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            flex: 1;
+            padding-right: var(--spacing-md);
+        }
+
+        #dashboardView {
+            display: none;
+            height: 100%;
+            flex: 1;
+        }
+
+        .video-cell {
+            position: relative;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 16/9;
+            box-shadow: 0 1px 4px var(--shadow);
+        }
+
+        #remoteVideoCell {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #localVideoCell {
+            position: absolute;
+            width: 33%;
+            height: 33%;
+            bottom: var(--spacing-md);
+            right: var(--spacing-md);
+            z-index: 2;
+            transition: all 0.3s ease;
+            border: 2px solid var(--accent);
+        }
+
+        #localVideoCell.minimized {
+            width: 20%;
+            height: 20%;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        #localVideoCell:hover {
+            opacity: 1;
+        }
+
+        .video-controls {
+            position: absolute;
+            top: var(--spacing-xs);
+            right: var(--spacing-xs);
+            display: flex;
+            gap: var(--spacing-xs);
+            z-index: 10;
+        }
+
+        .video-control-btn {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border-radius: 50%;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: var(--font-size-small);
+            transition: background-color 0.2s;
+        }
+
+        .video-control-btn:hover {
+            background-color: var(--accent);
+        }
+
+        .swap-icon {
+            position: absolute;
+            top: var(--spacing-xs);
+            right: var(--spacing-xs);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 3;
+            font-size: var(--font-size-small);
+        }
+
+        .swap-icon:hover {
+            background-color: var(--accent);
+        }
+
+        .video-cell video,
+        .video-cell img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: var(--spacing-xs);
+            left: var(--spacing-xs);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: var(--text-primary);
+            padding: 0.125rem var(--spacing-xs);
+            font-size: var(--font-size-small);
+            border-radius: 0.125rem;
+            z-index: 5;
+        }
+
+        .control-group {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            box-shadow: 0 1px 4px var(--shadow);
+        }
+
+        .control-group h3 {
+            margin-top: 0;
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            font-size: var(--font-size-small);
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            border-radius: 50%;
+            background-color: var(--button-bg);
+            color: var(--text-primary);
+            width: 28px;
+            height: 28px;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+            margin-top: var(--spacing-md);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--button-hover);
+        }
+
+        /* Action Bar Styles - Zenless Zone Zero inspired */
+        .action-bar {
+            height: var(--action-bar-height);
+            background-color: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(0.625rem);
+            -webkit-backdrop-filter: blur(0.625rem);
+            border-top: 0.0625rem solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-md);
+            padding: 0 var(--spacing-lg);
+            z-index: 100;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 -0.125vh 0.9375vh rgba(0, 0, 0, 0.5);
+            border-bottom-left-radius: var(--panel-radius);
+            border-bottom-right-radius: var(--panel-radius);
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .action-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            width: 4vw;
+            height: 6vh;
+            border-radius: var(--panel-radius);
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background-color: transparent;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-button:hover {
+            color: var(--text-primary);
+            background-color: var(--button-hover);
+            transform: translateY(-2px);
+        }
+
+        .action-button:active {
+            transform: translateY(1px);
+        }
+
+        .action-button.active {
+            color: var(--accent);
+        }
+
+        .action-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.3125rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1.25rem;
+            height: 0.125rem;
+            background-color: var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .action-button.danger {
+            color: var(--error);
+        }
+
+        .action-button.danger:hover {
+            background-color: rgba(231, 76, 60, 0.2);
+        }
+
+        .action-button i {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .action-button span {
+            font-size: 0.5625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03125rem;
+            text-align: center;
+        }
+
+        @media (max-width: 48rem) {
+            .app-container {
+                padding: var(--spacing-xs);
+                flex-direction: column;
+                justify-content: flex-start;
+            }
+
+            .panel {
+                margin: var(--spacing-xs) 0;
+                /* height: auto; */
+                width: 100% !important;
+            }
+
+            .main-view-container {
+                flex: 1;
+                min-height: 60vh;
+                order: 1;
+            }
+
+            .sidebar {
+                max-height: 0;
+                order: 3;
+            }
+
+            .chat-sidebar {
+                max-height: 30vh;
+                order: 2;
+            }
+
+            .app-container.sidebar-hidden .sidebar {
+                max-height: 0;
+            }
+
+            .app-container.chat-hidden .chat-sidebar {
+                max-height: 0;
+            }
+
+            .action-bar {
+                justify-content: space-around;
+                padding: 0 var(--spacing-xs);
+                gap: var(--spacing-xs);
+            }
+
+            .action-button {
+                width: auto;
+                flex: 1;
+                height: 5vh;
+            }
+        }
+
+        /* Modal styles for session joining */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: var(--spacing-md);
+            width: 300px;
+            max-width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: var(--spacing-xs);
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: var(--spacing-sm);
+            margin: var(--spacing-md) 0;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--input-text);
+            border-radius: 3px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        /* Chat container styles */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            height: 100%;
+            background-color: var(--surface);
+        }
+
+        .user-info-sidebar {
+            font-size: var(--font-size-small);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .user-info-sidebar p {
+            margin: var(--spacing-xs) 0;
+        }
+
+        .sidebar-links {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            margin: var(--spacing-sm) 0;
+        }
+
+        .sidebar-links a {
+            display: block;
+            padding: var(--spacing-xs);
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .sidebar-links a:hover {
+            background-color: var(--button-hover);
+        }
+
+        .chat-header {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(20, 20, 20, 0.9);
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: var(--font-size-base);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: var(--spacing-md);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            background-image: linear-gradient(to bottom, rgba(20, 20, 20, 0.7), rgba(10, 10, 10, 0.9));
+        }
+
+        .message {
+            max-width: 85%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--panel-radius);
+            margin-bottom: var(--spacing-sm);
+            word-break: break-word;
+            font-size: var(--font-size-small);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .message-sent {
+            align-self: flex-end;
+            background-color: var(--accent);
+            color: var(--background);
+            border-bottom-right-radius: 0;
+        }
+
+        .message-sent::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -8px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid var(--accent);
+            border-top: 8px solid transparent;
+        }
+
+        .message-received {
+            align-self: flex-start;
+            background-color: rgba(30, 30, 30, 0.9);
+            color: var(--text-primary);
+            border-bottom-left-radius: 0;
+        }
+
+        .message-received::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -8px;
+            width: 0;
+            height: 0;
+            border-right: 8px solid rgba(30, 30, 30, 0.9);
+            border-top: 8px solid transparent;
+        }
+
+        .message-alert {
+            align-self: center;
+            background-color: rgba(20, 20, 20, 0.6);
+            color: var(--text-secondary);
+            font-style: italic;
+            border-radius: var(--panel-radius);
+            padding: 0.3125rem var(--spacing-sm);
+            font-size: 0.625rem;
+            max-width: 70%;
+            text-align: center;
+        }
+
+        .chat-input {
+            padding: var(--spacing-md);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: var(--spacing-sm);
+            background-color: rgba(15, 15, 15, 0.9);
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: var(--spacing-sm);
+            border: 1px solid var(--input-border);
+            border-radius: var(--panel-radius);
+            background-color: rgba(25, 25, 25, 0.8);
+            color: var(--input-text);
+            font-family: 'Roboto Mono', monospace;
+            font-size: var(--font-size-small);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-input button {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background-color: var(--accent);
+            color: var(--background);
+            border: none;
+            border-radius: var(--panel-radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: var(--font-size-small);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+        }
+
+        .chat-input button:hover {
+            background-color: var(--accent);
+            filter: brightness(1.2);
+            transform: translateY(-1px);
+        }
+
+        button {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: var(--spacing-xs);
+            font-family: 'Roboto Mono', monospace;
+            font-size: var(--font-size-small);
+        }
+
+        button:hover {
+            background-color: var(--button-hover);
+        }
+
+        button.danger {
+            background-color: var(--button-danger-bg);
+            color: var(--error);
+        }
+
+        button.danger:hover {
+            background-color: var(--button-danger-hover);
+        }
+
+        button:disabled {
+            background-color: var(--button-disabled-bg);
+            color: var(--button-disabled-text);
+            cursor: not-allowed;
+        }
+
+        select,
+        input {
+            font-size: var(--font-size-small);
+            padding: var(--spacing-xs);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .settings-row {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .settings-row label {
+            display: block;
+            margin-bottom: 2px;
+            font-size: var(--font-size-small);
+        }
+
+        .camera-info {
+            font-size: var(--font-size-small);
+            margin-top: var(--spacing-xs);
+        }
+
+        .camera-not-ready {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            text-align: center;
+            padding: var(--spacing-md);
+        }
+
+        .camera-not-ready h2 {
+            font-size: var(--font-size-heading);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .camera-not-ready p {
+            margin-bottom: var(--spacing-md);
+            font-size: var(--font-size-small);
+        }
+
+        /* Responsive design */
+        @media (max-width: 1280px) {
+            .chat-sidebar {
+                transform: translateX(100%);
+                box-shadow: -2px 0 8px var(--shadow);
+            }
+
+            .chat-sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-right: 0;
+            }
+
+            .chat-toggle {
+                display: block;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 2px 0 8px var(--shadow);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: var(--spacing-xs) var(--spacing-md);
+                background-color: var(--surface);
+                border-bottom: 1px solid var(--border);
+                position: sticky;
+                top: 0;
+                z-index: 99;
+            }
+
+            .mobile-header h1 {
+                margin: 0;
+                font-size: var(--font-size-heading);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .video-grid {
+                grid-template-rows: auto;
+            }
+
+            .main-content {
+                flex-direction: column;
+                margin-right: var(--spacing-md);
+            }
+
+            .video-container,
+            .controls {
+                min-width: 100%;
+            }
+
+            h1 {
+                font-size: var(--font-size-heading);
+            }
+
+            .user-info {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+
+            .user-info span {
+                margin-bottom: 2px;
+            }
+
+            button {
+                padding: 4px var(--spacing-xs);
+                font-size: 11px;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                width: 80%;
+                max-width: 300px;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .chat-sidebar {
+                transform: translateX(100%);
+                width: 80%;
+                max-width: 300px;
+            }
+
+            .chat-sidebar.open {
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 30rem) {
+            :root {
+                --font-size-base: 0.6875rem;
+                --font-size-small: 0.625rem;
+                --font-size-heading: 0.8125rem;
+            }
+
+            .video-feed {
+                height: 30vh;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                padding: var(--spacing-xs);
+            }
+
+            .theme-toggle {
+                bottom: var(--spacing-xs);
+                right: var(--spacing-xs);
+                width: 2rem;
+                height: 2rem;
+            }
+        }
+
+        /* Improve animations for panel transitions */
+        .app-container > div {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Add animation for the sidebar toggle */
+        #closeSidebar, #actionSidebarToggle {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #closeSidebar:after, #actionSidebarToggle:after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+
+        #closeSidebar:focus:not(:active)::after, #actionSidebarToggle:focus:not(:active)::after {
+            animation: ripple 1s ease-out;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            20% {
+                transform: scale(25, 25);
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(40, 40);
+            }
+        }
+
+        /* Add animation for panel appearance/disappearance */
+        .sidebar, .chat-sidebar, .main-view-container {
+            animation: panelIn 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        @keyframes panelIn {
+            from { 
+                opacity: 0;
+                transform: scale(0.98);
+            }
+            to { 
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+
+<body>
+    <div class="app-container" id="appContainer">
+        <!-- Sidebar -->
+        <div class="sidebar panel" id="sidebar">
+            <div class="sidebar-header">
+                <h1>CamCheck</h1>
+                <button class="sidebar-toggle" id="closeSidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- User info moved from header to sidebar -->
+            <div class="control-group">
+                <h3>User Info</h3>
+                <div class="user-info-sidebar">
+                    <p><strong>User:</strong> <span sec:authentication="name">Username</span></p>
+                    <p sec:authorize="hasRole('ADMIN')"><strong>Role:</strong> Admin</p>
+                    <p sec:authorize="hasRole('SUPERUSER')"><strong>Role:</strong> Superuser</p>
+                    <div class="sidebar-links">
+                        <a href="/swagger-ui.html" target="_blank"
+                            style="text-decoration: none; color: var(--text-primary);">
+                            <i class="fas fa-code"></i> API Docs
+                        </a>
+                    </div>
+                    <form th:action="@{/logout}" method="post" style="margin-top: var(--spacing-sm);">
+                        <button type="submit" class="logout-btn">Logout</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>
+                    Camera Controls
+                    <span id="streamingStatus" class="status-badge">
+                        <span>Inactive</span>
+                    </span>
+                </h3>
+                <button id="startStreamBtn">Start Camera</button>
+                <button id="stopStreamBtn" class="danger" style="display: none;">Stop Camera</button>
+                <button id="takeSnapshotBtn" disabled>Take Snapshot</button>
+
+                <div class="camera-info">
+                    <p><strong>Status:</strong> <span id="cameraStatus">Idle</span></p>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Camera Settings</h3>
+                <select id="cameraSelect">
+                    <option value="">Select camera...</option>
+                </select>
+                <button id="refreshCamerasBtn">Refresh Camera List</button>
+                <div class="settings-row" style="margin-top: 10px;">
+                    <h3>Audio Settings</h3>
+                    <button id="testMicBtn">Test Microphone</button>
+                </div>
+            </div>
+
+            <div sec:authorize="hasRole('ADMIN')" class="control-group">
+                <h3>Admin Session</h3>
+                <button id="createSessionBtn">Create Session</button>
+                <div id="sessionCodeDisplay" style="display: none;">
+                    <p>Share this code with the user:</p>
+                    <div class="session-code" id="sessionCode"></div>
+                </div>
+            </div>
+
+            <div sec:authorize="hasRole('USER')" class="control-group">
+                <h3>Join Session</h3>
+                <div class="settings-row">
+                    <label for="joinSessionCode">Enter Session Code:</label>
+                    <input type="text" id="joinSessionCode" placeholder="Enter 6-digit code">
+                </div>
+                <button id="joinSessionBtn">Join Session</button>
+            </div>
+
+            <div sec:authorize="hasRole('SUPERUSER')" class="control-group">
+                <h3>Superuser Controls</h3>
+                <button id="refreshActiveUsersBtn">Refresh Active Users</button>
+                <div class="settings-row">
+                    <label for="activeUsersList">Users with Active Cameras:</label>
+                    <select id="activeUsersList">
+                        <option value="">No active users found</option>
+                    </select>
+                </div>
+                <button id="superuserConnectBtn">Connect to Selected User</button>
+            </div>
+
+            <div class="control-group">
+                <h3>Connected Session</h3>
+                <div id="noSessionMessage">
+                    <p>No active session</p>
+                </div>
+                <div id="activeSessionInfo" style="display: none;">
+                    <p><strong>Connected with:</strong> <span id="connectedWith"></span></p>
+                    <p><strong>Session started:</strong> <span id="sessionStartTime"></span></p>
+                    <button id="endSessionBtn" class="danger">End Session</button>
+                </div>
+            </div>
+
+            <!-- Theme toggle moved to sidebar -->
+            <div class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="main-view-container panel">
+            <div class="main-content">
+
+                <!-- View toggle for superusers -->
+                <div sec:authorize="hasRole('SUPERUSER')" class="view-toggle">
+                    <button id="standardViewBtn" class="active">Standard View</button>
+                    <button id="dashboardViewBtn">Dashboard View</button>
+                </div>
+
+                <!-- Standard view (default) -->
+                <div id="standardView">
+                    <div class="video-container">
+                        <div class="video-grid">
+                            <div class="video-cell" id="remoteVideoCell">
+                                <span>No remote camera connected</span>
+                                <div class="video-label">Remote Camera</div>
+                                <div class="video-controls">
+                                    <div class="video-control-btn" id="swapViewsBtn" title="Swap Views">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="video-cell" id="localVideoCell">
+                                <video id="localVideo" autoplay playsinline></video>
+                                <div class="video-label">Your Camera</div>
+                                <div class="video-controls">
+                                    <div class="video-control-btn" id="minimizeLocalBtn" title="Minimize">
+                                        <i class="fas fa-compress-alt"></i>
+                                    </div>
+                                </div>
+                                <!-- Camera not ready overlay only on local video cell -->
+                                <div class="camera-not-ready" id="cameraNotReady">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <h2>Camera Not Started</h2>
+                                    <p>Start the camera stream to begin monitoring.</p>
+                                    <button id="startCameraBtn" class="success">Start Camera</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Action Bar (Microsoft Teams style) -->
+                <div class="action-bar" id="actionBar">
+                    <button class="action-button" id="actionSidebarToggle">
+                        <i class="fas fa-bars"></i>
+                        <span>Menu</span>
+                    </button>
+                    <button class="action-button" id="actionCameraToggle">
+                        <i class="fas fa-video"></i>
+                        <span>Camera</span>
+                    </button>
+                    <button class="action-button" id="actionAudioToggle">
+                        <i class="fas fa-microphone-slash"></i>
+                        <span>Muted</span>
+                    </button>
+                    <button class="action-button" id="actionRecordAudio">
+                        <i class="fas fa-circle"></i>
+                        <span>Record</span>
+                    </button>
+                    <button class="action-button" id="actionSnapshot">
+                        <i class="fas fa-camera"></i>
+                        <span>Snapshot</span>
+                    </button>
+                    <button class="action-button" id="actionSwapViews">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>Swap</span>
+                    </button>
+                    <button class="action-button" id="actionCameraSettings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </button>
+                    <button class="action-button" id="actionChatToggle">
+                        <i class="fas fa-comments"></i>
+                        <span>Chat</span>
+                    </button>
+                    <button class="action-button" id="actionSession" sec:authorize="hasAnyRole('ADMIN','USER')">
+                        <i class="fas fa-link"></i>
+                        <span>Session</span>
+                    </button>
+                    <button class="action-button danger" id="actionEndSession" style="display: none;">
+                        <i class="fas fa-unlink"></i>
+                        <span>End</span>
+                    </button>
+                    <button class="action-button" id="actionSuperuser" sec:authorize="hasRole('SUPERUSER')">
+                        <i class="fas fa-users"></i>
+                        <span>Users</span>
+                    </button>
+                    <button class="action-button" id="actionThemeToggle">
+                        <i class="fas fa-moon"></i>
+                        <span>Theme</span>
+                    </button>
+                    <button class="action-button" id="actionLogout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+                <!-- Dashboard view (superuser only) -->
+                <div id="dashboardView" style="display: none;">
+                    <div class="dashboard-grid" id="cameraDashboard">
+                        <!-- Camera cells will be added dynamically -->
+                        <div class="dashboard-cell empty-cell">
+                            <span>No active cameras found</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat sidebar -->
+        <div class="chat-sidebar panel" id="chatSidebar">
+
+            <!-- Notification area -->
+            <div class="notification-container" id="notifications" style="display: none;">
+                <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
+                <span id="notificationText">Notifications will appear here</span>
+                <div style="margin-left: auto; cursor: pointer;"
+                    onclick="document.getElementById('notifications').style.display='none';">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>Chat</h3>
+                    <span id="chatStatus">Not connected</span>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Messages will be populated dynamically -->
+                    <div class="message message-alert">
+                        Start a session to chat with the connected user
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Type a message..." disabled />
+                    <button id="sendChatBtn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SockJS and STOMP for WebSocket -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stomp-websocket@2.3.4-next/lib/stomp.min.js"></script>
+
+    <script th:inline="javascript">
+        // Global variables
+        let stompClient = null;
+        let stream = null;
+        let isStreaming = false;
+        let selectedCamera = null;
+        let sessionCode = null;
+        let isAdmin = /*[[${#authorization.expression('hasRole(''ADMIN'')')}]]*/ false;
+        let isSuperuser = /*[[${#authorization.expression('hasRole(''SUPERUSER'')')}]]*/ false;
+        let currentUsername = /*[[${#authentication.name}]]*/ 'user';
+        let connectedPeer = null;
+        let activeUsers = [];
+        let dashboardFeeds = {};
+        let currentView = 'standard';
+        let isDarkTheme = true; // Default to dark theme
+        let lastFrameTime = 0;
+        let frameInterval = 100; // Default frame interval (milliseconds) - increased for 60fps
+        let reconnectAttempts = 0;
+        let maxReconnectAttempts = 10;
+        let reconnectInterval = 2000; // Start with 2 seconds
+        let reconnectTimer = null;
+        let isReconnecting = false;
+        let connectionStatus = 'disconnected'; // 'connected', 'disconnected', 'reconnecting'
+        let targetFPS = 60; // Target 60fps
+
+        // Audio stream variables
+        let audioStream = null;
+        let isAudioEnabled = false;
+        let audioContext = null;
+        let audioSource = null;
+        let audioProcessor = null;
+        let audioRecorder = null;
+        let audioChunks = [];
+        let audioSendInterval = null;
+        let audioSamplingRate = 16000;
+        let audioBufferSize = 4096;
+        let audioChannels = 1;
+        let audioFormat = 'opus';
+        let audioQuality = 0.8;
+        let audioCompress = true;
+        let selectedMicrophone = null;
+        
+        // Audio processing options
+        let noiseSuppressionEnabled = true;
+        let echoCancellationEnabled = true;
+        let autoGainControlEnabled = true;
+        
+        // Push-to-talk feature
+        let pushToTalkEnabled = false;
+        let isPushToTalkActive = false;
+        let pushToTalkKey = ' '; // Spacebar
+        
+        // Audio visualization
+        let audioAnalyser = null;
+        let visualizationActive = false;
+        let visualizationCanvas = null;
+        let visualizationContext = null;
+        let visualizationInterval = null;
+        
+        // Audio recording
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordingStartTime = null;
+
+        // DOM elements
+        const videoFeed = document.getElementById('videoFeed');
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideoCell = document.getElementById('remoteVideoCell');
+        const startStreamBtn = document.getElementById('startStreamBtn');
+        const stopStreamBtn = document.getElementById('stopStreamBtn');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const takeSnapshotBtn = document.getElementById('takeSnapshotBtn');
+        const cameraNotReady = document.getElementById('cameraNotReady');
+        const notifications = document.getElementById('notifications');
+        const notificationText = document.getElementById('notificationText');
+        const streamingStatus = document.getElementById('streamingStatus');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const cameraSelect = document.getElementById('cameraSelect');
+        const refreshCamerasBtn = document.getElementById('refreshCamerasBtn');
+
+        // Chat elements
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const chatStatus = document.getElementById('chatStatus');
+
+        // Session elements
+        const createSessionBtn = isAdmin ? document.getElementById('createSessionBtn') : null;
+        const sessionCodeDisplay = isAdmin ? document.getElementById('sessionCodeDisplay') : null;
+        const sessionCodeElement = isAdmin ? document.getElementById('sessionCode') : null;
+        const joinSessionCode = !isAdmin ? document.getElementById('joinSessionCode') : null;
+        const joinSessionBtn = !isAdmin ? document.getElementById('joinSessionBtn') : null;
+        const noSessionMessage = document.getElementById('noSessionMessage');
+        const activeSessionInfo = document.getElementById('activeSessionInfo');
+        const connectedWith = document.getElementById('connectedWith');
+        const sessionStartTime = document.getElementById('sessionStartTime');
+        const endSessionBtn = document.getElementById('endSessionBtn');
+
+        // Superuser elements
+        const refreshActiveUsersBtn = isSuperuser ? document.getElementById('refreshActiveUsersBtn') : null;
+        const activeUsersList = isSuperuser ? document.getElementById('activeUsersList') : null;
+        const superuserConnectBtn = isSuperuser ? document.getElementById('superuserConnectBtn') : null;
+
+        // View toggle elements
+        const standardViewBtn = isSuperuser ? document.getElementById('standardViewBtn') : null;
+        const dashboardViewBtn = isSuperuser ? document.getElementById('dashboardViewBtn') : null;
+        const standardView = document.getElementById('standardView');
+        const dashboardView = document.getElementById('dashboardView');
+        const cameraDashboard = document.getElementById('cameraDashboard');
+
+        // Theme toggle
+        const themeToggle = document.getElementById('themeToggle');
+
+        // DOM elements for video swapping
+        const swapViewsBtn = document.getElementById('swapViewsBtn');
+        const minimizeLocalBtn = document.getElementById('minimizeLocalBtn');
+        let isLocalViewPrimary = false;
+        let isLocalViewMinimized = false;
+
+        // Function to swap local and remote views
+        function swapCameraViews() {
+            isLocalViewPrimary = !isLocalViewPrimary;
+
+            if (isLocalViewPrimary) {
+                // Make local view primary
+                localVideoCell.style.position = 'static';
+                localVideoCell.style.width = '100%';
+                localVideoCell.style.height = '100%';
+                localVideoCell.style.bottom = 'auto';
+                localVideoCell.style.right = 'auto';
+                localVideoCell.style.zIndex = '1';
+                localVideoCell.classList.remove('minimized');
+                isLocalViewMinimized = false;
+
+                remoteVideoCell.style.position = 'absolute';
+                remoteVideoCell.style.width = '33%';
+                remoteVideoCell.style.height = '33%';
+                remoteVideoCell.style.bottom = 'var(--spacing-md)';
+                remoteVideoCell.style.right = 'var(--spacing-md)';
+                remoteVideoCell.style.zIndex = '2';
+
+                // Update labels
+                localVideoCell.querySelector('.video-label').textContent = 'Your Camera (Primary)';
+                remoteVideoCell.querySelector('.video-label').textContent = 'Remote Camera';
+
+                // Update minimize button location
+                minimizeLocalBtn.parentElement.parentElement.removeChild(minimizeLocalBtn.parentElement);
+                remoteVideoCell.querySelector('.video-controls').appendChild(minimizeLocalBtn.parentElement);
+                minimizeLocalBtn.title = "Minimize";
+                minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
+            } else {
+                // Make remote view primary
+                remoteVideoCell.style.position = 'static';
+                remoteVideoCell.style.width = '100%';
+                remoteVideoCell.style.height = '100%';
+                remoteVideoCell.style.bottom = 'auto';
+                remoteVideoCell.style.right = 'auto';
+                remoteVideoCell.style.zIndex = '1';
+
+                localVideoCell.style.position = 'absolute';
+                localVideoCell.style.width = '33%';
+                localVideoCell.style.height = '33%';
+                localVideoCell.style.bottom = 'var(--spacing-md)';
+                localVideoCell.style.right = 'var(--spacing-md)';
+                localVideoCell.style.zIndex = '2';
+
+                // Update labels
+                remoteVideoCell.querySelector('.video-label').textContent = 'Remote Camera (Primary)';
+                localVideoCell.querySelector('.video-label').textContent = 'Your Camera';
+
+                // Update minimize button location
+                minimizeLocalBtn.parentElement.parentElement.removeChild(minimizeLocalBtn.parentElement);
+                localVideoCell.querySelector('.video-controls').appendChild(minimizeLocalBtn.parentElement);
+                minimizeLocalBtn.title = "Minimize";
+                minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
+            }
+
+            showNotification(isLocalViewPrimary ? 'Your camera is now primary' : 'Remote camera is now primary');
+        }
+
+        // Function to toggle minimize state of the small view
+        function toggleMinimizeView() {
+            if (isLocalViewPrimary) {
+                // Remote view is small
+                isLocalViewMinimized = !isLocalViewMinimized;
+                if (isLocalViewMinimized) {
+                    remoteVideoCell.classList.add('minimized');
+                    minimizeLocalBtn.title = "Expand";
+                    minimizeLocalBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                } else {
+                    remoteVideoCell.classList.remove('minimized');
+                    minimizeLocalBtn.title = "Minimize";
+                    minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
+                }
+            } else {
+                // Local view is small
+                isLocalViewMinimized = !isLocalViewMinimized;
+                if (isLocalViewMinimized) {
+                    localVideoCell.classList.add('minimized');
+                    minimizeLocalBtn.title = "Expand";
+                    minimizeLocalBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                } else {
+                    localVideoCell.classList.remove('minimized');
+                    minimizeLocalBtn.title = "Minimize";
+                    minimizeLocalBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
+                }
+            }
+
+            showNotification(isLocalViewMinimized ? 'Small view minimized' : 'Small view expanded');
+        }
+
+        // Connect to WebSocket
+        function connect() {
+            // Clear any existing reconnect timer
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+
+            connectionStatus = 'connecting';
+            showNotification('Connecting to server...');
+
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+
+            // Disable debug logging
+            stompClient.debug = null;
+
+            // Configure STOMP client for better performance
+            stompClient.heartbeat.outgoing = 5000; // 5 seconds
+            stompClient.heartbeat.incoming = 5000; // 5 seconds
+
+            // Connect with authentication headers
+            const headers = {
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'username': currentUsername
+            };
+
+            stompClient.connect(headers, function (frame) {
+                console.log('Connected to WebSocket: ' + frame);
+                connectionStatus = 'connected';
+                reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+                showNotification('Connected to server');
+
+                // Subscribe to remote camera feed
+                stompClient.subscribe('/topic/camera/' + currentUsername, function (message) {
+                    if (message && message.body) {
+                        updateRemoteVideoFeed(message.body);
+                    }
+                });
+
+                // Subscribe to session events - use username-specific topic
+                stompClient.subscribe('/topic/session/' + currentUsername, function (message) {
+                    const data = JSON.parse(message.body);
+                    console.log('Received session event:', data);
+                    handleSessionEvent(data);
+                });
+
+                // Subscribe to chat messages
+                stompClient.subscribe('/topic/chat/' + currentUsername, function (message) {
+                    if (message && message.body) {
+                        const chatMessage = JSON.parse(message.body);
+                        addChatMessage(chatMessage);
+                    }
+                });
+                
+                // Subscribe to audio messages
+                stompClient.subscribe('/user/topic/audio', function (message) {
+                    if (message && message.body) {
+                        const audioMessage = JSON.parse(message.body);
+                        processAudioMessage(audioMessage);
+                    }
+                });
+
+                // If we were previously in a session, try to reconnect
+                if (connectedPeer && isStreaming) {
+                    console.log('Attempting to resume session with', connectedPeer);
+                    startSendingFrames();
+                }
+            }, function (error) {
+                console.error('WebSocket connection error:', error);
+                connectionStatus = 'disconnected';
+                showNotification('Connection error. Attempting to reconnect...', true);
+
+                // Implement exponential backoff for reconnection
+                handleReconnect();
+            });
+
+            // Add event listeners for connection state
+            socket.onclose = function () {
+                if (connectionStatus !== 'reconnecting') {
+                    connectionStatus = 'disconnected';
+                    console.log('WebSocket connection closed');
+                    handleReconnect();
+                }
+            };
+        }
+
+        // Handle reconnection with exponential backoff
+        function handleReconnect() {
+            if (isReconnecting) return; // Prevent multiple reconnection attempts
+
+            isReconnecting = true;
+            reconnectAttempts++;
+
+            // Calculate backoff time with jitter
+            const baseDelay = Math.min(30000, reconnectInterval * Math.pow(1.5, reconnectAttempts - 1));
+            const jitter = Math.random() * 0.5 + 0.75; // Random between 0.75 and 1.25
+            const delay = Math.floor(baseDelay * jitter);
+
+            console.log(`Reconnection attempt ${reconnectAttempts} in ${delay}ms`);
+            showNotification(`Connection lost. Reconnecting in ${Math.round(delay / 1000)} seconds... (${reconnectAttempts}/${maxReconnectAttempts})`, true);
+
+            connectionStatus = 'reconnecting';
+
+            if (reconnectAttempts <= maxReconnectAttempts) {
+                reconnectTimer = setTimeout(function () {
+                    isReconnecting = false;
+                    connect();
+                }, delay);
+            } else {
+                showNotification('Failed to reconnect after multiple attempts. Please refresh the page.', true);
+                isReconnecting = false;
+            }
+        }
+
+        // Update remote video feed
+        function updateRemoteVideoFeed(imageData) {
+            // Create image object for better loading handling
+            const img = new Image();
+            img.onload = function () {
+                // Update main remote video cell
+                if (remoteVideoCell.querySelector('img')) {
+                    remoteVideoCell.querySelector('img').src = img.src;
+
+                    // Remove any "connection lost" overlay if it exists
+                    const connectionLostOverlay = remoteVideoCell.querySelector('.connection-lost-overlay');
+                    if (connectionLostOverlay) {
+                        remoteVideoCell.removeChild(connectionLostOverlay);
+                    }
+                } else {
+                    const displayImg = document.createElement('img');
+                    displayImg.src = img.src;
+                    remoteVideoCell.innerHTML = '';
+                    remoteVideoCell.appendChild(displayImg);
+                    remoteVideoCell.appendChild(createVideoLabel('Remote Camera'));
+                }
+
+                // Update dashboard feed if this is the connected peer
+                if (isSuperuser && connectedPeer && dashboardFeeds[connectedPeer]) {
+                    // Find the cell for this user
+                    const dashboardCell = document.querySelector(`.dashboard-cell[data-username="${connectedPeer}"]`);
+                    if (dashboardCell) {
+                        // Update the image
+                        if (dashboardCell.querySelector('img')) {
+                            dashboardCell.querySelector('img').src = img.src;
+                        } else {
+                            // Replace "Connecting..." text with the image
+                            dashboardCell.innerHTML = '';
+                            dashboardCell.appendChild(dashboardFeeds[connectedPeer]);
+                            dashboardFeeds[connectedPeer].src = img.src;
+
+                            // Add the label back
+                            const label = document.createElement('div');
+                            label.className = 'video-label';
+                            label.textContent = connectedPeer;
+                            dashboardCell.appendChild(label);
+                        }
+                    }
+                }
+            };
+
+            // Set image source
+            img.src = `data:image/jpeg;base64,${imageData}`;
+        }
+
+        // Display connection lost overlay on remote video
+        function showConnectionLostOverlay() {
+            // Only add if it doesn't already exist
+            if (!remoteVideoCell.querySelector('.connection-lost-overlay')) {
+                const overlay = document.createElement('div');
+                overlay.className = 'connection-lost-overlay';
+                overlay.innerHTML = `
+                    <div class="connection-lost-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Connection lost</p>
+                        <p class="reconnecting-text">Attempting to reconnect...</p>
+                        <div class="reconnect-spinner"></div>
+                    </div>
+                `;
+                remoteVideoCell.appendChild(overlay);
+            }
+        }
+
+        // Create video label
+        function createVideoLabel(text) {
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            label.textContent = text;
+            return label;
+        }
+
+        // Update status badges
+        function updateStatusBadge(element, isActive) {
+            if (isActive) {
+                element.classList.add('status-active');
+                element.querySelector('span').textContent = 'Active';
+            } else {
+                element.classList.remove('status-active');
+                element.querySelector('span').textContent = 'Inactive';
+            }
+        }
+
+        // Show notification
+        function showNotification(message, isError = false) {
+            const notificationContainer = document.getElementById('notifications');
+            const notificationText = document.getElementById('notificationText');
+            const notificationIcon = notificationContainer.querySelector('i');
+
+            notificationText.textContent = message;
+            notificationContainer.style.display = 'flex';
+
+            if (isError) {
+                notificationContainer.classList.add('error');
+                notificationIcon.className = 'fas fa-exclamation-triangle';
+                notificationIcon.style.color = 'var(--error)';
+            } else {
+                notificationContainer.classList.remove('error');
+                notificationIcon.className = 'fas fa-info-circle';
+                notificationIcon.style.color = 'var(--success)';
+            }
+
+            // Hide after 5 seconds
+            setTimeout(() => {
+                notificationContainer.style.display = 'none';
+            }, 5000);
+        }
+
+        // Get available cameras
+        async function getAvailableCameras() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    cameraSelect.innerHTML = '<option value="">Select camera...</option>';
+
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+                    if (videoDevices.length === 0) {
+                        showNotification('No cameras found', true);
+                        resolve([]);
+                        return;
+                    }
+
+                    videoDevices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Camera ${cameraSelect.options.length}`;
+                        cameraSelect.appendChild(option);
+                    });
+
+                    showNotification(`Found ${videoDevices.length} camera(s)`);
+                    resolve(videoDevices);
+                } catch (error) {
+                    console.error('Error getting cameras:', error);
+                    showNotification('Error accessing cameras. Please check permissions.', true);
+                    reject(error);
+                }
+            });
+        }
+
+        // Start camera stream
+        async function startCameraStream() {
+            try {
+                const deviceId = cameraSelect.value;
+
+                if (!deviceId) {
+                    showNotification('Please select a camera', true);
+                    return;
+                }
+
+                // Stop any existing stream
+                if (stream) {
+                    stopCameraStream();
+                }
+
+                // Get user media with selected camera
+                const constraints = {
+                    video: {
+                        deviceId: { exact: deviceId },
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false // We handle audio separately
+                };
+
+                console.log('Requesting camera access with constraints:', constraints);
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                localVideo.srcObject = stream;
+
+                console.log('Camera stream started successfully');
+
+                // Hide camera not ready overlay
+                cameraNotReady.style.display = 'none';
+
+                // Update UI
+                startStreamBtn.style.display = 'none';
+                stopStreamBtn.style.display = 'inline-block';
+                takeSnapshotBtn.disabled = false;
+                updateStatusBadge(streamingStatus, true);
+                cameraStatus.textContent = 'Streaming';
+                isStreaming = true;
+
+                // Start sending frames to connected peer if in a session
+                if (connectedPeer) {
+                    console.log('Connected to peer, starting to send frames');
+                    setTimeout(() => {
+                        startSendingFrames();
+                    }, 1000); // Small delay to ensure video is initialized
+                }
+
+                // Start sending heartbeats
+                sendCameraHeartbeat();
+                // Set up heartbeat interval (every 3 seconds)
+                window.heartbeatInterval = setInterval(sendCameraHeartbeat, 3000);
+
+                // Update action bar state
+                updateActionBarState();
+
+                showNotification('Camera started successfully');
+                
+                // Initialize audio if audio toggle is enabled
+                if (isAudioEnabled) {
+                    initAudioStream();
+                }
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                showNotification('Error starting camera: ' + error.message, true);
+            }
+        }
+
+        // Stop camera stream
+        function stopCameraStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                localVideo.srcObject = null;
+            }
+
+            // Update UI
+            startStreamBtn.style.display = 'inline-block';
+            stopStreamBtn.style.display = 'none';
+            takeSnapshotBtn.disabled = true;
+            updateStatusBadge(streamingStatus, false);
+            cameraStatus.textContent = 'Idle';
+            cameraNotReady.style.display = 'flex';
+            isStreaming = false;
+
+            // Clear heartbeat interval
+            if (window.heartbeatInterval) {
+                clearInterval(window.heartbeatInterval);
+                window.heartbeatInterval = null;
+            }
+            
+            // Stop audio stream if active
+            stopAudioStream();
+
+            // Update action bar state
+            updateActionBarState();
+
+            showNotification('Camera stopped');
+        }
+        
+        // Create audio toggle button if it doesn't exist
+        function createAudioToggleButton() {
+            // Create audio toggle button and add it to the action bar
+            const actionBar = document.getElementById('actionBar');
+            const audioToggleBtn = document.createElement('button');
+            audioToggleBtn.id = 'actionAudioToggle';
+            audioToggleBtn.className = 'action-button';
+            audioToggleBtn.innerHTML = '<i class="fas fa-microphone-slash"></i><span>Muted</span>';
+            
+            // Insert after camera toggle
+            const cameraToggleBtn = document.getElementById('actionCameraToggle');
+            if (cameraToggleBtn && cameraToggleBtn.nextSibling) {
+                actionBar.insertBefore(audioToggleBtn, cameraToggleBtn.nextSibling);
+            } else {
+                actionBar.appendChild(audioToggleBtn);
+            }
+            
+            // Add event listener
+            audioToggleBtn.addEventListener('click', toggleAudio);
+            
+            return audioToggleBtn;
+        }
+        
+        // Toggle audio streaming
+        function toggleAudio() {
+            if (isAudioEnabled) {
+                stopAudioStream();
+            } else {
+                initAudioStream();
+            }
+        }
+        
+        // Initialize audio streaming
+        async function initAudioStream() {
+            try {
+                if (!isStreaming || !connectedPeer) {
+                    showNotification('Start camera and connect to a peer first', true);
+                    return;
+                }
+                
+                // Request audio permissions with advanced constraints
+                const audioConstraints = {
+                    audio: {
+                        deviceId: selectedMicrophone ? { exact: selectedMicrophone } : undefined,
+                        echoCancellation: echoCancellationEnabled,
+                        noiseSuppression: noiseSuppressionEnabled,
+                        autoGainControl: autoGainControlEnabled
+                    }
+                };
+                
+                console.log('Audio constraints:', audioConstraints);
+                audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                
+                // Set up Web Audio API for processing
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: audioSamplingRate
+                });
+                
+                audioSource = audioContext.createMediaStreamSource(audioStream);
+                
+                // Create analyzer for visualization
+                audioAnalyser = audioContext.createAnalyser();
+                audioAnalyser.fftSize = 256;
+                audioSource.connect(audioAnalyser);
+                
+                // Create script processor node for audio processing
+                audioProcessor = audioContext.createScriptProcessor(audioBufferSize, audioChannels, audioChannels);
+                
+                audioChunks = [];
+                
+                // Process audio data
+                audioProcessor.onaudioprocess = function(e) {
+                    if (!isAudioEnabled || !connectedPeer) return;
+                    
+                    // Skip processing if push-to-talk is enabled but not active
+                    if (pushToTalkEnabled && !isPushToTalkActive) return;
+                    
+                    // Get audio data from the input channel
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    audioChunks.push(new Float32Array(inputData));
+                    
+                    // If we've collected enough chunks, send the audio
+                    if (audioChunks.length >= 10) { // Adjust for your latency/quality needs
+                        sendAudioData();
+                    }
+                };
+                
+                // Connect the audio nodes
+                audioSource.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
+                
+                // Set up interval to send audio periodically
+                if (audioSendInterval) clearInterval(audioSendInterval);
+                audioSendInterval = setInterval(sendAudioData, 1000); // Send audio every second
+                
+                // Update UI
+                isAudioEnabled = true;
+                actionAudioToggle.innerHTML = '<i class="fas fa-microphone"></i><span>Unmuted</span>';
+                actionAudioToggle.classList.add('active');
+                
+                // If push-to-talk is enabled, initially mute the microphone
+                if (pushToTalkEnabled) {
+                    setMicrophoneMuted(true);
+                    
+                    // Show the push-to-talk indicator
+                    const pttIndicator = document.getElementById('pushToTalkIndicator');
+                    if (pttIndicator) {
+                        pttIndicator.style.display = 'flex';
+                    }
+                }
+                
+                // Start audio visualization in local video cell
+                setupAudioVisualization('localVideoCell');
+                
+                showNotification('Microphone activated');
+                
+            } catch (error) {
+                console.error('Error starting audio:', error);
+                showNotification('Error starting audio: ' + error.message, true);
+                isAudioEnabled = false;
+            }
+        }
+        
+        // Stop audio streaming
+        function stopAudioStream() {
+            // Stop recording if active
+            if (isRecording && mediaRecorder) {
+                stopAudioRecording().then(recordingInfo => {
+                    console.log('Recording stopped with audio stream:', recordingInfo);
+                });
+            }
+            
+            // Stop audio visualization
+            stopAudioVisualization();
+            
+            // Stop and clean up audio stream
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+            
+            // Clean up audio processing nodes
+            if (audioProcessor) {
+                audioProcessor.disconnect();
+                audioProcessor = null;
+            }
+            
+            if (audioSource) {
+                audioSource.disconnect();
+                audioSource = null;
+            }
+            
+            if (audioAnalyser) {
+                audioAnalyser.disconnect();
+                audioAnalyser = null;
+            }
+            
+            // Close audio context
+            if (audioContext && audioContext.state !== 'closed') {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            // Clear send interval
+            if (audioSendInterval) {
+                clearInterval(audioSendInterval);
+                audioSendInterval = null;
+            }
+            
+            // Clear data
+            audioChunks = [];
+            isAudioEnabled = false;
+            
+            // Hide push-to-talk indicator if visible
+            const pttIndicator = document.getElementById('pushToTalkIndicator');
+            if (pttIndicator) {
+                pttIndicator.style.display = 'none';
+            }
+            
+            // Update UI
+            actionAudioToggle.innerHTML = '<i class="fas fa-microphone-slash"></i><span>Muted</span>';
+            actionAudioToggle.classList.remove('active');
+            
+            showNotification('Microphone deactivated');
+            
+            // Remove any audio visualizer elements
+            const visualizers = document.querySelectorAll('.audio-visualizer');
+            visualizers.forEach(visualizer => {
+                visualizer.parentNode.removeChild(visualizer);
+            });
+        }
+        
+        // Send collected audio data
+        async function sendAudioData() {
+            if (!isAudioEnabled || !connectedPeer || audioChunks.length === 0) return;
+            
+            try {
+                // Convert audio chunks to a single buffer
+                let length = 0;
+                audioChunks.forEach(chunk => {
+                    length += chunk.length;
+                });
+                
+                const mergedBuffer = new Float32Array(length);
+                let offset = 0;
+                
+                audioChunks.forEach(chunk => {
+                    mergedBuffer.set(chunk, offset);
+                    offset += chunk.length;
+                });
+                
+                // Clear chunks after processing
+                audioChunks = [];
+                
+                // Convert to WAV format (16-bit PCM)
+                const audioBlob = await float32ArrayToWav(mergedBuffer, audioSamplingRate, audioChannels);
+                
+                // Convert to base64
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                
+                reader.onloadend = function() {
+                    const base64data = reader.result.split(',')[1]; // Remove data URL prefix
+                    
+                    // Send to server
+                    sendAudioToServer(base64data);
+                };
+            } catch (error) {
+                console.error('Error processing audio data:', error);
+            }
+        }
+        
+        // Send audio data to server
+        function sendAudioToServer(audioBase64) {
+            if (!connectedPeer || !isAudioEnabled) return;
+            
+            const payload = {
+                audio: audioBase64,
+                sender: currentUsername,
+                recipient: connectedPeer,
+                format: audioFormat,
+                compress: audioCompress,
+                quality: audioQuality,
+                timestamp: Date.now()
+            };
+            
+            // Send via REST API
+            fetch('/api/client-camera/audio', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.warn('Error sending audio:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending audio:', error);
+            });
+        }
+        
+        // Convert Float32Array to WAV blob
+        function float32ArrayToWav(samples, sampleRate, numChannels) {
+            return new Promise(resolve => {
+                const buffer = new ArrayBuffer(44 + samples.length * 2);
+                const view = new DataView(buffer);
+                
+                // RIFF identifier
+                writeString(view, 0, 'RIFF');
+                // RIFF chunk length
+                view.setUint32(4, 36 + samples.length * 2, true);
+                // RIFF type
+                writeString(view, 8, 'WAVE');
+                // format chunk identifier
+                writeString(view, 12, 'fmt ');
+                // format chunk length
+                view.setUint32(16, 16, true);
+                // sample format (raw)
+                view.setUint16(20, 1, true);
+                // channel count
+                view.setUint16(22, numChannels, true);
+                // sample rate
+                view.setUint32(24, sampleRate, true);
+                // byte rate (sample rate * block align)
+                view.setUint32(28, sampleRate * 4, true);
+                // block align (channel count * bytes per sample)
+                view.setUint16(32, numChannels * 2, true);
+                // bits per sample
+                view.setUint16(34, 16, true);
+                // data chunk identifier
+                writeString(view, 36, 'data');
+                // data chunk length
+                view.setUint32(40, samples.length * 2, true);
+                
+                // Write the PCM samples
+                let index = 44;
+                for (let i = 0; i < samples.length; i++) {
+                    // Convert float audio to 16-bit PCM
+                    let s = Math.max(-1, Math.min(1, samples[i]));
+                    s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                    view.setInt16(index, s, true);
+                    index += 2;
+                }
+                
+                // Create blob
+                const blob = new Blob([view], { type: 'audio/wav' });
+                resolve(blob);
+            });
+        }
+        
+        // Helper function to write a string to a DataView
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+        
+        // Process incoming audio data
+        function processAudioMessage(message) {
+            if (!message || !message.audio) return;
+            
+            // Create audio element
+            const audio = new Audio(`data:audio/wav;base64,${message.audio}`);
+            
+            // Play the audio
+            audio.play().catch(error => {
+                console.error('Error playing audio:', error);
+            });
+        }
+
+        // Take snapshot
+        function takeSnapshot() {
+            if (!stream) {
+                showNotification('Camera not active', true);
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = localVideo.videoWidth;
+            canvas.height = localVideo.videoHeight;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
+
+            // Convert to base64
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            // Create a link to download the image
+            const link = document.createElement('a');
+            link.href = imageData;
+            link.download = `snapshot_${new Date().toISOString().replace(/:/g, '-')}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showNotification('Snapshot saved');
+        }
+
+        // Start sending frames to connected peer
+        function startSendingFrames() {
+            if (!stream || !stompClient || !connectedPeer) {
+                console.log("Cannot start sending frames: missing stream, stompClient, or connectedPeer");
+                return;
+            }
+
+            console.log("Starting to send frames to peer:", connectedPeer);
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { alpha: false }); // Disable alpha for better performance
+
+            // Set canvas size based on video dimensions, but limit max size
+            const maxWidth = 640;
+            const maxHeight = 480;
+            let width = localVideo.videoWidth || maxWidth;
+            let height = localVideo.videoHeight || maxHeight;
+
+            // Calculate aspect ratio
+            const aspectRatio = width / height;
+
+            // Resize if too large
+            if (width > maxWidth) {
+                width = maxWidth;
+                height = Math.floor(width / aspectRatio);
+            }
+
+            if (height > maxHeight) {
+                height = maxHeight;
+                width = Math.floor(height * aspectRatio);
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            // Set image smoothing for better quality
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            // Create a second canvas for motion detection and delta encoding
+            const prevCanvas = document.createElement('canvas');
+            const prevCtx = prevCanvas.getContext('2d', { alpha: false });
+            prevCanvas.width = width;
+            prevCanvas.height = height;
+
+            // Adaptive frame rate based on network conditions
+            let frameQuality = 0.85; // Start with higher quality (0-1)
+            let consecutiveSlowFrames = 0;
+            let consecutiveFastFrames = 0;
+            let framesSent = 0;
+            let lastFpsCalculationTime = performance.now();
+            let currentFps = 0;
+            let motionThreshold = 10; // Pixel difference threshold for motion detection
+            let motionRatio = 0.02; // Percentage of pixels that need to change to detect motion
+            let lastImageData = null;
+            let framesSinceKeyFrame = 0;
+            let keyFrameInterval = 30; // Send a full frame every 30 frames
+            let networkLatency = 0;
+            let lastSendTime = 0;
+            let compressionLevel = 'high'; // 'low', 'medium', 'high', 'veryhigh'
+
+            // Configure compression levels
+            const compressionSettings = {
+                low: {
+                    quality: 0.9,
+                    resolutionScale: 1.0,
+                    motionThreshold: 5,
+                    keyFrameInterval: 15
+                },
+                medium: {
+                    quality: 0.85,
+                    resolutionScale: 0.9,
+                    motionThreshold: 10,
+                    keyFrameInterval: 30
+                },
+                high: {
+                    quality: 0.75,
+                    resolutionScale: 0.8,
+                    motionThreshold: 15,
+                    keyFrameInterval: 45
+                },
+                veryhigh: {
+                    quality: 0.6,
+                    resolutionScale: 0.7,
+                    motionThreshold: 20,
+                    keyFrameInterval: 60
+                }
+            };
+
+            // Apply compression settings
+            function applyCompressionSettings(level) {
+                const settings = compressionSettings[level];
+                frameQuality = settings.quality;
+
+                // Adjust canvas size based on resolution scale
+                const newWidth = Math.floor(width * settings.resolutionScale);
+                const newHeight = Math.floor(height * settings.resolutionScale);
+
+                if (canvas.width !== newWidth || canvas.height !== newHeight) {
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    prevCanvas.width = newWidth;
+                    prevCanvas.height = newHeight;
+
+                    // Reset context after resize
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    prevCtx.imageSmoothingEnabled = true;
+                    prevCtx.imageSmoothingQuality = 'high';
+                }
+
+                motionThreshold = settings.motionThreshold;
+                keyFrameInterval = settings.keyFrameInterval;
+
+                console.log(`Applied compression level: ${level}, quality: ${frameQuality}, resolution: ${canvas.width}x${canvas.height}`);
+            }
+
+            // Initial compression settings
+            applyCompressionSettings(compressionLevel);
+
+            // Detect motion between frames
+            function detectMotion(currentImageData, previousImageData) {
+                if (!previousImageData) return true;
+
+                const current = currentImageData.data;
+                const previous = previousImageData.data;
+                let changedPixels = 0;
+                const totalPixels = current.length / 4; // RGBA has 4 values per pixel
+
+                // Sample every 4th pixel for performance (still gives good results)
+                for (let i = 0; i < current.length; i += 16) {
+                    // Calculate difference in RGB values
+                    const rDiff = Math.abs(current[i] - previous[i]);
+                    const gDiff = Math.abs(current[i + 1] - previous[i + 1]);
+                    const bDiff = Math.abs(current[i + 2] - previous[i + 2]);
+
+                    // If any channel has changed significantly, count as changed pixel
+                    if (rDiff > motionThreshold || gDiff > motionThreshold || bDiff > motionThreshold) {
+                        changedPixels++;
+                    }
+                }
+
+                // Calculate ratio of changed pixels
+                const ratio = changedPixels / (totalPixels / 4); // Adjust for sampling rate
+                return ratio > motionRatio;
+            }
+
+            // Send frames using requestAnimationFrame for better performance
+            function sendFrame() {
+                if (!isStreaming || !stream || !connectedPeer || connectionStatus !== 'connected') {
+                    console.log("Stopping frame sending - conditions no longer met");
+                    return;
+                }
+
+                const now = performance.now();
+                const elapsed = now - lastFrameTime;
+
+                // Calculate current FPS every second
+                if (now - lastFpsCalculationTime > 1000) {
+                    currentFps = Math.round((framesSent * 1000) / (now - lastFpsCalculationTime));
+                    console.log(`Current FPS: ${currentFps}, Quality: ${frameQuality.toFixed(2)}, Latency: ${networkLatency.toFixed(0)}ms, Compression: ${compressionLevel}`);
+                    framesSent = 0;
+                    lastFpsCalculationTime = now;
+
+                    // Adjust compression level based on network conditions
+                    if (networkLatency > 200) {
+                        if (compressionLevel !== 'veryhigh') {
+                            compressionLevel = 'veryhigh';
+                            applyCompressionSettings(compressionLevel);
+                        }
+                    } else if (networkLatency > 100) {
+                        if (compressionLevel !== 'high') {
+                            compressionLevel = 'high';
+                            applyCompressionSettings(compressionLevel);
+                        }
+                    } else if (networkLatency > 50) {
+                        if (compressionLevel !== 'medium') {
+                            compressionLevel = 'medium';
+                            applyCompressionSettings(compressionLevel);
+                        }
+                    } else {
+                        if (compressionLevel !== 'low') {
+                            compressionLevel = 'low';
+                            applyCompressionSettings(compressionLevel);
+                        }
+                    }
+                }
+
+                // Only send frame if enough time has passed to maintain target FPS
+                if (elapsed >= frameInterval) {
+                    lastFrameTime = now;
+
+                    try {
+                        // Draw video frame to canvas with smoothing
+                        ctx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
+
+                        // Get current frame data
+                        const currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                        // Check if we should send this frame (based on motion detection or keyframe interval)
+                        const isKeyFrame = framesSinceKeyFrame >= keyFrameInterval;
+                        const hasMotion = detectMotion(currentImageData, lastImageData);
+
+                        if (isKeyFrame || hasMotion) {
+                            // Start timing frame processing
+                            const frameStartTime = performance.now();
+
+                            // Convert to JPEG with adaptive quality
+                            const imageData = canvas.toDataURL('image/jpeg', frameQuality);
+
+                            // Store current frame for next comparison
+                            prevCtx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
+                            lastImageData = prevCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+                            // Send to connected peer via WebSocket
+                            if (stompClient.connected) {
+                                lastSendTime = performance.now();
+                                stompClient.send("/app/camera/" + connectedPeer, {}, imageData.split(',')[1]);
+                                framesSent++;
+
+                                // Reset key frame counter if this was a key frame
+                                if (isKeyFrame) {
+                                    framesSinceKeyFrame = 0;
+                                } else {
+                                    framesSinceKeyFrame++;
+                                }
+                            } else {
+                                console.warn("STOMP client not connected, reconnecting...");
+                                handleReconnect();
+                                return;
+                            }
+
+                            // Measure frame processing time
+                            const frameProcessTime = performance.now() - frameStartTime;
+
+                            // Adaptive quality and frame rate based on processing time
+                            if (frameProcessTime > 50) { // Frame took too long (targeting 60fps = ~16ms per frame)
+                                consecutiveSlowFrames++;
+                                consecutiveFastFrames = 0;
+
+                                if (consecutiveSlowFrames >= 3) {
+                                    // Reduce quality or increase interval
+                                    if (frameQuality > 0.3) {
+                                        frameQuality -= 0.05;
+                                    } else if (frameInterval < 50) { // Don't go below 20fps
+                                        frameInterval += 5;
+                                    }
+                                    consecutiveSlowFrames = 0;
+                                    console.log(`Reducing quality to ${frameQuality.toFixed(2)} or increasing interval to ${frameInterval}ms`);
+                                }
+                            } else if (frameProcessTime < 10 && currentFps < targetFPS) { // Frame was fast and we're below target FPS
+                                consecutiveFastFrames++;
+                                consecutiveSlowFrames = 0;
+
+                                if (consecutiveFastFrames >= 10) {
+                                    // Increase quality or decrease interval
+                                    if (frameInterval > 16) { // Don't go above 60fps (16.6ms)
+                                        frameInterval -= 2;
+                                    } else if (frameQuality < 0.9) {
+                                        frameQuality += 0.05;
+                                    }
+                                    consecutiveFastFrames = 0;
+                                    console.log(`Increasing quality to ${frameQuality.toFixed(2)} or decreasing interval to ${frameInterval}ms`);
+                                }
+                            }
+                        } else {
+                            // Skip this frame due to no motion
+                            framesSinceKeyFrame++;
+                        }
+                    } catch (error) {
+                        console.error('Error sending frame:', error);
+                        if (error.message && error.message.includes('WebSocket is not open')) {
+                            handleReconnect();
+                            return;
+                        }
+                    }
+                }
+
+                // Schedule next frame
+                requestAnimationFrame(sendFrame);
+            }
+
+            // Start the frame sending loop
+            sendFrame();
+
+            // Listen for response time to measure network latency
+            const originalSubscribe = stompClient.subscribe;
+            stompClient.subscribe = function (destination, callback, headers) {
+                const wrappedCallback = function (message) {
+                    // Calculate network latency when receiving a message
+                    if (lastSendTime > 0) {
+                        const latency = performance.now() - lastSendTime;
+                        // Use exponential moving average for smoother latency values
+                        networkLatency = networkLatency === 0 ? latency : networkLatency * 0.8 + latency * 0.2;
+                    }
+                    return callback(message);
+                };
+                return originalSubscribe.call(stompClient, destination, wrappedCallback, headers);
+            };
+        }
+
+        // Send camera heartbeat to keep active status
+        function sendCameraHeartbeat() {
+            if (!stompClient || !isStreaming) return;
+
+            stompClient.send("/app/camera/heartbeat", {}, JSON.stringify({
+                username: currentUsername
+            }));
+
+            console.log("Sent camera heartbeat");
+        }
+
+        // Create a new session (admin only)
+        function createSession() {
+            if (!isAdmin) {
+                console.warn("Non-admin tried to create session");
+                return;
+            }
+
+            // Generate a random 6-digit code
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            sessionCode = code;
+
+            console.log('Creating session with code:', code);
+
+            // Display the code
+            sessionCodeElement.textContent = code;
+            sessionCodeDisplay.style.display = 'block';
+
+            // Register the session
+            stompClient.send("/app/session/create", {}, JSON.stringify({
+                code: code,
+                username: currentUsername
+            }));
+
+            showNotification('Session created. Share the code with a user.');
+
+            // Log session creation for debugging
+            console.log('Session creation request sent with code:', code, 'username:', currentUsername);
+        }
+
+        // Join a session (user only)
+        function joinSession() {
+            if (isAdmin) {
+                console.warn("Admin tried to join session");
+                return;
+            }
+
+            const code = joinSessionCode.value.trim();
+
+            if (!code || code.length !== 6) {
+                showNotification('Please enter a valid 6-digit session code', true);
+                return;
+            }
+
+            console.log('Attempting to join session with code:', code);
+
+            // Send join request
+            stompClient.send("/app/session/join", {}, JSON.stringify({
+                code: code,
+                username: currentUsername
+            }));
+
+            showNotification('Attempting to join session...');
+
+            // Log join attempt for debugging
+            console.log('Session join request sent with code:', code, 'username:', currentUsername);
+        }
+
+        // End current session
+        function endSession() {
+            if (!connectedPeer) return;
+
+            // Send end session request
+            stompClient.send("/app/session/end", {}, JSON.stringify({
+                username: currentUsername,
+                peer: connectedPeer
+            }));
+
+            // Reset session UI
+            resetSessionUI();
+
+            // Update action bar state
+            updateActionBarState();
+        }
+
+        // Reset session UI
+        function resetSessionUI() {
+            connectedPeer = null;
+
+            if (isAdmin) {
+                sessionCodeDisplay.style.display = 'none';
+            } else {
+                joinSessionCode.value = '';
+            }
+
+            noSessionMessage.style.display = 'block';
+            activeSessionInfo.style.display = 'none';
+
+            // Clear remote video
+            remoteVideoCell.innerHTML = '<span>No remote camera connected</span>';
+            remoteVideoCell.appendChild(createVideoLabel('Remote Camera'));
+
+            // Reset chat
+            chatInput.disabled = true;
+            sendChatBtn.disabled = true;
+            chatStatus.textContent = 'Not connected';
+        }
+
+        // Handle session events
+        function handleSessionEvent(data) {
+            console.log('Handling session event:', data);
+
+            switch (data.type) {
+                case 'created':
+                    // Session created successfully
+                    showNotification(data.message || 'Session created successfully');
+                    break;
+
+                case 'connected':
+                    // Session established
+                    connectedPeer = data.peer;
+                    connectedWith.textContent = data.peer;
+                    sessionStartTime.textContent = new Date().toLocaleTimeString();
+                    noSessionMessage.style.display = 'none';
+                    activeSessionInfo.style.display = 'block';
+
+                    // Enable chat
+                    chatInput.disabled = false;
+                    sendChatBtn.disabled = false;
+                    chatStatus.textContent = `Connected to ${data.peer}`;
+
+                    // Add welcome message
+                    addSystemMessage(`Connected to ${data.peer}. You can now chat.`);
+
+                    // Update action bar state
+                    updateActionBarState();
+
+                    showNotification(`Connected with ${data.peer}`);
+
+                    // Start sending frames if camera is active
+                    if (isStreaming && stream) {
+                        console.log('Camera is active, starting to send frames to', data.peer);
+                        setTimeout(() => {
+                            startSendingFrames();
+                        }, 1000); // Small delay to ensure connection is fully established
+                    } else {
+                        console.warn('Camera not active, cannot send frames to peer');
+                        showNotification('Please start your camera to share video with peer', true);
+
+                        // Auto-start camera if we have permission
+                        if (selectedCamera) {
+                            console.log('Auto-starting camera with selected device:', selectedCamera);
+                            startCameraStream();
+                        }
+                    }
+                    break;
+
+                case 'disconnected':
+                    showNotification(`${data.peer} has disconnected`);
+
+                    // Show connection lost overlay
+                    showConnectionLostOverlay();
+
+                    // Disable chat
+                    chatInput.disabled = true;
+                    sendChatBtn.disabled = true;
+                    chatStatus.textContent = 'Not connected';
+
+                    // Add disconnection message
+                    addSystemMessage(`${data.peer} has disconnected.`);
+
+                    // Try to reconnect if this was due to a network issue
+                    if (connectionStatus !== 'connected' && connectedPeer) {
+                        setTimeout(() => {
+                            if (stompClient && stompClient.connected) {
+                                console.log('Attempting to reconnect to session');
+                                // Send a reconnect request
+                                if (isAdmin) {
+                                    createSession();
+                                } else if (sessionCode) {
+                                    joinSession();
+                                }
+                            }
+                        }, 3000);
+                    } else {
+                        resetSessionUI();
+                        // Update action bar state
+                        updateActionBarState();
+                    }
+                    break;
+
+                case 'error':
+                    showNotification(data.message || 'An error occurred with the session', true);
+                    break;
+
+                case 'active-users':
+                    // Update active users list (superuser only)
+                    if (isSuperuser && data.activeUsers) {
+                        activeUsers = Array.from(data.activeUsers);
+                        updateActiveUsersList();
+                        showNotification('Active users list updated');
+                    }
+                    break;
+
+                default:
+                    console.warn('Unknown session event type:', data.type);
+            }
+        }
+
+        // Update active users list dropdown
+        function updateActiveUsersList() {
+            if (!isSuperuser || !activeUsersList) return;
+
+            // Clear current options
+            activeUsersList.innerHTML = '';
+
+            if (activeUsers.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.text = 'No active users found';
+                activeUsersList.appendChild(option);
+
+                // Also update dashboard if in dashboard view
+                if (currentView === 'dashboard') {
+                    updateDashboardGrid();
+                }
+
+                return;
+            }
+
+            // Add each active user
+            activeUsers.forEach(username => {
+                const option = document.createElement('option');
+                option.value = username;
+                option.text = username;
+                activeUsersList.appendChild(option);
+            });
+
+            // Update dashboard if in dashboard view
+            if (currentView === 'dashboard') {
+                updateDashboardGrid();
+            }
+
+            showNotification(`Found ${activeUsers.length} active users`);
+        }
+
+        // Update dashboard grid with active cameras
+        function updateDashboardGrid() {
+            if (!isSuperuser || !cameraDashboard) return;
+
+            // Clear current grid
+            cameraDashboard.innerHTML = '';
+
+            if (activeUsers.length === 0) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'dashboard-cell empty-cell';
+                emptyCell.innerHTML = '<span>No active cameras found</span>';
+                cameraDashboard.appendChild(emptyCell);
+                return;
+            }
+
+            // Add a cell for each active user
+            activeUsers.forEach(username => {
+                const cell = document.createElement('div');
+                cell.className = 'dashboard-cell';
+                cell.dataset.username = username;
+
+                // Add username label
+                const label = document.createElement('div');
+                label.className = 'video-label';
+                label.textContent = username;
+
+                // Check if we already have a feed for this user
+                if (dashboardFeeds[username]) {
+                    cell.appendChild(dashboardFeeds[username]);
+                } else {
+                    // Create placeholder
+                    cell.innerHTML = '<span>Connecting...</span>';
+
+                    // Create image element for this feed
+                    const img = document.createElement('img');
+                    img.alt = username;
+                    dashboardFeeds[username] = img;
+
+                    // Request connection to this user
+                    requestDashboardFeed(username);
+                }
+
+                cell.appendChild(label);
+
+                // Add click handler to connect to this user
+                cell.addEventListener('click', () => {
+                    if (isSuperuser) {
+                        // Connect to this user
+                        superuserConnectToUser(username);
+
+                        // Switch to standard view
+                        switchView('standard');
+                    }
+                });
+
+                cameraDashboard.appendChild(cell);
+            });
+        }
+
+        // Request dashboard feed from a specific user
+        function requestDashboardFeed(username) {
+            if (!isSuperuser || !stompClient) return;
+
+            console.log(`Requesting dashboard feed from ${username}`);
+
+            // For now, we'll use the same superuser connect mechanism
+            // In a production app, you might want a separate "peek" function
+            // that doesn't disconnect existing sessions
+            stompClient.send("/app/session/superuser/connect", {}, JSON.stringify({
+                username: currentUsername,
+                peer: username
+            }));
+        }
+
+        // Switch between standard and dashboard views
+        function switchView(view) {
+            if (!isSuperuser) return;
+
+            currentView = view;
+
+            if (view === 'standard') {
+                standardView.style.display = 'flex';
+                dashboardView.style.display = 'none';
+                standardViewBtn.classList.add('active');
+                dashboardViewBtn.classList.remove('active');
+            } else {
+                standardView.style.display = 'none';
+                dashboardView.style.display = 'block';
+                standardViewBtn.classList.remove('active');
+                dashboardViewBtn.classList.add('active');
+
+                // Update dashboard grid
+                updateDashboardGrid();
+            }
+        }
+
+        // Toggle theme between light and dark
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+
+            if (isDarkTheme) {
+                document.body.classList.remove('light-theme');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                document.body.classList.add('light-theme');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+
+            // Store preference in localStorage
+            localStorage.setItem('darkTheme', isDarkTheme.toString());
+
+            // Update action bar state
+            updateActionBarState();
+        }
+
+        // Refresh active users list (superuser only)
+        function refreshActiveUsers() {
+            if (!isSuperuser || !stompClient) return;
+
+            stompClient.send("/app/session/superuser/active-users", {}, JSON.stringify({
+                username: currentUsername
+            }));
+
+            showNotification('Requesting active users list...');
+        }
+
+        // Connect to a specific user (superuser only)
+        function superuserConnect() {
+            if (!isSuperuser || !stompClient) return;
+
+            const targetUser = activeUsersList.value;
+
+            if (!targetUser) {
+                showNotification('Please select a user to connect to', true);
+                return;
+            }
+
+            superuserConnectToUser(targetUser);
+        }
+
+        // Helper function to connect to a specific user
+        function superuserConnectToUser(targetUser) {
+            if (!isSuperuser || !stompClient) return;
+
+            console.log('Superuser attempting to connect to:', targetUser);
+
+            stompClient.send("/app/session/superuser/connect", {}, JSON.stringify({
+                username: currentUsername,
+                peer: targetUser
+            }));
+
+            showNotification(`Attempting to connect to ${targetUser}...`);
+        }
+
+        // Send chat message
+        function sendChatMessage() {
+            if (!stompClient || !connectedPeer) return;
+
+            const content = chatInput.value.trim();
+            if (!content) return;
+
+            const chatMessage = {
+                sender: currentUsername,
+                recipient: connectedPeer,
+                content: content,
+                timestamp: new Date().toISOString(),
+                type: 'TEXT'
+            };
+
+            stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+
+            // Clear input
+            chatInput.value = '';
+
+            // Add to UI immediately (optimistic UI)
+            addChatMessage(chatMessage);
+        }
+
+        // Add chat message to UI
+        function addChatMessage(message) {
+            const messageDiv = document.createElement('div');
+
+            if (message.type === 'ALERT') {
+                messageDiv.className = 'message message-alert';
+            } else if (message.sender === currentUsername) {
+                messageDiv.className = 'message message-sent';
+            } else {
+                messageDiv.className = 'message message-received';
+            }
+
+            messageDiv.textContent = message.content;
+
+            // Add timestamp
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            const date = new Date(message.timestamp);
+            timeDiv.textContent = date.toLocaleTimeString();
+            messageDiv.appendChild(timeDiv);
+
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add system message to chat
+        function addSystemMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message message-alert';
+            messageDiv.textContent = content;
+
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize the dashboard layout
+            const appContainer = document.getElementById('appContainer');
+            // Start with sidebar hidden on mobile
+            if (window.innerWidth <= 768) {
+                appContainer.classList.add('sidebar-hidden');
+            }
+            // Start with chat hidden by default
+            appContainer.classList.add('chat-hidden');
+            
+            // Request microphone permission early
+            requestMicrophonePermission();
+
+            // Initialize main content height
+            setTimeout(updateMainContentHeight, 100); // Short delay to ensure content is rendered
+
+            // Function to check panel state and adjust main content accordingly
+            function checkPanelState() {
+                const mainViewContainer = document.querySelector('.main-view-container');
+                const mainContent = document.querySelector('.main-content');
+
+                if (appContainer.classList.contains('sidebar-hidden') &&
+                    appContainer.classList.contains('chat-hidden')) {
+                    mainViewContainer.style.maxWidth = '100%';
+                    mainViewContainer.style.width = '100%';
+                } else if (appContainer.classList.contains('sidebar-hidden')) {
+                    mainViewContainer.style.maxWidth = `calc(100% - var(--chat-sidebar-width))`;
+                    mainViewContainer.style.width = '';
+                } else if (appContainer.classList.contains('chat-hidden')) {
+                    mainViewContainer.style.maxWidth = `calc(100% - var(--sidebar-width))`;
+                    mainViewContainer.style.width = '';
+                } else {
+                    mainViewContainer.style.maxWidth = '80%';
+                    mainViewContainer.style.width = '';
+                }
+
+                // Update height
+                if (mainContent) {
+                    const height = mainContent.offsetHeight;
+                    document.documentElement.style.setProperty('--main-content-height', height + 'px');
+                    mainViewContainer.style.height = `var(--main-content-height, calc(100vh - 2 * var(--spacing-md)))`;
+                }
+            }
+
+            // Initial check of panel state
+            setTimeout(checkPanelState, 200);
+
+            // Add CSS for connection lost overlay
+            const style = document.createElement('style');
+            style.textContent = `
+                .connection-lost-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10;
+                }
+                
+                .connection-lost-message {
+                    text-align: center;
+                    color: white;
+                }
+                
+                .connection-lost-message i {
+                    font-size: 32px;
+                    color: #ff4d4d;
+                    margin-bottom: 10px;
+                }
+                
+                .reconnecting-text {
+                    font-size: 14px;
+                    margin-top: 5px;
+                }
+                
+                .reconnect-spinner {
+                    margin: 10px auto;
+                    width: 30px;
+                    height: 30px;
+                    border: 3px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    border-top-color: white;
+                    animation: spin 1s ease-in-out infinite;
+                }
+                
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+                
+                .chat-sidebar {
+                    transition: transform 0.3s ease;
+                }
+                
+                .chat-toggle {
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    width: 50px;
+                    height: 50px;
+                    border-radius: 50%;
+                    background-color: var(--button-bg);
+                    color: var(--text-primary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    border: 1px solid var(--border);
+                    box-shadow: 0 2px 10px var(--shadow);
+                    z-index: 99;
+                    display: none;
+                    transition: transform 0.3s ease;
+                }
+                
+                .chat-toggle:hover {
+                    transform: scale(1.1);
+                }
+                
+                .mic-level-meter {
+                    width: 100%;
+                    height: 20px;
+                    background-color: rgba(0, 0, 0, 0.1);
+                    border-radius: 3px;
+                    overflow: hidden;
+                    margin: 15px 0;
+                }
+                
+                #micLevelBar {
+                    height: 100%;
+                    background-color: var(--accent);
+                    transition: width 0.1s ease, background-color 0.3s ease;
+                }
+                
+                                 #micTestStatus {
+                     margin-top: 5px;
+                     font-size: 14px;
+                     text-align: center;
+                 }
+                 
+                 .settings-tabs {
+                     margin-bottom: 15px;
+                 }
+                 
+                 .tab-buttons {
+                     display: flex;
+                     margin-bottom: 10px;
+                     border-bottom: 1px solid var(--border);
+                 }
+                 
+                 .tab-btn {
+                     background: none;
+                     border: none;
+                     padding: 8px 12px;
+                     margin: 0;
+                     cursor: pointer;
+                     color: var(--text-secondary);
+                     border-bottom: 2px solid transparent;
+                     transition: all 0.2s ease;
+                 }
+                 
+                 .tab-btn.active {
+                     color: var(--text-primary);
+                     border-bottom: 2px solid var(--accent);
+                 }
+                 
+                 .tab-content {
+                     display: none;
+                     padding: 10px 0;
+                 }
+                 
+                 .tab-content.active {
+                     display: block;
+                 }
+                 
+                 .checkbox-container {
+                     margin-bottom: 10px;
+                     display: flex;
+                     align-items: center;
+                 }
+                 
+                 .checkbox-container input[type="checkbox"] {
+                     margin-right: 8px;
+                 }
+                 
+                 /* Audio visualization styles */
+                 .audio-visualizer {
+                     width: 100%;
+                     height: 60px;
+                     background-color: rgba(0, 0, 0, 0.2);
+                     margin: 10px 0;
+                     border-radius: 3px;
+                     overflow: hidden;
+                     position: relative;
+                 }
+                 
+                 .visualizer-canvas {
+                     width: 100%;
+                     height: 100%;
+                 }
+                 
+                 /* Push-to-talk indicator */
+                 .push-to-talk-indicator {
+                     position: fixed;
+                     bottom: 80px;
+                     left: 50%;
+                     transform: translateX(-50%);
+                     background-color: rgba(0, 0, 0, 0.7);
+                     color: white;
+                     padding: 5px 15px;
+                     border-radius: 20px;
+                     font-size: 12px;
+                     z-index: 1000;
+                     display: none;
+                     align-items: center;
+                     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+                 }
+                 
+                 .push-to-talk-indicator .indicator-dot {
+                     width: 8px;
+                     height: 8px;
+                     background-color: #e74c3c;
+                     border-radius: 50%;
+                     margin-right: 8px;
+                     animation: pulse 1.5s infinite;
+                 }
+                 
+                 .push-to-talk-indicator.active .indicator-dot {
+                     background-color: #2ecc71;
+                 }
+                
+                @media (max-width: 1280px) {
+                    .chat-toggle {
+                        display: flex;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Set up close sidebar button
+            const closeSidebarBtn = document.getElementById('closeSidebar');
+            if (closeSidebarBtn) {
+                closeSidebarBtn.addEventListener('click', function () {
+                    const appContainer = document.getElementById('appContainer');
+                    appContainer.classList.add('sidebar-hidden');
+                    // Add a small delay to allow animation to complete
+                    setTimeout(() => {
+                        updateActionBarState();
+                        updateMainContentHeight();
+                        checkPanelState();
+                    }, 50);
+                });
+            }
+            
+            // Note: Event listeners for actionSidebarToggle and actionChatToggle
+            // are defined later in the code
+
+            // Handle window resize
+            window.addEventListener('resize', function () {
+                const appContainer = document.getElementById('appContainer');
+                if (window.innerWidth <= 768) {
+                    // Auto-hide sidebar on small screens
+                    appContainer.classList.add('sidebar-hidden');
+                }
+                updateActionBarState();
+                updateMainContentHeight();
+                checkPanelState();
+            });
+
+            // Function to update main content height CSS variable
+            function updateMainContentHeight() {
+                const mainContent = document.querySelector('.main-content');
+                const mainViewContainer = document.querySelector('.main-view-container');
+                const appContainer = document.getElementById('appContainer');
+
+                if (mainContent) {
+                    const height = mainContent.offsetHeight;
+                    document.documentElement.style.setProperty('--main-content-height', height + 'px');
+                    console.log('Updated main content height to: ' + height + 'px');
+
+                    // Apply height to main-view-container
+                    mainViewContainer.style.height = `var(--main-content-height, calc(100vh - 2 * var(--spacing-md)))`;
+
+                    // Check if both sidebar and chat are hidden, and adjust main content width
+                    if (appContainer.classList.contains('sidebar-hidden') &&
+                        appContainer.classList.contains('chat-hidden')) {
+                        mainViewContainer.style.maxWidth = '100%';
+                        mainViewContainer.style.width = '100%';
+                    } else if (appContainer.classList.contains('sidebar-hidden')) {
+                        mainViewContainer.style.maxWidth = `calc(100% - var(--chat-sidebar-width))`;
+                        mainViewContainer.style.width = '';
+                    } else if (appContainer.classList.contains('chat-hidden')) {
+                        mainViewContainer.style.maxWidth = `calc(100% - var(--sidebar-width))`;
+                        mainViewContainer.style.width = '';
+                    } else {
+                        mainViewContainer.style.maxWidth = '80%';
+                        mainViewContainer.style.width = '';
+                    }
+                }
+            }
+
+            // Set up MutationObserver to watch for changes in the main content
+            function setupMainContentObserver() {
+                const mainContent = document.querySelector('.main-content');
+                if (!mainContent) return;
+
+                // Create a ResizeObserver to monitor size changes
+                const resizeObserver = new ResizeObserver(entries => {
+                    for (let entry of entries) {
+                        updateMainContentHeight();
+                    }
+                });
+
+                // Start observing the main content
+                resizeObserver.observe(mainContent);
+
+                // Also observe the main view container
+                const mainViewContainer = document.querySelector('.main-view-container');
+                if (mainViewContainer) {
+                    resizeObserver.observe(mainViewContainer);
+                }
+
+                // Also observe the app container for class changes
+                const observer = new MutationObserver(mutations => {
+                    mutations.forEach(mutation => {
+                        if (mutation.attributeName === 'class') {
+                            setTimeout(checkPanelState, 10);
+                            setTimeout(updateMainContentHeight, 20);
+                        }
+                    });
+                });
+
+                observer.observe(appContainer, { attributes: true });
+            }
+
+            // Call the setup function
+            setupMainContentObserver();
+
+            // Connect to WebSocket
+            connect();
+
+            // Request camera permissions to show labels
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(tempStream => {
+                    tempStream.getTracks().forEach(track => track.stop());
+                    getAvailableCameras();
+                })
+                .catch(error => {
+                    console.error('Error requesting initial permissions:', error);
+                    showNotification('Please grant camera permissions', true);
+                });
+
+            // Button event listeners
+            startStreamBtn.addEventListener('click', startCameraStream);
+            stopStreamBtn.addEventListener('click', stopCameraStream);
+            startCameraBtn.addEventListener('click', startCameraStream);
+            takeSnapshotBtn.addEventListener('click', takeSnapshot);
+            refreshCamerasBtn.addEventListener('click', getAvailableCameras);
+            document.getElementById('testMicBtn').addEventListener('click', testMicrophoneLoopback);
+
+            // Chat event listeners
+            sendChatBtn.addEventListener('click', sendChatMessage);
+            chatInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+
+            // Camera select change
+            cameraSelect.addEventListener('change', function () {
+                selectedCamera = cameraSelect.value;
+            });
+
+            // Session management
+            if (isAdmin && createSessionBtn) {
+                createSessionBtn.addEventListener('click', createSession);
+            }
+
+            if (!isAdmin && joinSessionBtn) {
+                joinSessionBtn.addEventListener('click', joinSession);
+            }
+
+            // Superuser controls
+            if (isSuperuser) {
+                if (refreshActiveUsersBtn) {
+                    refreshActiveUsersBtn.addEventListener('click', refreshActiveUsers);
+                }
+
+                if (superuserConnectBtn) {
+                    superuserConnectBtn.addEventListener('click', superuserConnect);
+                }
+
+                // View toggle buttons
+                if (standardViewBtn) {
+                    standardViewBtn.addEventListener('click', () => switchView('standard'));
+                }
+
+                if (dashboardViewBtn) {
+                    dashboardViewBtn.addEventListener('click', () => switchView('dashboard'));
+                }
+
+                // Initial load of active users
+                setTimeout(refreshActiveUsers, 2000);
+
+                // Set up interval to refresh active users list every 5 seconds
+                window.activeUsersInterval = setInterval(refreshActiveUsers, 5000);
+            }
+
+            // Theme toggle
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+
+                // Load theme preference from localStorage
+                const savedTheme = localStorage.getItem('darkTheme');
+                if (savedTheme !== null) {
+                    isDarkTheme = savedTheme === 'true';
+                    if (!isDarkTheme) {
+                        document.body.classList.add('light-theme');
+                        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                    }
+                }
+            }
+
+            endSessionBtn.addEventListener('click', endSession);
+
+            // Add event listeners for video swapping
+            if (swapViewsBtn) {
+                swapViewsBtn.addEventListener('click', swapCameraViews);
+            }
+
+            // Also allow clicking on the small view to swap
+            localVideoCell.addEventListener('click', function (e) {
+                // Only trigger if clicking on the video cell itself, not on buttons inside it
+                if (e.target === localVideoCell || e.target === localVideo || e.target.classList.contains('video-label')) {
+                    if (!isLocalViewPrimary) {
+                        swapCameraViews();
+                    }
+                }
+            });
+
+            remoteVideoCell.addEventListener('click', function (e) {
+                // Only trigger if clicking on the video cell itself, not on buttons inside it
+                if (e.target === remoteVideoCell || e.target.tagName === 'IMG' || e.target.classList.contains('video-label')) {
+                    if (isLocalViewPrimary) {
+                        swapCameraViews();
+                    }
+                }
+            });
+
+            // Add event listener for minimize button
+            if (minimizeLocalBtn) {
+                minimizeLocalBtn.addEventListener('click', toggleMinimizeView);
+            }
+
+            // Action Bar Event Handlers
+            const actionSidebarToggle = document.getElementById('actionSidebarToggle');
+            const actionCameraToggle = document.getElementById('actionCameraToggle');
+            const actionSnapshot = document.getElementById('actionSnapshot');
+            const actionSwapViews = document.getElementById('actionSwapViews');
+            const actionCameraSettings = document.getElementById('actionCameraSettings');
+            const actionChatToggle = document.getElementById('actionChatToggle');
+            const actionSession = document.getElementById('actionSession');
+            const actionEndSession = document.getElementById('actionEndSession');
+            const actionSuperuser = isSuperuser ? document.getElementById('actionSuperuser') : null;
+            const actionThemeToggle = document.getElementById('actionThemeToggle');
+            const actionLogout = document.getElementById('actionLogout');
+
+            // Add audio toggle button
+            const actionAudioToggle = document.getElementById('actionAudioToggle') || createAudioToggleButton();
+            const actionRecordAudio = document.getElementById('actionRecordAudio');
+
+            // Add recording functionality
+            let recordingData = null;
+            actionRecordAudio.addEventListener('click', function() {
+                if (!isAudioEnabled) {
+                    showNotification('Enable microphone first to record audio', true);
+                    return;
+                }
+                
+                if (!isRecording) {
+                    // Start recording
+                    startAudioRecording();
+                    
+                    // Update UI
+                    actionRecordAudio.innerHTML = '<i class="fas fa-stop-circle"></i><span>Stop</span>';
+                    actionRecordAudio.classList.add('active');
+                    actionRecordAudio.style.color = '#e74c3c';
+                } else {
+                    // Stop recording
+                    stopAudioRecording().then(recordingInfo => {
+                        recordingData = recordingInfo;
+                        
+                        // Create recording playback UI
+                        const modal = document.createElement('div');
+                        modal.className = 'modal';
+                        modal.innerHTML = `
+                            <div class="modal-content">
+                                <h3>Recording Complete</h3>
+                                <p>Recording duration: ${Math.round(recordingInfo.duration)} seconds</p>
+                                <div class="settings-row">
+                                    <audio controls src="${recordingInfo.url}" style="width: 100%"></audio>
+                                </div>
+                                <div class="modal-buttons">
+                                    <button id="downloadRecordingBtn">Download</button>
+                                    <button id="shareRecordingBtn">Share with Peer</button>
+                                    <button id="closeRecordingBtn">Close</button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+                        
+                        // Event listeners for recording modal
+                        document.getElementById('downloadRecordingBtn').addEventListener('click', function() {
+                            downloadRecordedAudio(recordingInfo.url, `recording-${new Date().toISOString().replace(/:/g, '-')}.webm`);
+                        });
+                        
+                        document.getElementById('shareRecordingBtn').addEventListener('click', function() {
+                            if (connectedPeer) {
+                                // Convert blob to base64 for sharing
+                                const reader = new FileReader();
+                                reader.onloadend = function() {
+                                    const base64data = reader.result.split(',')[1];
+                                    
+                                    // Create chat message with audio attachment
+                                    const audioMessage = {
+                                        sender: currentUsername,
+                                        recipient: connectedPeer,
+                                        content: '[Audio Recording]',
+                                        timestamp: new Date().toISOString(),
+                                        type: 'AUDIO',
+                                        audioData: base64data
+                                    };
+                                    
+                                    // Send as a chat message
+                                    stompClient.send("/app/chat.send", {}, JSON.stringify(audioMessage));
+                                    addChatMessage(audioMessage);
+                                    
+                                    showNotification('Recording shared with peer');
+                                    document.body.removeChild(modal);
+                                };
+                                reader.readAsDataURL(recordingInfo.blob);
+                            } else {
+                                showNotification('No peer connected to share with', true);
+                            }
+                        });
+                        
+                        document.getElementById('closeRecordingBtn').addEventListener('click', function() {
+                            document.body.removeChild(modal);
+                        });
+                    });
+                    
+                    // Update UI
+                    actionRecordAudio.innerHTML = '<i class="fas fa-circle"></i><span>Record</span>';
+                    actionRecordAudio.classList.remove('active');
+                    actionRecordAudio.style.color = '';
+                }
+                
+                // Toggle recording state
+                isRecording = !isRecording;
+            });
+
+            // Camera toggle action
+            actionCameraToggle.addEventListener('click', function () {
+                if (isStreaming) {
+                    stopCameraStream();
+                    actionCameraToggle.classList.remove('active');
+                } else {
+                    startCameraStream();
+                    actionCameraToggle.classList.add('active');
+                }
+            });
+
+            // Snapshot action
+            actionSnapshot.addEventListener('click', function () {
+                if (isStreaming) {
+                    takeSnapshot();
+                } else {
+                    showNotification('Start camera first to take snapshot', true);
+                }
+            });
+
+            // Swap views action
+            actionSwapViews.addEventListener('click', function () {
+                swapCameraViews();
+            });
+
+            // Chat toggle action
+            actionChatToggle.addEventListener('click', function () {
+                const appContainer = document.getElementById('appContainer');
+                appContainer.classList.toggle('chat-hidden');
+                
+                // Update UI state
+                if (appContainer.classList.contains('chat-hidden')) {
+                    actionChatToggle.classList.remove('active');
+                } else {
+                    actionChatToggle.classList.add('active');
+                }
+                
+                // Add a small delay to allow animation to complete
+                setTimeout(() => {
+                    checkPanelState();
+                    updateMainContentHeight();
+                }, 50);
+                
+                // Update main content height after transition completes
+                setTimeout(() => {
+                    updateMainContentHeight();
+                    // Trigger a resize event to adjust any components that depend on window size
+                    window.dispatchEvent(new Event('resize'));
+                }, 300);
+            });
+
+            // Session action
+            if (actionSession) {
+                actionSession.addEventListener('click', function () {
+                    if (isAdmin) {
+                        // Admin creates session
+                        if (!sessionCode) {
+                            createSession();
+                        } else {
+                            showNotification('Session already created: ' + sessionCode);
+                        }
+                    } else {
+                        // User joins session
+                        const modal = document.createElement('div');
+                        modal.className = 'modal';
+                        modal.innerHTML = `
+                            <div class="modal-content">
+                                <h3>Join Session</h3>
+                                <p>Enter the 6-digit session code:</p>
+                                <input type="text" id="modalSessionCode" placeholder="Enter code">
+                                <div class="modal-buttons">
+                                    <button id="modalJoinBtn">Join</button>
+                                    <button id="modalCancelBtn">Cancel</button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+
+                        document.getElementById('modalJoinBtn').addEventListener('click', function () {
+                            const code = document.getElementById('modalSessionCode').value.trim();
+                            if (code) {
+                                joinSession(code);
+                                document.body.removeChild(modal);
+                            }
+                        });
+
+                        document.getElementById('modalCancelBtn').addEventListener('click', function () {
+                            document.body.removeChild(modal);
+                        });
+                    }
+                });
+            }
+
+            // End session action
+            actionEndSession.addEventListener('click', function () {
+                endSession();
+            });
+
+            // Sidebar toggle action
+            actionSidebarToggle.addEventListener('click', function () {
+                const appContainer = document.getElementById('appContainer');
+                appContainer.classList.toggle('sidebar-hidden');
+                
+                // Update UI state
+                if (appContainer.classList.contains('sidebar-hidden')) {
+                    actionSidebarToggle.classList.remove('active');
+                } else {
+                    actionSidebarToggle.classList.add('active');
+                }
+                
+                // Add a small delay to allow animation to complete
+                setTimeout(() => {
+                    checkPanelState();
+                    updateMainContentHeight();
+                }, 50);
+                
+                // Update main content height after transition completes
+                setTimeout(() => {
+                    updateMainContentHeight();
+                    // Trigger a resize event to adjust any components that depend on window size
+                    window.dispatchEvent(new Event('resize'));
+                }, 300);
+            });
+
+            // Camera settings action
+            actionCameraSettings.addEventListener('click', function () {
+                // Create a modal for camera settings
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="width: 450px;">
+                        <h3>Settings</h3>
+                        <div class="settings-tabs">
+                            <div class="tab-buttons">
+                                <button id="cameraTabBtn" class="tab-btn active">Camera</button>
+                                <button id="audioTabBtn" class="tab-btn">Audio</button>
+                            </div>
+                            
+                            <div id="cameraTab" class="tab-content active">
+                                <div class="settings-row">
+                                    <label for="modalCameraSelect">Select Camera:</label>
+                                    <select id="modalCameraSelect">
+                                        ${Array.from(cameraSelect.options).map(opt =>
+                        `<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.text}</option>`
+                    ).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="videoQualitySelect">Video Quality:</label>
+                                    <select id="videoQualitySelect">
+                                        <option value="low">Low (480p)</option>
+                                        <option value="medium" selected>Medium (720p)</option>
+                                        <option value="high">High (1080p)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="videoFpsSelect">Frame Rate:</label>
+                                    <select id="videoFpsSelect">
+                                        <option value="15">15 FPS</option>
+                                        <option value="30" selected>30 FPS</option>
+                                        <option value="60">60 FPS</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="audioTab" class="tab-content">
+                                <div class="settings-row">
+                                    <label for="modalMicSelect">Select Microphone:</label>
+                                    <select id="modalMicSelect">
+                                        <option value="">Loading microphones...</option>
+                                    </select>
+                                    <button id="modalMicRefreshBtn" style="margin-top: 5px;">Refresh List</button>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="audioQualitySelect">Audio Quality:</label>
+                                    <select id="audioQualitySelect">
+                                        <option value="0.6">Low (Compressed)</option>
+                                        <option value="0.8" selected>Medium</option>
+                                        <option value="0.9">High</option>
+                                        <option value="1.0">Maximum</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="audioFormatSelect">Audio Format:</label>
+                                    <select id="audioFormatSelect">
+                                        <option value="opus" selected>Opus (Recommended)</option>
+                                        <option value="wav">WAV (Uncompressed)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <label for="audioBitrateSelect">Bitrate:</label>
+                                    <select id="audioBitrateSelect">
+                                        <option value="16000">16 kbps (Low)</option>
+                                        <option value="32000">32 kbps</option>
+                                        <option value="64000" selected>64 kbps (Recommended)</option>
+                                        <option value="96000">96 kbps</option>
+                                        <option value="128000">128 kbps (High)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <button id="testMicBtnModal" style="width: 100%;">Test Microphone</button>
+                                </div>
+                                
+                                <div class="settings-row">
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" id="noiseSuppressionCheckbox" checked>
+                                        <label for="noiseSuppressionCheckbox">Enable Noise Suppression</label>
+                                    </div>
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" id="echoCancellationCheckbox" checked>
+                                        <label for="echoCancellationCheckbox">Enable Echo Cancellation</label>
+                                    </div>
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" id="autoGainControlCheckbox" checked>
+                                        <label for="autoGainControlCheckbox">Enable Auto Gain Control</label>
+                                    </div>
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" id="pushToTalkCheckbox">
+                                        <label for="pushToTalkCheckbox">Enable Push-to-Talk (Spacebar)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-buttons">
+                            <button id="modalRefreshBtn">Refresh Devices</button>
+                            <button id="modalSaveBtn">Save</button>
+                            <button id="modalCancelBtn">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                // Load microphone options
+                loadAvailableMicrophones();
+
+                // Tab switching functionality
+                const cameraTabBtn = document.getElementById('cameraTabBtn');
+                const audioTabBtn = document.getElementById('audioTabBtn');
+                const cameraTab = document.getElementById('cameraTab');
+                const audioTab = document.getElementById('audioTab');
+
+                cameraTabBtn.addEventListener('click', () => {
+                    cameraTabBtn.classList.add('active');
+                    audioTabBtn.classList.remove('active');
+                    cameraTab.classList.add('active');
+                    audioTab.classList.remove('active');
+                });
+
+                audioTabBtn.addEventListener('click', () => {
+                    audioTabBtn.classList.add('active');
+                    cameraTabBtn.classList.remove('active');
+                    audioTab.classList.add('active');
+                    cameraTab.classList.remove('active');
+                });
+
+                // Load current audio settings
+                document.getElementById('audioQualitySelect').value = audioQuality.toString();
+                document.getElementById('audioFormatSelect').value = audioFormat;
+                document.getElementById('audioBitrateSelect').value = audioSamplingRate.toString();
+                document.getElementById('noiseSuppressionCheckbox').checked = noiseSuppressionEnabled;
+                document.getElementById('echoCancellationCheckbox').checked = echoCancellationEnabled;
+                document.getElementById('autoGainControlCheckbox').checked = autoGainControlEnabled;
+                document.getElementById('pushToTalkCheckbox').checked = pushToTalkEnabled;
+
+                // Mic test event listener
+                document.getElementById('testMicBtnModal').addEventListener('click', testMicrophoneLoopback);
+                
+                // Mic refresh button
+                document.getElementById('modalMicRefreshBtn').addEventListener('click', () => {
+                    loadAvailableMicrophones();
+                });
+
+                // Set up event handlers
+                document.getElementById('modalRefreshBtn').addEventListener('click', function () {
+                    // Refresh camera list
+                    getAvailableCameras().then(() => {
+                        // Update the modal select with new cameras
+                        const modalSelect = document.getElementById('modalCameraSelect');
+                        modalSelect.innerHTML = '';
+                        Array.from(cameraSelect.options).forEach(opt => {
+                            const newOpt = document.createElement('option');
+                            newOpt.value = opt.value;
+                            newOpt.text = opt.text;
+                            newOpt.selected = opt.selected;
+                            modalSelect.appendChild(newOpt);
+                        });
+                    });
+                    
+                    // Refresh microphone list
+                    loadAvailableMicrophones();
+                });
+
+                document.getElementById('modalSaveBtn').addEventListener('click', function () {
+                    // Save camera settings
+                    const modalCameraSelect = document.getElementById('modalCameraSelect');
+                    selectedCamera = modalCameraSelect.value;
+                    cameraSelect.value = selectedCamera;
+                    
+                    // Save video settings (for future implementation)
+                    const videoQuality = document.getElementById('videoQualitySelect').value;
+                    const videoFps = document.getElementById('videoFpsSelect').value;
+                    
+                    // Save audio settings
+                    const modalMicSelect = document.getElementById('modalMicSelect');
+                    if (modalMicSelect.value) {
+                        selectedMicrophone = modalMicSelect.value;
+                    }
+                    
+                    audioQuality = parseFloat(document.getElementById('audioQualitySelect').value);
+                    audioFormat = document.getElementById('audioFormatSelect').value;
+                    audioSamplingRate = parseInt(document.getElementById('audioBitrateSelect').value);
+                    
+                    noiseSuppressionEnabled = document.getElementById('noiseSuppressionCheckbox').checked;
+                    echoCancellationEnabled = document.getElementById('echoCancellationCheckbox').checked;
+                    autoGainControlEnabled = document.getElementById('autoGainControlCheckbox').checked;
+                    pushToTalkEnabled = document.getElementById('pushToTalkCheckbox').checked;
+                    
+                    // If audio is currently active, restart it with new settings
+                    if (isAudioEnabled) {
+                        stopAudioStream();
+                        setTimeout(initAudioStream, 500);
+                    }
+                    
+                    // Apply push-to-talk changes
+                    setupPushToTalk(pushToTalkEnabled);
+                    
+                    document.body.removeChild(modal);
+                    showNotification('Settings saved');
+                });
+
+                document.getElementById('modalCancelBtn').addEventListener('click', function () {
+                    document.body.removeChild(modal);
+                });
+            });
+
+            // Superuser action
+            if (actionSuperuser) {
+                actionSuperuser.addEventListener('click', function () {
+                    // Create a modal for superuser actions
+                    const modal = document.createElement('div');
+                    modal.className = 'modal';
+                    modal.innerHTML = `
+                        <div class="modal-content">
+                            <h3>Active Users</h3>
+                            <div class="settings-row">
+                                <label for="modalActiveUsersList">Users with Active Cameras:</label>
+                                <select id="modalActiveUsersList">
+                                    ${Array.from(activeUsersList ? activeUsersList.options : []).map(opt =>
+                        `<option value="${opt.value}">${opt.text}</option>`
+                    ).join('') || '<option value="">No active users found</option>'}
+                                </select>
+                            </div>
+                            <div class="modal-buttons">
+                                <button id="modalRefreshUsersBtn">Refresh List</button>
+                                <button id="modalConnectBtn">Connect</button>
+                                <button id="modalCancelUsersBtn">Cancel</button>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+
+                    // Set up event handlers
+                    document.getElementById('modalRefreshUsersBtn').addEventListener('click', function () {
+                        refreshActiveUsers();
+                        setTimeout(() => {
+                            // Update the modal select with new users
+                            const modalSelect = document.getElementById('modalActiveUsersList');
+                            modalSelect.innerHTML = '';
+                            if (activeUsersList && activeUsersList.options.length > 0) {
+                                Array.from(activeUsersList.options).forEach(opt => {
+                                    const newOpt = document.createElement('option');
+                                    newOpt.value = opt.value;
+                                    newOpt.text = opt.text;
+                                    modalSelect.appendChild(newOpt);
+                                });
+                            } else {
+                                const newOpt = document.createElement('option');
+                                newOpt.value = "";
+                                newOpt.text = "No active users found";
+                                modalSelect.appendChild(newOpt);
+                            }
+                        }, 1000);
+                    });
+
+                    document.getElementById('modalConnectBtn').addEventListener('click', function () {
+                        const modalSelect = document.getElementById('modalActiveUsersList');
+                        const targetUser = modalSelect.value;
+                        if (targetUser) {
+                            superuserConnectToUser(targetUser);
+                            document.body.removeChild(modal);
+                        } else {
+                            showNotification('Please select a user to connect to', true);
+                        }
+                    });
+
+                    document.getElementById('modalCancelUsersBtn').addEventListener('click', function () {
+                        document.body.removeChild(modal);
+                    });
+                });
+            }
+
+            // Logout action
+            actionLogout.addEventListener('click', function () {
+                // Create a hidden form and submit it to logout
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/logout';
+
+                // Add CSRF token
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_csrf';
+                csrfToken.value = getCsrfToken();
+                form.appendChild(csrfToken);
+
+                document.body.appendChild(form);
+                form.submit();
+            });
+
+            // Theme toggle action
+            actionThemeToggle.addEventListener('click', function () {
+                toggleTheme();
+                if (isDarkTheme) {
+                    actionThemeToggle.innerHTML = '<i class="fas fa-moon"></i><span>Dark</span>';
+                } else {
+                    actionThemeToggle.innerHTML = '<i class="fas fa-sun"></i><span>Light</span>';
+                }
+            });
+
+            // Update action bar state based on initial conditions
+            updateActionBarState();
+        });
+
+        // Get CSRF token from meta tag
+        function getCsrfToken() {
+            const token = document.querySelector('meta[name="_csrf"]');
+            return token ? token.content : '';
+        }
+
+        // Function to update action bar state based on current application state
+        function updateActionBarState() {
+            // Sidebar toggle button
+            const appContainer = document.getElementById('appContainer');
+            if (!appContainer.classList.contains('sidebar-hidden')) {
+                actionSidebarToggle.classList.add('active');
+            } else {
+                actionSidebarToggle.classList.remove('active');
+            }
+
+            // Camera toggle button
+            if (isStreaming) {
+                actionCameraToggle.classList.add('active');
+                actionCameraToggle.innerHTML = '<i class="fas fa-video-slash"></i><span>Stop</span>';
+                actionSnapshot.disabled = false;
+                
+                // Enable audio button when streaming
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = false;
+                }
+            } else {
+                actionCameraToggle.classList.remove('active');
+                actionCameraToggle.innerHTML = '<i class="fas fa-video"></i><span>Camera</span>';
+                actionSnapshot.disabled = true;
+                
+                // Disable audio button when not streaming
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = true;
+                    actionAudioToggle.classList.remove('active');
+                    actionAudioToggle.innerHTML = '<i class="fas fa-microphone-slash"></i><span>Muted</span>';
+                }
+            }
+
+            // Audio toggle button
+            if (actionAudioToggle) {
+                if (isAudioEnabled) {
+                    actionAudioToggle.classList.add('active');
+                    actionAudioToggle.innerHTML = '<i class="fas fa-microphone"></i><span>Unmuted</span>';
+                } else {
+                    actionAudioToggle.classList.remove('active');
+                    actionAudioToggle.innerHTML = '<i class="fas fa-microphone-slash"></i><span>Muted</span>';
+                }
+                
+                // Only enable if streaming and have peer
+                actionAudioToggle.disabled = !(isStreaming && connectedPeer);
+            }
+
+            // Chat toggle button
+            if (!appContainer.classList.contains('chat-hidden')) {
+                actionChatToggle.classList.add('active');
+            } else {
+                actionChatToggle.classList.remove('active');
+            }
+
+            // Session buttons
+            if (connectedPeer) {
+                actionEndSession.style.display = 'flex';
+                if (actionSession) actionSession.style.display = 'none';
+                
+                // Enable audio toggle when connected to peer
+                if (actionAudioToggle && isStreaming) {
+                    actionAudioToggle.disabled = false;
+                }
+            } else {
+                actionEndSession.style.display = 'none';
+                if (actionSession) actionSession.style.display = 'flex';
+                
+                // Disable audio toggle when not connected
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = true;
+                    stopAudioStream();
+                }
+            }
+
+            // Theme button
+            if (isDarkTheme) {
+                actionThemeToggle.innerHTML = '<i class="fas fa-moon"></i><span>Dark</span>';
+            } else {
+                actionThemeToggle.innerHTML = '<i class="fas fa-sun"></i><span>Light</span>';
+            }
+        }
+
+        // Process incoming audio data
+        function processAudioMessage(message) {
+            if (!message || !message.audio) return;
+            
+            // Create audio element
+            const audio = new Audio(`data:audio/wav;base64,${message.audio}`);
+            
+            // Play the audio
+            audio.play().catch(error => {
+                console.error('Error playing audio:', error);
+            });
+        }
+        
+        // Load available microphones
+        async function loadAvailableMicrophones() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const micDevices = devices.filter(device => device.kind === 'audioinput');
+                
+                // Get the select element (works for both modal and main view)
+                const micSelect = document.getElementById('modalMicSelect');
+                if (!micSelect) return;
+                
+                // Clear existing options
+                micSelect.innerHTML = '';
+                
+                if (micDevices.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.text = 'No microphones found';
+                    micSelect.appendChild(option);
+                    return;
+                }
+                
+                // Add each microphone device
+                micDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Microphone ${micSelect.options.length}`;
+                    
+                    // Select the current microphone if one is set
+                    if (selectedMicrophone && device.deviceId === selectedMicrophone) {
+                        option.selected = true;
+                    }
+                    
+                    micSelect.appendChild(option);
+                });
+                
+                // If no microphone is selected yet, select the first one
+                if (!selectedMicrophone && micDevices.length > 0) {
+                    selectedMicrophone = micDevices[0].deviceId;
+                    if (micSelect.options.length > 0) {
+                        micSelect.options[0].selected = true;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading microphones:', error);
+                showNotification('Error accessing microphones. Please check permissions.', true);
+            }
+        }
+        
+        // Set up push-to-talk functionality
+        function setupPushToTalk(enabled) {
+            // Remove existing listeners first
+            document.removeEventListener('keydown', handlePushToTalkKeyDown);
+            document.removeEventListener('keyup', handlePushToTalkKeyUp);
+            
+            // Create or get the push-to-talk indicator
+            let pttIndicator = document.getElementById('pushToTalkIndicator');
+            if (!pttIndicator) {
+                pttIndicator = document.createElement('div');
+                pttIndicator.id = 'pushToTalkIndicator';
+                pttIndicator.className = 'push-to-talk-indicator';
+                pttIndicator.innerHTML = `
+                    <div class="indicator-dot"></div>
+                    <span>Press Spacebar to Talk</span>
+                `;
+                document.body.appendChild(pttIndicator);
+            }
+            
+            if (enabled) {
+                // Add keydown/keyup listeners
+                document.addEventListener('keydown', handlePushToTalkKeyDown);
+                document.addEventListener('keyup', handlePushToTalkKeyUp);
+                
+                // Show indicator if audio is enabled
+                if (isAudioEnabled) {
+                    pttIndicator.style.display = 'flex';
+                }
+                
+                // Mute the microphone initially
+                setMicrophoneMuted(true);
+            } else {
+                // Hide the indicator
+                pttIndicator.style.display = 'none';
+                
+                // Unmute the microphone if audio is enabled
+                if (isAudioEnabled) {
+                    setMicrophoneMuted(false);
+                }
+            }
+            
+            pushToTalkEnabled = enabled;
+        }
+        
+        // Handle push-to-talk key down
+        function handlePushToTalkKeyDown(event) {
+            if (event.key === pushToTalkKey && isAudioEnabled && !isPushToTalkActive) {
+                isPushToTalkActive = true;
+                setMicrophoneMuted(false);
+                
+                // Update the indicator
+                const pttIndicator = document.getElementById('pushToTalkIndicator');
+                if (pttIndicator) {
+                    pttIndicator.classList.add('active');
+                    pttIndicator.querySelector('span').textContent = 'Talking...';
+                }
+            }
+        }
+        
+        // Handle push-to-talk key up
+        function handlePushToTalkKeyUp(event) {
+            if (event.key === pushToTalkKey && isAudioEnabled && isPushToTalkActive) {
+                isPushToTalkActive = false;
+                setMicrophoneMuted(true);
+                
+                // Update the indicator
+                const pttIndicator = document.getElementById('pushToTalkIndicator');
+                if (pttIndicator) {
+                    pttIndicator.classList.remove('active');
+                    pttIndicator.querySelector('span').textContent = 'Press Spacebar to Talk';
+                }
+            }
+        }
+        
+        // Set microphone muted state
+        function setMicrophoneMuted(muted) {
+            if (!audioStream) return;
+            
+            // Get audio tracks and set enabled state
+            const audioTracks = audioStream.getAudioTracks();
+            audioTracks.forEach(track => {
+                track.enabled = !muted;
+            });
+        }
+        
+        // Setup audio visualization
+        function setupAudioVisualization(containerId) {
+            // Stop any existing visualization
+            if (visualizationInterval) {
+                clearInterval(visualizationInterval);
+                visualizationInterval = null;
+            }
+            
+            if (!audioContext || !audioStream) {
+                console.warn('Cannot setup visualization: missing audio context or stream');
+                return;
+            }
+            
+            // Get or create container
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Create a visualizer if it doesn't exist
+            let visualizer = container.querySelector('.audio-visualizer');
+            if (!visualizer) {
+                visualizer = document.createElement('div');
+                visualizer.className = 'audio-visualizer';
+                container.appendChild(visualizer);
+            }
+            
+            // Create canvas if it doesn't exist
+            visualizationCanvas = visualizer.querySelector('canvas');
+            if (!visualizationCanvas) {
+                visualizationCanvas = document.createElement('canvas');
+                visualizationCanvas.className = 'visualizer-canvas';
+                visualizer.appendChild(visualizationCanvas);
+            }
+            
+            // Set canvas dimensions
+            visualizationCanvas.width = visualizer.clientWidth;
+            visualizationCanvas.height = visualizer.clientHeight;
+            
+            // Get canvas context
+            visualizationContext = visualizationCanvas.getContext('2d');
+            
+            // Create analyzer if it doesn't exist
+            if (!audioAnalyser) {
+                audioAnalyser = audioContext.createAnalyser();
+                audioAnalyser.fftSize = 256;
+                
+                // Connect the audio source to the analyzer
+                if (audioSource) {
+                    audioSource.connect(audioAnalyser);
+                }
+            }
+            
+            // Start visualization
+            visualizationActive = true;
+            drawAudioVisualization();
+        }
+        
+        // Draw audio visualization
+        function drawAudioVisualization() {
+            if (!visualizationActive || !audioAnalyser || !visualizationCanvas || !visualizationContext) {
+                return;
+            }
+            
+            // Set up animation frame
+            visualizationInterval = requestAnimationFrame(drawAudioVisualization);
+            
+            // Get frequency data
+            const bufferLength = audioAnalyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            audioAnalyser.getByteFrequencyData(dataArray);
+            
+            // Clear the canvas
+            visualizationContext.clearRect(0, 0, visualizationCanvas.width, visualizationCanvas.height);
+            
+            // Set up drawing
+            const width = visualizationCanvas.width;
+            const height = visualizationCanvas.height;
+            const barWidth = (width / bufferLength) * 2.5;
+            let x = 0;
+            
+            // Draw bars for each frequency
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * height;
+                
+                // Gradient based on frequency
+                const hue = i / bufferLength * 360;
+                visualizationContext.fillStyle = `hsl(${hue}, 90%, 50%)`;
+                
+                visualizationContext.fillRect(x, height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+        
+        // Stop audio visualization
+        function stopAudioVisualization() {
+            visualizationActive = false;
+            if (visualizationInterval) {
+                cancelAnimationFrame(visualizationInterval);
+                visualizationInterval = null;
+            }
+            
+            // Clear canvas if it exists
+            if (visualizationContext && visualizationCanvas) {
+                visualizationContext.clearRect(0, 0, visualizationCanvas.width, visualizationCanvas.height);
+            }
+        }
+        
+        // Start audio recording
+        function startAudioRecording() {
+            if (!audioStream || isRecording) return;
+            
+            try {
+                // Create media recorder
+                mediaRecorder = new MediaRecorder(audioStream, {
+                    mimeType: 'audio/webm'
+                });
+                
+                // Clear previous recording
+                recordedChunks = [];
+                
+                // Set up data handling
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                // Start recording
+                mediaRecorder.start(100); // Collect data in 100ms chunks
+                recordingStartTime = Date.now();
+                isRecording = true;
+                
+                showNotification('Recording started');
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                showNotification('Error starting recording', true);
+                isRecording = false;
+            }
+        }
+        
+        // Stop audio recording
+        function stopAudioRecording() {
+            if (!mediaRecorder || !isRecording) return;
+            
+            return new Promise((resolve) => {
+                mediaRecorder.onstop = () => {
+                    // Create a blob from the recorded chunks
+                    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    
+                    // Create a URL for the blob
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Calculate recording duration
+                    const duration = (Date.now() - recordingStartTime) / 1000;
+                    
+                    // Reset recording state
+                    isRecording = false;
+                    recordingStartTime = null;
+                    
+                    showNotification('Recording stopped');
+                    
+                    // Resolve with the recording info
+                    resolve({
+                        url: url,
+                        blob: blob,
+                        duration: duration,
+                        timestamp: new Date().toISOString()
+                    });
+                };
+                
+                // Stop the recorder
+                mediaRecorder.stop();
+            });
+        }
+        
+        // Play back recorded audio
+        function playRecordedAudio(url) {
+            const audio = new Audio(url);
+            audio.play().catch(error => {
+                console.error('Error playing recorded audio:', error);
+                showNotification('Error playing recording', true);
+            });
+        }
+        
+        // Download recorded audio
+        function downloadRecordedAudio(url, filename) {
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename || `recording-${new Date().toISOString()}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        // Request microphone permission early
+        async function requestMicrophonePermission() {
+            try {
+                console.log('Requesting microphone permission...');
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('Microphone permission granted!');
+                
+                // Stop the test stream immediately
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Update UI to show mic is available
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = false;
+                }
+                
+                showNotification('Microphone access granted');
+            } catch (error) {
+                console.error('Microphone permission denied:', error);
+                showNotification('Microphone access denied. Audio features will not be available.', true);
+                
+                // Update UI to show mic is not available
+                if (actionAudioToggle) {
+                    actionAudioToggle.disabled = true;
+                    actionAudioToggle.title = 'Microphone access denied';
+                }
+            }
+        }
+        
+        // Test microphone with loopback
+        function testMicrophoneLoopback() {
+            if (isAudioEnabled) {
+                // If audio is already enabled, stop it first
+                stopAudioStream();
+                showNotification('Please wait, testing microphone...');
+            }
+            
+            // Create a modal for the microphone test
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="width: 400px;">
+                    <h3>Microphone Test</h3>
+                    <p>Speak into your microphone to test audio.</p>
+                    <div class="mic-test-container">
+                        <div class="mic-level-meter">
+                            <div id="micLevelBar" style="width: 0%; height: 20px; background-color: var(--accent); transition: width 0.1s;"></div>
+                        </div>
+                        <div id="micTestStatus">Listening...</div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <label>
+                            <input type="checkbox" id="micLoopbackCheckbox" checked> 
+                            Enable loopback (hear yourself)
+                        </label>
+                    </div>
+                    <div class="modal-buttons" style="margin-top: 20px;">
+                        <button id="stopMicTestBtn" class="danger">Stop Test</button>
+                        <button id="closeMicTestBtn">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            let audioCtx, analyser, microphone, loopbackEnabled = true;
+            let testStream = null;
+            
+            // Set up audio context and analyzer
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    testStream = stream;
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioCtx.createAnalyser();
+                    microphone = audioCtx.createMediaStreamSource(stream);
+                    
+                    // Configure analyser
+                    analyser.fftSize = 256;
+                    analyser.smoothingTimeConstant = 0.8;
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    
+                    // Connect microphone to analyser
+                    microphone.connect(analyser);
+                    
+                    // For loopback (hearing yourself)
+                    const loopbackCheckbox = document.getElementById('micLoopbackCheckbox');
+                    loopbackCheckbox.addEventListener('change', function() {
+                        loopbackEnabled = this.checked;
+                        if (loopbackEnabled) {
+                            analyser.connect(audioCtx.destination);
+                        } else {
+                            analyser.disconnect(audioCtx.destination);
+                        }
+                    });
+                    
+                    // Enable loopback initially if checkbox is checked
+                    if (loopbackEnabled) {
+                        analyser.connect(audioCtx.destination);
+                    }
+                    
+                    // Update the level meter
+                    function updateMeter() {
+                        // Get audio data
+                        analyser.getByteFrequencyData(dataArray);
+                        
+                        // Calculate volume level (0-100)
+                        let sum = 0;
+                        for (let i = 0; i < bufferLength; i++) {
+                            sum += dataArray[i];
+                        }
+                        const average = sum / bufferLength;
+                        const level = Math.min(100, Math.max(0, average * 1.5)); // Scale it up a bit
+                        
+                        // Update meter
+                        const levelBar = document.getElementById('micLevelBar');
+                        const statusText = document.getElementById('micTestStatus');
+                        
+                        if (levelBar) {
+                            levelBar.style.width = level + '%';
+                            
+                            // Change color based on level
+                            if (level > 75) {
+                                levelBar.style.backgroundColor = '#e74c3c'; // Red for loud
+                            } else if (level > 30) {
+                                levelBar.style.backgroundColor = '#2ecc71'; // Green for good
+                            } else {
+                                levelBar.style.backgroundColor = '#3498db'; // Blue for quiet
+                            }
+                            
+                            // Update status text
+                            if (level < 5) {
+                                statusText.textContent = 'No sound detected. Please speak.';
+                            } else if (level < 30) {
+                                statusText.textContent = 'Sound detected (quiet).';
+                            } else if (level < 75) {
+                                statusText.textContent = 'Sound level good.';
+                            } else {
+                                statusText.textContent = 'Sound level high!';
+                            }
+                        }
+                        
+                        // Continue updating if the modal is still open
+                        if (document.body.contains(modal)) {
+                            requestAnimationFrame(updateMeter);
+                        }
+                    }
+                    
+                    // Start updating the meter
+                    updateMeter();
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone for test:', error);
+                    const statusText = document.getElementById('micTestStatus');
+                    if (statusText) {
+                        statusText.textContent = 'Error accessing microphone: ' + error.message;
+                        statusText.style.color = 'red';
+                    }
+                });
+                
+            // Event listeners for buttons
+            document.getElementById('stopMicTestBtn').addEventListener('click', function() {
+                if (testStream) {
+                    testStream.getTracks().forEach(track => track.stop());
+                }
+                
+                if (audioCtx) {
+                    audioCtx.close();
+                }
+                
+                const statusText = document.getElementById('micTestStatus');
+                if (statusText) {
+                    statusText.textContent = 'Test stopped.';
+                }
+            });
+            
+            document.getElementById('closeMicTestBtn').addEventListener('click', function() {
+                if (testStream) {
+                    testStream.getTracks().forEach(track => track.stop());
+                }
+                
+                if (audioCtx) {
+                    audioCtx.close();
+                }
+                
+                document.body.removeChild(modal);
+            });
+        }
+
+        // Take snapshot
+    </script>
+</body>
+
+</html>
