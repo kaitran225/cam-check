@@ -3,3 +3,13 @@ spring:
     active: dev
   main:
     allow-bean-definition-overriding: true
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    servlet:
+      content-type: text/html
+    cache: false
+    check-template: true
+    check-template-location: true

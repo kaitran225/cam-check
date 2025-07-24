@@ -19,6 +19,7 @@ com\camcheck\service\MemoryUsageMonitor$MemorySnapshot.class
 com\camcheck\service\MotionDetectionService.class
 com\camcheck\controller\ConfigController.class
 com\camcheck\config\JwtAuthenticationFilter.class
+com\camcheck\controller\HomeController.class
 com\camcheck\controller\HealthCheckController.class
 com\camcheck\controller\v1\BaseController.class
 com\camcheck\service\DeltaEncodingService$DeltaResult.class
@@ -41,6 +42,7 @@ com\camcheck\model\ChatMessage.class
 com\camcheck\config\PerformanceConfig.class
 com\camcheck\model\AuthResponse.class
 com\camcheck\model\SessionCreateRequest.class
+com\camcheck\controller\CustomErrorController.class
 com\camcheck\controller\ChatController.class
 com\camcheck\service\ResolutionScalingService.class
 com\camcheck\util\MemoryEfficientCache.class
