@@ -10,7 +10,6 @@ E:\cam-check-1\backend\com\camcheck\model\WebRTCMessage.java
 E:\cam-check-1\backend\com\camcheck\controller\AnalyticsController.java
 E:\cam-check-1\backend\com\camcheck\util\MemoryEfficientCache.java
 E:\cam-check-1\backend\com\camcheck\service\MemoryMonitorService.java
-E:\cam-check-1\backend\com\camcheck\config\UndertowConfig.java
 E:\cam-check-1\backend\com\camcheck\model\SessionJoinRequest.java
 E:\cam-check-1\backend\com\camcheck\model\ChatMessage.java
 E:\cam-check-1\backend\com\camcheck\service\PushNotificationService.java
@@ -24,6 +23,7 @@ E:\cam-check-1\backend\com\camcheck\controller\ConfigController.java
 E:\cam-check-1\backend\com\camcheck\service\AnalyticsService.java
 E:\cam-check-1\backend\com\camcheck\service\JwtTokenService.java
 E:\cam-check-1\backend\com\camcheck\controller\v1\BaseController.java
+E:\cam-check-1\backend\com\camcheck\service\CPUOptimizer.java
 E:\cam-check-1\backend\com\camcheck\service\DenoiseService.java
 E:\cam-check-1\backend\com\camcheck\service\MemoryOptimizer.java
 E:\cam-check-1\backend\com\camcheck\controller\SystemController.java
@@ -41,6 +41,7 @@ E:\cam-check-1\backend\com\camcheck\config\EnvConfig.java
 E:\cam-check-1\backend\com\camcheck\service\JVMOptimizer.java
 E:\cam-check-1\backend\com\camcheck\model\AuthRequest.java
 E:\cam-check-1\backend\com\camcheck\service\CodecService.java
+E:\cam-check-1\backend\com\camcheck\config\JettyConfig.java
 E:\cam-check-1\backend\com\camcheck\config\OpenApiConfig.java
 E:\cam-check-1\backend\com\camcheck\config\WebSocketConfig.java
 E:\cam-check-1\backend\com\camcheck\controller\HealthCheckController.java

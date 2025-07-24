@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Service to measure VM capacity on startup to optimize resource usage
+ * Specifically tuned for Render.com free tier environment
  */
 @Service
 @Slf4j
@@ -33,8 +34,17 @@ public class VMCapacityMeasurementService {
     @Value("${vm.capacity.measure:true}")
     private boolean measureCapacity;
     
+    // Disable stress test by default for Render.com to avoid overloading
     @Value("${vm.capacity.stress-test:false}")
     private boolean performStressTest;
+    
+    // Limit measurement time to avoid startup delays
+    @Value("${vm.capacity.timeout-ms:10000}")
+    private long measurementTimeoutMs;
+    
+    // Flag to detect Render.com environment
+    @Value("${vm.capacity.is-render:false}")
+    private boolean isRenderEnvironment;
     
     private final ApplicationEventPublisher eventPublisher;
     private final MemoryMXBean memoryMXBean;
@@ -57,28 +67,108 @@ public class VMCapacityMeasurementService {
     
     @PostConstruct
     public void init() {
-        log.info("VM Capacity Measurement Service initialized");
+        log.info("VM Capacity Measurement Service initialized for Render.com environment");
         vmCapacity.put("jvmArgs", runtimeMXBean.getInputArguments());
         vmCapacity.put("jvmName", runtimeMXBean.getVmName());
         vmCapacity.put("jvmVendor", runtimeMXBean.getVmVendor());
         vmCapacity.put("jvmVersion", runtimeMXBean.getVmVersion());
+        
+        // Check for Render.com environment
+        detectRenderEnvironment();
+    }
+    
+    /**
+     * Detect if we're running in a Render.com environment
+     */
+    private void detectRenderEnvironment() {
+        // Check for Render-specific environment variables
+        boolean hasRenderEnvVars = System.getenv("RENDER") != null || 
+                                  System.getenv("RENDER_SERVICE_ID") != null;
+        
+        if (hasRenderEnvVars) {
+            log.info("Detected Render.com environment");
+            isRenderEnvironment = true;
+        }
+        
+        // Check for AWS environment (Render uses AWS)
+        String osVersion = System.getProperty("os.version", "");
+        if (osVersion.contains("aws")) {
+            log.info("Detected AWS-based environment (likely Render.com)");
+            isRenderEnvironment = true;
+        }
+        
+        vmCapacity.put("isRenderEnvironment", isRenderEnvironment);
     }
     
     @EventListener(ContextRefreshedEvent.class)
     public void onApplicationStartup() {
         if (measureCapacity) {
-            log.info("Starting VM capacity measurement");
-            measureBasicCapacity();
+            log.info("Starting VM capacity measurement for Render.com environment");
             
-            if (performStressTest) {
-                // Run stress test in a separate thread to not block startup
+            // Measure basic capacity with timeout
+            try {
+                CompletableFuture<Void> measurementTask = CompletableFuture.runAsync(this::measureBasicCapacity);
+                measurementTask.get(measurementTimeoutMs, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                log.warn("VM capacity measurement timed out or failed: {}", e.getMessage());
+                // Perform a minimal measurement to ensure we have some data
+                performMinimalMeasurement();
+            }
+            
+            // Only perform stress test if explicitly enabled and not in Render environment
+            if (performStressTest && !isRenderEnvironment) {
+                log.info("Starting stress test (not recommended for Render.com)");
                 CompletableFuture.runAsync(this::performStressTest);
             }
         }
     }
     
     /**
+     * Perform a minimal measurement in case the full measurement fails
+     */
+    private void performMinimalMeasurement() {
+        try {
+            // Get basic memory info
+            Runtime runtime = Runtime.getRuntime();
+            Map<String, Object> memoryStats = new HashMap<>();
+            memoryStats.put("maxMemoryMB", runtime.maxMemory() / (1024 * 1024));
+            memoryStats.put("totalMemoryMB", runtime.totalMemory() / (1024 * 1024));
+            memoryStats.put("freeMemoryMB", runtime.freeMemory() / (1024 * 1024));
+            memoryStats.put("usedMemoryMB", (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024));
+            
+            vmCapacity.put("memory", memoryStats);
+            
+            // Get CPU info
+            Map<String, Object> cpuStats = new HashMap<>();
+            cpuStats.put("availableProcessors", runtime.availableProcessors());
+            vmCapacity.put("cpu", cpuStats);
+            
+            // Mark as complete
+            measurementComplete = true;
+            log.info("Minimal VM capacity measurement completed");
+            
+            // Log basic info
+            logMinimalCapacityInfo();
+        } catch (Exception e) {
+            log.error("Failed to perform minimal measurement: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Log minimal capacity information
+     */
+    private void logMinimalCapacityInfo() {
+        Runtime runtime = Runtime.getRuntime();
+        log.info("VM Minimal Capacity: max={}MB, total={}MB, free={}MB, processors={}",
+                runtime.maxMemory() / (1024 * 1024),
+                runtime.totalMemory() / (1024 * 1024),
+                runtime.freeMemory() / (1024 * 1024),
+                runtime.availableProcessors());
+    }
+    
+    /**
      * Measure basic VM capacity
+     * Optimized for Render.com environment
      */
     private void measureBasicCapacity() {
         // Measure memory
@@ -108,7 +198,7 @@ public class VMCapacityMeasurementService {
         
         vmCapacity.put("memory", memoryStats);
         
-        // Measure CPU
+        // Measure CPU - lightweight for Render.com
         Map<String, Object> cpuStats = new HashMap<>();
         cpuStats.put("availableProcessors", runtime.availableProcessors());
         cpuStats.put("systemLoadAverage", osMXBean.getSystemLoadAverage());
@@ -117,49 +207,37 @@ public class VMCapacityMeasurementService {
         try {
             Class<?> sunOsClass = Class.forName("com.sun.management.OperatingSystemMXBean");
             if (sunOsClass.isInstance(osMXBean)) {
-                Object sunOsMXBean = sunOsClass.cast(osMXBean);
+                Object sunOsMBean = sunOsClass.cast(osMXBean);
                 
-                // CPU time
-                try {
-                    java.lang.reflect.Method method = sunOsClass.getMethod("getProcessCpuTime");
-                    long processCpuTime = (Long) method.invoke(sunOsMXBean);
-                    cpuStats.put("processCpuTimeNs", processCpuTime);
-                    cpuStats.put("processCpuTimeMs", processCpuTime / 1_000_000);
-                } catch (Exception e) {
-                    log.debug("Could not get process CPU time: {}", e.getMessage());
-                }
-                
-                // CPU load
+                // CPU load - most important metrics for Render.com
                 try {
                     java.lang.reflect.Method method = sunOsClass.getMethod("getProcessCpuLoad");
-                    double processCpuLoad = (Double) method.invoke(sunOsMXBean);
+                    double processCpuLoad = (Double) method.invoke(sunOsMBean);
                     cpuStats.put("processCpuLoad", processCpuLoad);
                 } catch (Exception e) {
                     log.debug("Could not get process CPU load: {}", e.getMessage());
                 }
                 
-                // System CPU load
                 try {
                     java.lang.reflect.Method method = sunOsClass.getMethod("getSystemCpuLoad");
-                    double systemCpuLoad = (Double) method.invoke(sunOsMXBean);
+                    double systemCpuLoad = (Double) method.invoke(sunOsMBean);
                     cpuStats.put("systemCpuLoad", systemCpuLoad);
                 } catch (Exception e) {
                     log.debug("Could not get system CPU load: {}", e.getMessage());
                 }
                 
-                // Physical memory
+                // Physical memory - important for Render.com
                 try {
                     java.lang.reflect.Method method = sunOsClass.getMethod("getTotalPhysicalMemorySize");
-                    long totalPhysicalMemory = (Long) method.invoke(sunOsMXBean);
+                    long totalPhysicalMemory = (Long) method.invoke(sunOsMBean);
                     cpuStats.put("totalPhysicalMemoryMB", totalPhysicalMemory / (1024 * 1024));
                 } catch (Exception e) {
                     log.debug("Could not get total physical memory: {}", e.getMessage());
                 }
                 
-                // Free physical memory
                 try {
                     java.lang.reflect.Method method = sunOsClass.getMethod("getFreePhysicalMemorySize");
-                    long freePhysicalMemory = (Long) method.invoke(sunOsMXBean);
+                    long freePhysicalMemory = (Long) method.invoke(sunOsMBean);
                     cpuStats.put("freePhysicalMemoryMB", freePhysicalMemory / (1024 * 1024));
                 } catch (Exception e) {
                     log.debug("Could not get free physical memory: {}", e.getMessage());
@@ -171,7 +249,7 @@ public class VMCapacityMeasurementService {
         
         vmCapacity.put("cpu", cpuStats);
         
-        // Measure disk
+        // Measure disk - lightweight for Render.com
         Map<String, Object> diskStats = new HashMap<>();
         File root = new File("/");
         diskStats.put("totalSpaceMB", root.getTotalSpace() / (1024 * 1024));
@@ -188,7 +266,13 @@ public class VMCapacityMeasurementService {
         envStats.put("javaVersion", System.getProperty("java.version"));
         envStats.put("javaVendor", System.getProperty("java.vendor"));
         
+        // Check for Render.com specific environment variables
+        envStats.put("isRender", isRenderEnvironment);
+        
         vmCapacity.put("environment", envStats);
+        
+        // Calculate recommended settings based on measurements
+        calculateRecommendedSettings();
         
         // Log capacity information
         logCapacityInfo();
@@ -197,25 +281,73 @@ public class VMCapacityMeasurementService {
     }
     
     /**
+     * Calculate recommended settings based on measurements
+     */
+    private void calculateRecommendedSettings() {
+        Map<String, Object> recommendations = new HashMap<>();
+        
+        // Get memory stats
+        Map<String, Object> memoryStats = (Map<String, Object>) vmCapacity.get("memory");
+        if (memoryStats != null) {
+            long maxHeapMB = (long) memoryStats.get("heapMaxMB");
+            long totalPhysicalMemoryMB = 0;
+            
+            // Get CPU stats for physical memory
+            Map<String, Object> cpuStats = (Map<String, Object>) vmCapacity.get("cpu");
+            if (cpuStats != null && cpuStats.containsKey("totalPhysicalMemoryMB")) {
+                totalPhysicalMemoryMB = (long) cpuStats.get("totalPhysicalMemoryMB");
+            }
+            
+            // Calculate recommended settings
+            int availableProcessors = Runtime.getRuntime().availableProcessors();
+            
+            // Undertow settings
+            recommendations.put("undertowWorkerThreads", Math.min(availableProcessors * 2, 4));
+            recommendations.put("undertowIoThreads", Math.min(availableProcessors, 2));
+            recommendations.put("undertowBufferSize", maxHeapMB < 64 ? 4096 : 8192);
+            recommendations.put("undertowDirectBuffers", maxHeapMB > 128);
+            
+            // Thread pool settings
+            recommendations.put("asyncCorePoolSize", availableProcessors);
+            recommendations.put("asyncMaxPoolSize", availableProcessors * 2);
+            
+            // Memory settings
+            recommendations.put("memoryTargetMB", Math.max(20, maxHeapMB - 8));
+            recommendations.put("memoryHighThreshold", maxHeapMB < 64 ? 70 : 80);
+            recommendations.put("memoryCriticalThreshold", maxHeapMB < 64 ? 85 : 90);
+            
+            // Cache settings
+            recommendations.put("maxCacheEntries", maxHeapMB < 64 ? 100 : 500);
+            recommendations.put("maxPoolSize", maxHeapMB < 64 ? 5 : 10);
+            
+            // Throttling settings
+            recommendations.put("maxConcurrentRequests", availableProcessors <= 1 ? 2 : availableProcessors);
+        }
+        
+        vmCapacity.put("recommendations", recommendations);
+    }
+    
+    /**
      * Perform a stress test to measure maximum capacity
      * This is optional and only runs if vm.capacity.stress-test=true
+     * Not recommended for Render.com environment
      */
     private void performStressTest() {
         log.info("Starting VM stress test to measure capacity");
         
         Map<String, Object> stressTestResults = new HashMap<>();
         
-        // Memory stress test
+        // Memory stress test - very lightweight for Render.com
         try {
-            stressTestResults.put("memoryStressTest", performMemoryStressTest());
+            stressTestResults.put("memoryStressTest", performLightMemoryStressTest());
         } catch (Exception e) {
             log.warn("Memory stress test failed: {}", e.getMessage());
             stressTestResults.put("memoryStressTestError", e.getMessage());
         }
         
-        // CPU stress test
+        // CPU stress test - very lightweight for Render.com
         try {
-            stressTestResults.put("cpuStressTest", performCpuStressTest());
+            stressTestResults.put("cpuStressTest", performLightCpuStressTest());
         } catch (Exception e) {
             log.warn("CPU stress test failed: {}", e.getMessage());
             stressTestResults.put("cpuStressTestError", e.getMessage());
@@ -229,11 +361,11 @@ public class VMCapacityMeasurementService {
     }
     
     /**
-     * Perform memory stress test
+     * Perform lightweight memory stress test for Render.com
      * 
      * @return Memory stress test results
      */
-    private Map<String, Object> performMemoryStressTest() {
+    private Map<String, Object> performLightMemoryStressTest() {
         Map<String, Object> results = new HashMap<>();
         
         // Start with current free memory
@@ -241,10 +373,10 @@ public class VMCapacityMeasurementService {
         long initialFreeMemory = runtime.freeMemory();
         results.put("initialFreeMemoryMB", initialFreeMemory / (1024 * 1024));
         
-        // Try to allocate memory in chunks until OutOfMemoryError
+        // Try to allocate memory in smaller chunks
         long allocatedBytes = 0;
-        int chunkSizeBytes = 1024 * 1024; // 1MB chunks
-        int maxChunks = 100; // Safety limit
+        int chunkSizeBytes = 512 * 1024; // 512KB chunks
+        int maxChunks = 10; // Very limited for Render.com
         
         try {
             // Use a list to keep references to allocated memory
@@ -287,11 +419,11 @@ public class VMCapacityMeasurementService {
     }
     
     /**
-     * Perform CPU stress test
+     * Perform lightweight CPU stress test for Render.com
      * 
      * @return CPU stress test results
      */
-    private Map<String, Object> performCpuStressTest() {
+    private Map<String, Object> performLightCpuStressTest() {
         Map<String, Object> results = new HashMap<>();
         
         int availableProcessors = Runtime.getRuntime().availableProcessors();
@@ -303,15 +435,15 @@ public class VMCapacityMeasurementService {
         // Record start time
         long startTime = System.currentTimeMillis();
         
-        // Start CPU-intensive tasks
+        // Start CPU-intensive tasks - very short duration for Render.com
         for (int i = 0; i < availableProcessors; i++) {
             executor.submit(() -> {
                 long count = 0;
-                long endTime = System.currentTimeMillis() + 5000; // 5 second test
+                long endTime = System.currentTimeMillis() + 1000; // 1 second test
                 
                 while (System.currentTimeMillis() < endTime) {
-                    // CPU-intensive calculation (calculate prime numbers)
-                    for (int j = 2; j < 10000; j++) {
+                    // Lighter CPU calculation
+                    for (int j = 2; j < 1000; j++) {
                         boolean isPrime = true;
                         for (int k = 2; k <= Math.sqrt(j); k++) {
                             if (j % k == 0) {
@@ -332,7 +464,7 @@ public class VMCapacityMeasurementService {
         // Shutdown the executor and wait for tasks to complete
         executor.shutdown();
         try {
-            executor.awaitTermination(10, TimeUnit.SECONDS);
+            executor.awaitTermination(3, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -347,13 +479,13 @@ public class VMCapacityMeasurementService {
         try {
             Class<?> sunOsClass = Class.forName("com.sun.management.OperatingSystemMXBean");
             if (sunOsClass.isInstance(osMXBean)) {
-                Object sunOsMXBean = sunOsClass.cast(osMXBean);
+                Object sunOsMBean = sunOsClass.cast(osMXBean);
                 java.lang.reflect.Method method = sunOsClass.getMethod("getSystemCpuLoad");
-                double systemCpuLoad = (Double) method.invoke(sunOsMXBean);
+                double systemCpuLoad = (Double) method.invoke(sunOsMBean);
                 results.put("systemCpuLoadAfterTest", systemCpuLoad);
                 
                 method = sunOsClass.getMethod("getProcessCpuLoad");
-                double processCpuLoad = (Double) method.invoke(sunOsMXBean);
+                double processCpuLoad = (Double) method.invoke(sunOsMBean);
                 results.put("processCpuLoadAfterTest", processCpuLoad);
             }
         } catch (Exception e) {
@@ -431,28 +563,19 @@ public class VMCapacityMeasurementService {
                     envStats.get("javaVendor"));
         }
         
-        // Stress test results if available
-        Map<String, Object> stressTest = (Map<String, Object>) vmCapacity.get("stressTest");
-        if (stressTest != null) {
-            Map<String, Object> memoryStressTest = (Map<String, Object>) stressTest.get("memoryStressTest");
-            if (memoryStressTest != null) {
-                log.info("Memory Stress Test: allocated={}MB, remaining={}MB",
-                        memoryStressTest.get("allocatedMemoryMB"),
-                        memoryStressTest.get("remainingFreeMemoryMB"));
-            }
+        // Recommendations
+        Map<String, Object> recommendations = (Map<String, Object>) vmCapacity.get("recommendations");
+        if (recommendations != null) {
+            log.info("Recommended Settings: workerThreads={}, ioThreads={}, bufferSize={}, directBuffers={}",
+                    recommendations.get("undertowWorkerThreads"),
+                    recommendations.get("undertowIoThreads"),
+                    recommendations.get("undertowBufferSize"),
+                    recommendations.get("undertowDirectBuffers"));
             
-            Map<String, Object> cpuStressTest = (Map<String, Object>) stressTest.get("cpuStressTest");
-            if (cpuStressTest != null) {
-                log.info("CPU Stress Test: duration={}ms, processors={}",
-                        cpuStressTest.get("testDurationMs"),
-                        cpuStressTest.get("availableProcessors"));
-                
-                if (cpuStressTest.containsKey("systemCpuLoadAfterTest")) {
-                    log.info("CPU Load After Test: process={}, system={}",
-                            cpuStressTest.get("processCpuLoadAfterTest"),
-                            cpuStressTest.get("systemCpuLoadAfterTest"));
-                }
-            }
+            log.info("Memory Recommendations: targetMB={}, highThreshold={}%, criticalThreshold={}%",
+                    recommendations.get("memoryTargetMB"),
+                    recommendations.get("memoryHighThreshold"),
+                    recommendations.get("memoryCriticalThreshold"));
         }
     }
     

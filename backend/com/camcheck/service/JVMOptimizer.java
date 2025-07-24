@@ -21,29 +21,37 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Service to optimize JVM performance and memory usage
- * Works in all environments but has special optimizations for resource-constrained environments
+ * Specifically tuned for Render.com free tier (1 CPU, ~512MB RAM, 38MB heap)
  */
 @Service
 @Slf4j
 public class JVMOptimizer {
 
-    @Value("${LOW_RESOURCE_MODE:false}")
+    // Always enable low resource mode for Render.com
+    @Value("${LOW_RESOURCE_MODE:true}")
     private boolean lowResourceMode;
     
-    @Value("${AGGRESSIVE_GC:false}")
+    // More aggressive GC for Render.com's limited memory
+    @Value("${AGGRESSIVE_GC:true}")
     private boolean aggressiveGC;
     
+    // Keep alive interval to prevent idle sleep (Render.com sleeps after 15 min)
     @Value("${KEEP_ALIVE_INTERVAL_MS:840000}") // 14 minutes
     private long keepAliveIntervalMs;
     
-    @Value("${MEMORY_HIGH_THRESHOLD:80}")
+    // Lower memory thresholds for earlier intervention
+    @Value("${MEMORY_HIGH_THRESHOLD:70}")
     private int highMemoryThreshold;
     
-    @Value("${MEMORY_CRITICAL_THRESHOLD:90}")
+    @Value("${MEMORY_CRITICAL_THRESHOLD:85}")
     private int criticalMemoryThreshold;
     
-    @Value("${MEMORY_RECOVERY_THRESHOLD:70}")
+    @Value("${MEMORY_RECOVERY_THRESHOLD:60}")
     private int recoveryMemoryThreshold;
+    
+    // More frequent GC for limited memory
+    @Value("${GC_INTERVAL_MS:120000}")
+    private long gcIntervalMs;
     
     private final MemoryMXBean memoryMXBean;
     private final AtomicBoolean isStartupComplete = new AtomicBoolean(false);
@@ -78,21 +86,36 @@ public class JVMOptimizer {
     
     @PostConstruct
     public void init() {
-        if (lowResourceMode) {
-            log.info("Running in LOW_RESOURCE_MODE - applying strict resource constraints");
-        }
+        log.info("Running in LOW_RESOURCE_MODE - applying strict resource constraints for Render.com");
         
-        // Apply JVM optimizations regardless of mode
+        // Apply JVM optimizations
         applyJvmOptimizations();
+        
+        // Initial garbage collection to stabilize memory
+        System.gc();
     }
     
     /**
      * Apply JVM optimizations
-     * These are beneficial in all environments
+     * Specifically tuned for Render.com environment
      */
     private void applyJvmOptimizations() {
         // Set thread priorities
         Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+        
+        // Reduce thread stack size if possible
+        try {
+            System.setProperty("jdk.thread.stackSize", "256k");
+        } catch (Exception e) {
+            log.debug("Could not set thread stack size: {}", e.getMessage());
+        }
+        
+        // Suggest string deduplication
+        try {
+            System.setProperty("java.lang.String.deduplication", "true");
+        } catch (Exception e) {
+            log.debug("Could not enable string deduplication: {}", e.getMessage());
+        }
         
         // Suggest JIT compilation of critical classes
         try {
@@ -113,6 +136,10 @@ public class JVMOptimizer {
         performMemoryOptimization();
         isStartupComplete.set(true);
         log.info("JVM startup optimizations applied");
+        
+        // Initial cleanup
+        imageObjectPool.cleanUp();
+        frameCacheService.cleanUpCache();
     }
     
     /**
@@ -181,6 +208,11 @@ public class JVMOptimizer {
         stats.put("totalMemoryMB", runtime.totalMemory() / (1024 * 1024));
         stats.put("maxMemoryMB", runtime.maxMemory() / (1024 * 1024));
         
+        // Non-heap memory stats
+        MemoryUsage nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage();
+        stats.put("nonHeapUsedMB", nonHeapMemoryUsage.getUsed() / (1024 * 1024));
+        stats.put("nonHeapMaxMB", nonHeapMemoryUsage.getMax() / (1024 * 1024));
+        
         return stats;
     }
     
@@ -195,23 +227,25 @@ public class JVMOptimizer {
     
     /**
      * Get recommended processing quality based on current memory state
+     * More aggressive quality reduction for Render.com
      * 
      * @return Processing quality (0.0-1.0)
      */
     public double getRecommendedProcessingQuality() {
         if (criticalMemoryMode.get()) {
-            return 0.3; // Very low quality in critical mode
+            return 0.2; // Very low quality in critical mode
         } else if (highMemoryMode.get()) {
-            return 0.6; // Reduced quality in high memory mode
+            return 0.5; // Reduced quality in high memory mode
         } else {
-            return 1.0; // Full quality in normal mode
+            return 0.8; // Default to 80% quality to save memory even in normal mode
         }
     }
     
     /**
      * Perform scheduled memory optimization
+     * More frequent checks for Render.com
      */
-    @Scheduled(fixedRate = 60000) // Every minute
+    @Scheduled(fixedRate = 30000) // Every 30 seconds
     public void performMemoryOptimization() {
         if (!isStartupComplete.get()) {
             return;
@@ -224,15 +258,13 @@ public class JVMOptimizer {
         double usagePercent = (double) usedMemory / maxMemory * 100;
         
         // Log memory usage periodically
-        if (log.isDebugEnabled()) {
-            log.debug("Memory usage: {}MB/{}MB ({}%)",
-                    usedMemory / (1024 * 1024),
-                    maxMemory / (1024 * 1024),
-                    String.format("%.1f", usagePercent));
-        }
+        log.debug("Memory usage: {}MB/{}MB ({}%)",
+                usedMemory / (1024 * 1024),
+                maxMemory / (1024 * 1024),
+                String.format("%.1f", usagePercent));
         
-        // More aggressive optimization in the first hour
-        boolean isNewInstance = getUptimeMinutes() < 60;
+        // More aggressive optimization in the first 5 minutes
+        boolean isNewInstance = getUptimeMinutes() < 5;
         
         // Check for critical memory
         if (usagePercent >= criticalMemoryThreshold) {
@@ -243,6 +275,10 @@ public class JVMOptimizer {
                 
                 // Force garbage collection in critical mode
                 System.gc();
+                
+                // Emergency cleanup
+                imageObjectPool.cleanUp();
+                frameCacheService.cleanUpCache();
             }
         } 
         // Check for high memory
@@ -250,6 +286,10 @@ public class JVMOptimizer {
             if (!highMemoryMode.get()) {
                 log.info("Entering high memory mode: usage={}%", String.format("%.1f", usagePercent));
                 highMemoryMode.set(true);
+                
+                // Clean up resources
+                imageObjectPool.cleanUp();
+                frameCacheService.cleanUpCache();
             }
             
             // Exit critical mode if we're below the critical threshold
@@ -268,27 +308,42 @@ public class JVMOptimizer {
         }
         
         // Perform GC if memory usage is high or we're in aggressive mode
-        if (aggressiveGC && (usagePercent > 70 || (isNewInstance && usagePercent > 60))) {
+        if (aggressiveGC && (usagePercent > 70 || (isNewInstance && usagePercent > 50))) {
             log.info("Triggering garbage collection (usage: {}%)", String.format("%.1f", usagePercent));
             System.gc();
         }
         
-        // Clean up resources more aggressively in the first hour or when in low resource mode
-        if (isNewInstance || lowResourceMode) {
+        // Clean up resources more aggressively in the first 5 minutes
+        if (isNewInstance) {
             imageObjectPool.cleanUp();
             frameCacheService.cleanUpCache();
         }
     }
     
     /**
+     * Periodic garbage collection for memory stability
+     */
+    @Scheduled(fixedRateString = "${GC_INTERVAL_MS:120000}")
+    public void periodicGarbageCollection() {
+        if (aggressiveGC && isStartupComplete.get()) {
+            double usagePercent = getMemoryUsagePercent();
+            if (usagePercent > 50) {
+                log.debug("Performing periodic garbage collection (usage: {}%)", String.format("%.1f", usagePercent));
+                System.gc();
+            }
+        }
+    }
+    
+    /**
      * Keep-alive ping to prevent services from sleeping
+     * Critical for Render.com which sleeps after 15 minutes of inactivity
      */
     @Scheduled(fixedRate = 840000) // 14 minutes
     public void keepAlive() {
         // Only ping if there's been no activity
         long lastActivity = System.currentTimeMillis() - lastActivityTimestamp.get();
         if (lastActivity > 600000) { // 10 minutes
-            log.info("Sending keep-alive ping");
+            log.info("Sending keep-alive ping to prevent Render.com sleep");
             // The log message itself serves as activity to keep the service awake
             lastActivityTimestamp.set(System.currentTimeMillis());
         }
@@ -299,11 +354,15 @@ public class JVMOptimizer {
      * This helps improve performance for the first real request
      */
     public void warmUp() {
-        log.info("Warming up application...");
+        log.info("Warming up application for Render.com environment...");
         
         try {
-            // Pre-initialize commonly used objects
-            imageObjectPool.borrowImage(320, 240, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            // Pre-initialize commonly used objects - smaller size for Render.com
+            imageObjectPool.borrowImage(160, 120, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            
+            // Force class loading for common classes
+            Class.forName("org.springframework.http.ResponseEntity");
+            Class.forName("org.springframework.web.context.request.async.DeferredResult");
             
             log.info("Warm-up complete");
         } catch (Exception e) {

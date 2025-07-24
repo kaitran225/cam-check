@@ -21,6 +21,7 @@ com\camcheck\controller\SessionController$SessionInfo.class
 com\camcheck\config\WebSocketConfig$1.class
 com\camcheck\controller\CameraController.class
 com\camcheck\controller\SessionController.class
+com\camcheck\config\JettyConfig$1.class
 com\camcheck\controller\WebRTCController.class
 com\camcheck\service\AnalyticsService$AlertLevel.class
 com\camcheck\service\DenoiseService.class
@@ -46,6 +47,7 @@ com\camcheck\model\CameraStatus.class
 com\camcheck\controller\HealthCheckController.class
 com\camcheck\controller\v1\BaseController.class
 com\camcheck\util\MemoryEfficientCache$WeakValue.class
+com\camcheck\config\JettyConfig.class
 com\camcheck\service\DeltaEncodingService$DeltaResult.class
 com\camcheck\service\ImageObjectPool$ConcurrentImageQueue.class
 com\camcheck\controller\DeviceController.class
@@ -55,6 +57,7 @@ com\camcheck\config\SecurityConfig.class
 com\camcheck\service\AnalyticsService$AlertListener.class
 com\camcheck\service\AnalyticsService.class
 com\camcheck\service\JwtTokenService.class
+com\camcheck\service\CPUOptimizer.class
 com\camcheck\service\CodecService.class
 com\camcheck\service\JVMOptimizer.class
 com\camcheck\service\WebRTCService.class
@@ -75,7 +78,6 @@ com\camcheck\controller\AnalyticsController.class
 com\camcheck\model\WebRTCMessage.class
 com\camcheck\service\DynamicMemoryOptimizer.class
 com\camcheck\service\FrameCacheService.class
-com\camcheck\config\UndertowConfig.class
 com\camcheck\model\ChatMessage.class
 com\camcheck\config\PerformanceConfig.class
 com\camcheck\model\ChatMessage$MessageType.class

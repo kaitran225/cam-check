@@ -9,21 +9,57 @@ dynamic:
   memory:
     enabled: true
     target:
-      percent: 75
+      percent: 70  # Lower target to prevent hitting limits
     check:
-      interval: 5000 
+      interval: 3000  # More frequent checks
 
 # Memory-efficient frame processor settings
 frame:
   processor:
     cache:
-      size: 10
-      expire-ms: 10000
-    max-concurrent: 3 
+      size: 5  # Reduced cache size
+      expire-ms: 5000  # Shorter expiration
+    max-concurrent: 2  # Fewer concurrent operations
 
 # Memory usage monitor settings
 memory:
   monitor:
     enabled: true
-    interval-ms: 10000
-    history-size: 60 
+    interval-ms: 5000  # More frequent monitoring
+    history-size: 30  # Smaller history size
+
+# Undertow settings optimized for Render.com
+undertow:
+  worker-threads: 2  # Reduced for single CPU
+  io-threads: 1  # Single IO thread
+  buffer-size: 4096  # Smaller buffers
+  direct-buffers: false  # Avoid off-heap memory
+  max-connections: 50  # Limit connections
+  idle-timeout: 30000  # 30 seconds idle timeout
+  low-resource-mode: true  # Always in low resource mode
+
+# Request throttling for single CPU
+throttle:
+  enabled: true
+  max-concurrent-requests: 2
+  timeout-ms: 3000
+  cpu-threshold: 0.8
+
+# JVM optimization settings
+jvm:
+  aggressive-gc: true
+  gc-interval-ms: 120000
+  memory:
+    high-threshold: 70
+    critical-threshold: 85
+    recovery-threshold: 60
+
+# Image processing settings
+image:
+  pool:
+    max-size: 5
+    max-age-ms: 30000
+  denoise:
+    default-method: fast-bilateral
+    strength: 0.5
+    optimize-performance: true 
