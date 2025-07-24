@@ -47,7 +47,7 @@
             --spacing-sm: 16px;
             --spacing-md: 24px;
             --spacing-lg: 32px;
-            --action-bar-height: 64px;
+            --action-bar-height: 72px;
             --panel-radius: 8px;
             --transition-speed: 0.3s;
         }
@@ -255,7 +255,9 @@
             transition: all var(--transition-speed) cubic-bezier(0.2, 0, 0, 1);
             animation: fadeIn 0.5s ease-in-out;
             padding: var(--spacing-md);
+            padding-bottom: calc(var(--action-bar-height) + var(--spacing-md));
             box-sizing: border-box;
+            position: relative;
         }
         
         .content-area {
@@ -416,12 +418,11 @@
             display: flex;
             flex-direction: column;
             gap: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
             flex-grow: 1;
             position: relative;
             height: 100%;
             min-height: 60vh;
-            /* Ensure a minimum height */
+            padding-bottom: var(--spacing-md);
         }
 
         .video-grid {
@@ -430,9 +431,7 @@
             height: 100%;
             position: relative;
             flex: 1;
-            /* Allow it to grow to fill available space */
             min-height: 50vh;
-            /* Ensure a minimum height */
         }
 
         #standardView {
@@ -440,7 +439,7 @@
             flex-direction: column;
             height: 100%;
             flex: 1;
-            padding-right: var(--spacing-md);
+            position: relative;
         }
 
         #dashboardView {
@@ -470,20 +469,23 @@
 
         #localVideoCell {
             position: absolute;
-            width: 33%;
-            height: 33%;
-            bottom: var(--spacing-md);
+            width: 25%;
+            height: 25%;
+            bottom: calc(var(--action-bar-height) + var(--spacing-md));
             right: var(--spacing-md);
-            z-index: 2;
+            z-index: 10;
             transition: all 0.3s ease;
             border: 2px solid var(--accent);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
 
         #localVideoCell.minimized {
-            width: 20%;
-            height: 20%;
+            width: 15%;
+            height: 15%;
             opacity: 0.7;
-            transition: opacity 0.3s ease;
+            transition: all 0.3s ease;
+            bottom: calc(var(--action-bar-height) + var(--spacing-xs));
+            right: var(--spacing-xs);
         }
 
         #localVideoCell:hover {
@@ -610,15 +612,16 @@
             justify-content: center;
             gap: var(--spacing-md);
             padding: 0 var(--spacing-lg);
-            z-index: 100;
+            z-index: 5;
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 -0.125vh 0.9375vh rgba(0, 0, 0, 0.5);
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
             border-bottom-left-radius: var(--panel-radius);
             border-bottom-right-radius: var(--panel-radius);
-            position: sticky;
+            position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
+            margin: 0 var(--spacing-md);
         }
 
         .action-button {
@@ -628,7 +631,7 @@
             justify-content: center;
             cursor: pointer;
             color: var(--text-secondary);
-            width: 4vw;
+            width: 6vh;
             height: 6vh;
             border-radius: var(--panel-radius);
             transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -680,7 +683,6 @@
 
         .action-button i {
             font-size: 1.25rem;
-            margin-bottom: 0.25rem;
         }
 
         .action-button span {
@@ -699,7 +701,6 @@
 
             .panel {
                 margin: var(--spacing-xs) 0;
-                /* height: auto; */
                 width: 100% !important;
             }
 
@@ -731,12 +732,25 @@
                 justify-content: space-around;
                 padding: 0 var(--spacing-xs);
                 gap: var(--spacing-xs);
+                margin: 0 var(--spacing-xs);
             }
 
             .action-button {
                 width: auto;
                 flex: 1;
                 height: 5vh;
+            }
+            
+            #localVideoCell {
+                width: 30%;
+                height: 30%;
+                bottom: calc(var(--action-bar-height) + var(--spacing-xs));
+                right: var(--spacing-xs);
+            }
+            
+            #localVideoCell.minimized {
+                width: 20%;
+                height: 20%;
             }
         }
 
@@ -957,7 +971,6 @@
             border-radius: 3px;
             cursor: pointer;
             transition: background-color 0.2s;
-            margin-bottom: var(--spacing-xs);
             font-family: 'Roboto Mono', monospace;
             font-size: var(--font-size-small);
         }
