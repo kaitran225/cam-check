@@ -1,29 +1,25 @@
 package com.camcheck.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * MVC Configuration for view controllers
  */
 @Configuration
+@Slf4j
 public class MvcConfig implements WebMvcConfigurer {
 
     @Override
-    public void addViewControllers(@NonNull ViewControllerRegistry registry) {
+    public void addViewControllers(ViewControllerRegistry registry) {
         // Map URL paths to view names
-        registry.addViewController("/").setViewName("index");
+        log.info("Configuring view controllers");
         registry.addViewController("/login").setViewName("login");
         registry.addViewController("/dashboard").setViewName("dashboard");
-    }
-    
-    @Override
-    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
-        // Static resources configuration
-        registry.addResourceHandler("/static/**")
-                .addResourceLocations("classpath:/static/");
+        
+        // Note: We don't map "/" here because it's handled by the HomeController
+        // or served directly from the frontend/web directory
     }
 } 

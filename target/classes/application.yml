@@ -13,3 +13,10 @@ spring:
     cache: false
     check-template: true
     check-template-location: true
+  web:
+    resources:
+      static-locations: file:frontend/web/,classpath:/static/
+      cache:
+        period: 0
+  mvc:
+    static-path-pattern: /**
