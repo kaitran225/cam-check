@@ -1,22 +1,36 @@
 version: '3.8'
 
 services:
-  camcheck:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=production
-      - SERVER_PORT=80
-      - CAMCHECK_CAMERA_FORCE_FALLBACK=true
-      - CAMCHECK_SECURITY_USERNAME=admin
-      - CAMCHECK_SECURITY_PASSWORD=changeme
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:h2:file:/data/camcheck
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=password
+      - FRONTEND_PATH=/app/frontend/web
     volumes:
-      - recordings:/app/recordings
-    restart: unless-stopped
+      - ./data:/data
+      - ./frontend/web:/app/frontend/web
+    networks:
+      - camcheck-network
 
-volumes:
-  recordings:
-    driver: local 
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/web:/usr/share/nginx/html
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - camcheck-network
+
+networks:
+  camcheck-network:
+    driver: bridge 
